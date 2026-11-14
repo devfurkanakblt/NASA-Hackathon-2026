@@ -5,7 +5,11 @@ Veri formatının tamamı: [`docs/data-contract.md`](data-contract.md). Gerçek 
 
 ## A:
 
-- _(henüz not yok — B/C/D, A'ya iletmek istediklerinizi `B-> ...` şeklinde buraya ekleyin)_
+- C-> Yeni komut: `python -m preprocess.crosscheck_moontrek` → `docs/validation-moontrek.md`. Etkinlik sayfasında listelenen NASA Moon Trek'in LOLA 5 m verisinden (`LRO_LOLA_DEM_SPole875_5mp_v04`) aynı `terrain.build` ile ızgara üretip `terrain.json` ile karşılaştırıyor. Sonuç: eğimi 10°'nin altındaki arazide RMS fark 1.3–2.4 m, Shackleton duvarında (eğim > 25°) 16–18 m. `preprocess/README.md`'ye ve slayt 6'ya ekleyebilirsin; `public/data/` değişmedi.
+- C-> TypeScript motoru (`src/sim/`), `docs/reference/visibility.json`'daki yüzdeleri ve pencere indekslerini dört sitede birebir üretiyor (`tests/simRealData.test.ts`). Değerler şimdilik teste elle yazıldı; dosya `main`'e girince test doğrudan dosyadan okuyabilir.
+- C-> 3B genel görünüm `sites.json` → `surfaceElevationM` alanını kullanıyor (1737.4 km referans küreyi çizmek için). Bu alanın adı ya da anlamı değişirse haber ver.
+- C-> `preprocess/requirements.txt`'teki `numpy==1.26.4` Python 3.14'te kurulmuyor; numpy 2.5 + rasterio 1.5.2 + pyproj 3.8 ile `terrain.build` ve `Dem` sorunsuz çalıştı.
+- C-> `.gitignore`'a web uygulaması satırları (`node_modules`, `dist`) ve `.venv/` eklendi; senin satırlarına dokunulmadı.
 
 ## B:
 
@@ -25,6 +29,12 @@ Veri formatının tamamı: [`docs/data-contract.md`](data-contract.md). Gerçek 
   | Site04 | %27 | %0 | %0 |
   | Site04R | %100 | %48 | %48 |
   | Site07 | %100 | %50 | %50 |
+- C-> `main`'de artık Vite + React + TypeScript iskeleti var (`npm install`, `npm run dev`, `npm test`). `src/App.tsx` şimdilik geçici bir sayfa gösteriyor (`src/scene3d/dev/Scene3DDemo.tsx`); kendi ekran düzenini kurunca `App.tsx`'i değiştir, geçici sayfa silinebilir.
+- C-> 3B görünüm: `import { MissionScene3D } from './scene3d'`. Girdiler: `terrain` ve `horizon` (JSON dosyaları olduğu gibi), `sun` / `earth` (`azDeg`, `elDeg`, `visible`, `distanceM`), isteğe bağlı `sunPath` / `earthPath` (görev boyunca iz), `panel`, `observerHeightM`, `surfaceElevationM`. Bulunduğu kutuya yükseklik ver (en az ~320 px); WebGL yoksa kendi kutusunda uyarı gösterir, sayfanın geri kalanı çalışır.
+- C-> Veri yükleme hazır: `loadAllData()` (`src/data/load.ts`) bütün siteleri ilk açılışta alır, sonrasında ağ isteği olmaz. Sözleşme tipleri `src/data/contract.ts`'te.
+- C-> Motor hazır: `evaluateScenarios(candidates, settings, bySite)` (`src/sim/evaluate.ts`) en fazla 3 senaryo döndürür. Grafikler için `generationW`, `loadW`, `socJ` (örnek başına), şeritler için `sunWindows` / `earthWindows` / `bothWindows` (saniye cinsinden `startS`, `endS`), kartlar için `summary` (`keepsBatteryReserve`, `earthOutageWithinLimit`, `firstReserveViolationS`, `unmetEnergyJ`...). "Kalan süre" için `nextTransition(windows, tS)` (`src/sim/visibility.ts`).
+- C-> ECharts henüz `package.json`'da yok; panorama ve grafikler için sen ekleyeceksin.
+- C-> Resmî teslim kuralı: proje sayfası ve bağlantı verilen her şey İngilizce olmalı; arayüz metinlerini İngilizce yaz (3B etiketleri İngilizce).
 
 ## C:
 
