@@ -37,7 +37,7 @@ Time series do **not** carry a time array: `t[i] = startUtc + i * stepS`.
       "lonDeg": -137.49,
       "surfaceElevationM": 1234.5,
       "observerHeightM": 2.0,
-      "coordSource": "NASA Lunar Surface Data Book, Table A2.1-1",
+      "coordSource": "NASA Lunar Surface Data Book (M2M-30044, Mar 2025), Table A2.1-1",
       "demNear": "LOLA 5 m/px Site01 (Barker et al. 2021)",
       "demFar": "LDEM_80S_80MPP_ADJ (Barker et al. 2023)",
       "label": "Research region center — not a certified landing site",
@@ -82,12 +82,14 @@ Optional fields for derived evaluation points (e.g. `Site04R`): `derivedFrom` (c
   "distanceM": [],
   "params": {
     "nearRangeM": 7000, "nearStepM": 2.5,
-    "maxRangeM": 100000, "farStepM": 40,
+    "maxRangeM": 250000, "farStepM": 40,
     "minRangeM": 10, "curvature": true
   },
   "warnings": []
 }
 ```
+
+Optional: `refinedAzDeg` (azimuths recomputed with halved steps) and `coverageLimitedAzDeg` (azimuths where terrain beyond the regional DEM's -80 deg edge could raise the horizon; absent when there are none, which is the case for all current sites).
 
 - `elevDeg[i]` = terrain horizon elevation at azimuth `i * azStepDeg`.
 - `distanceM[i]` = distance to the terrain point that forms the horizon. Use it in the UI as "blocked by a ridge X km away".
@@ -108,6 +110,58 @@ Optional fields for derived evaluation points (e.g. `Site04R`): `derivedFrom` (c
 
 - `zM` is row-major, `n*n` values, row 0 = southernmost (y = -sizeM/2), column 0 = westernmost (x = -sizeM/2).
 - This grid is **for visualisation only**. Visibility always comes from `horizon.json`.
+
+## `{siteId}/map.json` (regional map, added in v1 without breaking changes)
+
+Summary values on a grid around the site, for the "alternative point in the same region" view.
+Each cell has its own terrain horizon and its own Sun/Earth directions (see `docs/validation.md` §6).
+
+```json
+{
+  "version": 1,
+  "siteId": "Site01",
+  "grid": { "nx": 61, "ny": 61, "spacingM": 100, "halfSizeM": 3000,
+            "originENU": "site center (sites.json latDeg/lonDeg)",
+            "order": "row-major, row 0 = south, col 0 = west",
+            "cellCenter": "eastM = -halfSizeM + col*spacingM, northM = -halfSizeM + row*spacingM" },
+  "coverage": { "startUtc": "2026-11-01T00:00:00Z", "endUtc": "2027-01-01T00:00:00Z", "stepS": 600, "count": 8785 },
+  "latDeg": [], "lonDeg": [], "surfaceElevationM": [],
+  "sunPct": [], "earthPct": [], "bothPct": [], "sunDiskFractionMean": [],
+  "longestNoSunS": [], "longestNoEarthS": [],
+  "slopeDeg": [],
+  "method": { "horizon": "...", "ephemeris": "...", "visibility": "...", "slope": "...", "observerHeightM": 2 },
+  "warnings": []
+}
+```
+
+- All arrays have `nx * ny` values in the order given by `grid.order` (same as `terrain.json`). Index of a cell: `row * nx + col`. The centre cell (`row = col = (nx-1)/2`) is the site itself.
+- `sunPct`, `earthPct`, `bothPct`: percentage of samples with `el > horizonAt(az)` (same rule as the site files) over `coverage`. `bothPct` = Sun and Earth at the same sample.
+- `longestNoSunS`, `longestNoEarthS`: longest continuous run without Sun / Earth, seconds. A value equal to `(count) * stepS` means "never visible in the period".
+- `slopeDeg`: terrain slope over a 25 m baseline from the 5 m DEM; `null` if not covered. Terrain descriptor only, not a landing-safety assessment.
+- `surfaceElevationM`: DEM height of the cell (observer eye = this + 2 m).
+- **Summary only.** There is no time series for map cells. If the UI lets the user pick a cell, label the numbers as a summary for that period; the energy simulation and the rise/set timeline run only for entries in `sites.json`.
+- Site01/04/04R/07 use 100 m cells (61×61); Site11/20/23 use 200 m cells (31×31). Always read `nx`, `spacingM` from the file.
+
+## `{siteId}/season.json` (one-year summary, added in v1 without breaking changes)
+
+The terrain horizon does not change; only the ephemeris is re-queried (JPL Horizons, same settings, 10-minute steps) for one year. The year series itself is not published; the file holds monthly summaries.
+
+```json
+{
+  "version": 1,
+  "siteId": "Site01",
+  "source": "jpl-horizons",
+  "coverage": { "startUtc": "2026-11-01T00:00:00Z", "endUtc": "2027-11-01T00:00:00Z", "stepS": 600, "count": 52561 },
+  "year":       { "samples": 52561, "sunPct": 47.4, "earthPct": 40.03, "bothPct": 0, "sunDiskFractionMean": 0,
+                  "longestNoSunS": 0, "longestNoEarthS": 0, "sunElMaxDeg": 0, "sunElMinDeg": 0, "earthElMaxDeg": 0 },
+  "mainPeriod": { "startUtc": "2026-11-01T00:00:00Z", "endUtc": "2027-01-01T00:00:00Z", "...": "same fields" },
+  "months": [ { "month": "2026-11", "startIndex": 0, "endIndex": 4320, "...": "same fields" } ]
+}
+```
+
+- `months[k]` covers samples `[startIndex, endIndex)` of the year series (calendar month, UTC).
+- `mainPeriod` uses exactly the samples of `ephemeris.json`; its percentages equal `docs/reference/visibility.json` (checked when the file is built).
+- `sunElMaxDeg` / `sunElMinDeg`: Sun elevation above the local horizontal plane (no terrain). When `sunElMaxDeg` is below the terrain horizon in the Sun's direction the month has no sunlight, which is the seasonal effect to show.
 
 ## Visibility rule (shared by B and D)
 

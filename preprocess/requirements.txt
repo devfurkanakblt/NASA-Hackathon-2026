@@ -1,6 +1,9 @@
-numpy==1.26.4
-rasterio==1.5.0
-pyproj==3.7.2
+# rasterio 1.5 requires numpy >= 2. Checked in a clean venv on Python 3.12 (preprocess tests pass);
+# Person C ran the pipeline on Python 3.14 with numpy 2.5, rasterio 1.5.2, pyproj 3.8.
+numpy>=2.0,<3
+rasterio>=1.5.0,<1.6
+pyproj>=3.7.2,<4
+scipy>=1.13,<2
 skyfield==1.55
 requests==2.34.2
 pytest

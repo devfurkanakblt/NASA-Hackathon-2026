@@ -16,6 +16,16 @@ Every 10-minute sample over 2026-11-01 to 2027-01-01 is compared.
 | Site07 | earth | jpl-horizons | 8785 | 0.00006 | 0.00006 | yes |
 | Site04R | sun | jpl-horizons | 8785 | 0.00005 | 0.00006 | yes |
 | Site04R | earth | jpl-horizons | 8785 | 0.00006 | 0.00006 | yes |
+| Site11 | sun | jpl-horizons | 8785 | 0.00005 | 0.00006 | yes |
+| Site11 | earth | jpl-horizons | 8785 | 0.00006 | 0.00006 | yes |
+| Site20 | sun | jpl-horizons | 8785 | 0.00006 | 0.00006 | yes |
+| Site20 | earth | jpl-horizons | 8785 | 0.00006 | 0.00006 | yes |
+| Site23 | sun | jpl-horizons | 8785 | 0.00005 | 0.00006 | yes |
+| Site23 | earth | jpl-horizons | 8785 | 0.00006 | 0.00006 | yes |
+| CE6 | sun | jpl-horizons | 8785 | 0.00006 | 0.00006 | yes |
+| CE6 | earth | jpl-horizons | 8785 | 0.00004 | 0.00006 | yes |
+| Apollo11 | sun | jpl-horizons | 8785 | 0.00006 | 0.00006 | yes |
+| Apollo11 | earth | jpl-horizons | 8785 | 0.00004 | 0.00006 | yes |
 
 ## 2. Horizon convergence and range sensitivity (32 azimuths, every 11.25 deg)
 
@@ -25,6 +35,11 @@ Every 10-minute sample over 2026-11-01 to 2027-01-01 is compared.
 | Site04 | 0.0180 | none | 0.00005 | 0.0548 | 135 (0.055) |
 | Site07 | 0.0191 | none | 0.00005 | 1.3395 | 123.8 (0.902), 135 (1.008), 202.5 (0.308), 225 (1.339), 247.5 (0.111), 258.8 (0.734) |
 | Site04R | 0.0065 | none | 0.00005 | 1.2765 | 45 (0.175), 135 (0.175), 146.2 (0.316), 157.5 (1.032), 180 (0.257), 191.2 (1.276), 202.5 (0.502), 225 (0.070), 236.2 (0.236) |
+| Site11 | 0.0163 | none | 0.00005 | 2.7577 | 78.8 (1.082), 90 (1.080), 101.2 (0.669), 112.5 (2.758), 123.8 (1.602), 135 (0.936), 146.2 (0.605), 157.5 (0.147) |
+| Site20 | 0.0151 | none | 0.00005 | 0.1747 | 168.8 (0.175) |
+| Site23 | 0.0168 | none | 0.00005 | 0.7470 | 168.8 (0.747), 180 (0.744) |
+| CE6 | 0.0016 | none | 0.00005 | 0.0000 | none |
+| Apollo11 | 0.0002 | none | 0.00005 | 0.0000 | none |
 
 ## 3. Data transfer: JSON vs a fresh Horizons request
 
@@ -40,6 +55,16 @@ Every 10-minute sample over 2026-11-01 to 2027-01-01 is compared.
 | Site07 | earth | 14 | 0.000043 | 0.000045 | 9.7e-07 | yes |
 | Site04R | sun | 14 | 0.000050 | 0.000049 | 3.3e-09 | yes |
 | Site04R | earth | 14 | 0.000045 | 0.000033 | 1.1e-06 | yes |
+| Site11 | sun | 14 | 0.000048 | 0.000048 | 3.3e-09 | yes |
+| Site11 | earth | 14 | 0.000047 | 0.000049 | 1.2e-06 | yes |
+| Site20 | sun | 14 | 0.000049 | 0.000048 | 3.4e-09 | yes |
+| Site20 | earth | 14 | 0.000049 | 0.000048 | 1.1e-06 | yes |
+| Site23 | sun | 14 | 0.000049 | 0.000050 | 3.2e-09 | yes |
+| Site23 | earth | 14 | 0.000046 | 0.000041 | 1.3e-06 | yes |
+| CE6 | sun | 14 | 0.000042 | 0.000044 | 3.3e-09 | yes |
+| CE6 | earth | 14 | 0.000032 | 0.000045 | 1.3e-06 | yes |
+| Apollo11 | sun | 14 | 0.000043 | 0.000047 | 3.3e-09 | yes |
+| Apollo11 | earth | 14 | 0.000024 | 0.000049 | 1.0e-06 | yes |
 
 The files store angles with 4 decimals (<= 0.00005 deg rounding) and distances to the nearest km (<= 500 m), which bounds the expected difference.
 
@@ -57,7 +82,62 @@ A terrain rise/set is a sign change of `el - horizonAt(az)`. The instant is esti
 | Site07 | earth | 5 | 4 | 0.04 | 0.02 | 0.05-0.07 | 42-56 |
 | Site04R | sun | 0 | - | - | - | - | - |
 | Site04R | earth | 5 | 4 | 0.03 | 0.02 | 0.06-0.07 | 44-50 |
+| Site11 | sun | 9 | 4 | 0.08 | 0.05 | 0.02-0.05 | 61-125 |
+| Site11 | earth | 5 | 4 | 0.03 | 0.01 | 0.06-0.07 | 45-54 |
+| Site20 | sun | 8 | 4 | 2.40 | 0.64 | 0.02-0.07 | 43-153 |
+| Site20 | earth | 5 | 4 | 0.04 | 0.02 | 0.06-0.07 | 40-53 |
+| Site23 | sun | 14 | 4 | 0.33 | 0.11 | 0.01-0.04 | 76-242 |
+| Site23 | earth | 5 | 4 | 0.04 | 0.02 | 0.06-0.07 | 42-52 |
+| CE6 | sun | 4 | 4 | 0.01 | 0.00 | 0.37-0.38 | 8-8 |
+| CE6 | earth | 0 | - | - | - | - | - |
+| Apollo11 | sun | 4 | 4 | 0.01 | 0.00 | 0.51-0.51 | 6-6 |
+| Apollo11 | earth | 0 | - | - | - | - | - |
 
 Using samples without interpolation (visible if `el > horizonAt(az)` at the sample) shifts an event by up to one step (10 min). Near the pole the Sun and Earth cross the horizon slowly, so a small angle error becomes a large time error (last column).
+
+## 5. External comparison: LOLA polar illumination products (Mazarico et al.)
+
+Reference: PGDA *Lunar Polar Illumination* (https://pgda.gsfc.nasa.gov/products/69), 85S-90S 60 m/px maps, release 2016-08: mean visible fraction of the solar disk (`AVGVISIB_85S_060M_201608`) and mean Earth visibility, Earth counted visible if any part of its disk is unobscured (`..._EARTH`), both hourly over 18.6 years (one lunar nutation cycle).
+
+Ours: `horizon.json` of each site with an independent ephemeris (Skyfield/DE421) over 18.6 years from 2009-07-13, 60-minute steps, with the same two definitions. Reference columns show the 60 m pixel containing the site and the min-max of its 3x3 neighbourhood (180 m), which indicates how fast the value changes nearby.
+
+| Site | Ours: Sun disk mean | Product: Sun (3x3 range) | Ours: Earth (any part) | Product: Earth (3x3 range) | Ours: Earth (centre rule) |
+|---|---|---|---|---|---|
+| Site01 | 0.462 | 0.439 (0.367-0.769) | 0.470 | 0.391 (0.339-0.572) | 0.424 |
+| Site04 | 0.091 | 0.110 (0.099-0.120) | 0.105 | 0.111 (0.097-0.124) | 0.055 |
+| Site07 | 0.679 | 0.702 (0.170-0.860) | 0.595 | 0.559 (0.442-0.565) | 0.549 |
+| Site04R | 0.859 | 0.852 (0.063-0.852) | 0.567 | 0.550 (0.293-0.550) | 0.522 |
+| Site11 | 0.533 | 0.490 (0.331-0.613) | 0.614 | 0.613 (0.610-0.613) | 0.566 |
+| Site20 | 0.210 | 0.204 (0.147-0.266) | 0.419 | 0.391 (0.352-0.430) | 0.371 |
+| Site23 | 0.197 | 0.282 (0.088-0.411) | 0.521 | 0.524 (0.490-0.531) | 0.475 |
+
+Rank correlation (Spearman) over 7 sites: Sun 0.96, Earth 0.96.
+Largest Sun difference: 0.085; ours within the 3x3 range (+-0.02) at 7 of 7 sites.
+
+Expected differences: the products use the 2016 60 m DEM and an observer on the surface; we use the 5 m site DEMs (Barker et al. 2021) near the site and an observer 2 m above it. On ridges and crater rims the value changes by tens of percent within one 60 m pixel (see the 3x3 range), so agreement in magnitude and ranking is the meaningful test.
+
+### Permanent shadow: Shackleton crater floor
+
+Point -89.67, 129.78 (crater centre), surface -2788 m. Our horizon from that point and 163048 hourly Sun positions over 18.6 years: highest Sun centre above the terrain horizon -17.88 deg, fraction of hours with any part of the disk above the horizon 0.0000. Products at the same pixel: LPSR 1.00, AVGVISIB 0.000. Both agree: permanently shadowed.
+
+## 6. Regional maps (`map.json`)
+
+Each map cell has its own terrain horizon (same ray marcher, step sizes, DEMs and 250 km range as `horizon.json`, but a 0.5 deg azimuth step) and its own Sun/Earth directions (body positions rebuilt in the Moon-fixed frame from the site's Horizons ephemeris and projected into the cell's local frame; at the site centre this reproduces ephemeris.json to 1e-13 deg).
+
+Centre cell = published site values (full 0.1 deg horizon); random cells = map value vs a full 0.1 deg horizon recomputed at that cell. Acceptance: <= 1.0 percentage point.
+
+| Site | Cells | Spacing [m] | Centre dSun / dEarth / dBoth [pp] | Random cells | max |dSun| [pp] | max |dEarth| [pp] | max |dBoth| [pp] | Pass |
+|---|---|---|---|---|---|---|---|---|
+| Site01 | 3721 | 100 | -0.01 / -0.03 / -0.02 | 6 | 0.01 | 0.02 | 0.02 | yes |
+| Site04 | 3721 | 100 | +0.02 / +0.00 / +0.00 | 6 | 0.01 | 0.05 | 0.03 | yes |
+| Site07 | 3721 | 100 | +0.00 / -0.01 / -0.01 | 6 | 0.03 | 0.02 | 0.01 | yes |
+| Site04R | 3721 | 100 | +0.00 / +0.00 / +0.00 | 6 | 0.01 | 0.01 | 0.01 | yes |
+| Site11 | 961 | 200 | -0.03 / +0.00 / -0.01 | 6 | 0.02 | 0.05 | 0.01 | yes |
+| Site20 | 961 | 200 | -0.03 / +0.00 / -0.02 | 6 | 0.05 | 0.03 | 0.01 | yes |
+| Site23 | 961 | 200 | -0.06 / +0.00 / +0.00 | 6 | 0.01 | 0.00 | 0.00 | yes |
+
+Consistency: the Site04 map cell nearest to the derived ridge point Site04R (40 m away) has Sun 98.0 % and Sun+Earth 46.8 %, in the top 0.2 % / 0.5 % of the map's cells (catalogue centre: Sun 27.2 %). 0.2 % of the cells see the Sun at every sample of the period.
+
+The map reports a 2-month period (same as ephemeris.json); see `season.json` for the seasonal change at the site centres. Slope is from the 5 m DEM over a 25 m baseline; it is a terrain descriptor, not a landing-safety assessment.
 
 Pixel size and these numerical checks are not a statement of the DEM's absolute accuracy.

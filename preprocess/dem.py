@@ -1,7 +1,7 @@
 """DEM loading and vectorised bilinear sampling in south-polar-stereographic metres."""
 import numpy as np
 import rasterio
-from rasterio.windows import from_bounds
+from rasterio.windows import Window, from_bounds
 from pyproj import Transformer
 
 from . import config as C
@@ -29,6 +29,8 @@ class Dem:
                 window = from_bounds(cx - half_size_m, cy - half_size_m,
                                      cx + half_size_m, cy + half_size_m,
                                      src.transform).round_offsets().round_lengths()
+                # sites far from the pole: clip to the raster instead of reading past its edge
+                window = window.intersection(Window(0, 0, src.width, src.height))
             z = src.read(1, window=window, masked=True).filled(np.nan).astype(np.float32)
             tr = src.window_transform(window) if window is not None else src.transform
             return cls(z, tr.c, tr.f, src.res[0], src.crs, name=path.name)
@@ -64,6 +66,10 @@ def to_xy(crs, lon, lat):
 
 def load_site_dems(site_id, far_range_m=C.FAR_RANGE_M):
     s = C.SITES[site_id]
+    if s.get("dem") == "ldem64":  # non-polar contrast site: one global DEM for near and far
+        from .global_dem import window
+        g = window(s["lat"], s["lon"], far_range_m + 10_000)
+        return g, g, to_xy(g.crs, s["lon"], s["lat"])
     near = Dem.open(C.local_dem_path(site_id))
     xy = to_xy(near.crs, s["lon"], s["lat"])
     far = Dem.open(C.REGIONAL_DEM_PATH, center_xy=xy, half_size_m=far_range_m + 2_000)
