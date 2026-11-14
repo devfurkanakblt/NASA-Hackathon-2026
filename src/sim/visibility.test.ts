@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { horizonAt, intersectWindows, longestGapS, marginSeries, nextTransition, stepFractions, totalDurationS, windowsFromMargins } from './visibility.ts'
+import { horizonAt, intersectWindows, longestGapS, marginSeries, nextTransition, stepFractions, sunAngularRadiusDeg, sunDiskFraction, totalDurationS, windowsFromMargins } from './visibility.ts'
 
 const close = (a: number, b: number, eps = 1e-9) => expect(Math.abs(a - b)).toBeLessThan(eps)
 const STEP = 600
@@ -102,5 +102,25 @@ describe('window helpers', () => {
     expect(nextTransition(sun, 6 * STEP)).toBeNull() // still up at the end of the data
     expect(nextTransition(sun, 3 * STEP)).toEqual({ kind: 'rise', atS: 5.5 * STEP })
     expect(nextTransition([], 0)).toBeNull()
+  })
+})
+
+describe('sunDiskFraction', () => {
+  const AU = 1.495978707e11
+
+  it('is half the disk with the centre on the horizon and full / none one radius away', () => {
+    const r = sunAngularRadiusDeg(AU)
+    close(r, 0.2666)
+    close(sunDiskFraction(0, AU), 0.5)
+    close(sunDiskFraction(r, AU), 1)
+    close(sunDiskFraction(-r, AU), 0)
+    close(sunDiskFraction(r / 2, AU), 0.75)
+    expect(sunDiskFraction(5, AU)).toBe(1)
+    expect(sunDiskFraction(-5, AU)).toBe(0)
+  })
+
+  it('grows the disk when the Sun is closer', () => {
+    close(sunAngularRadiusDeg(0.5 * AU), 2 * 0.2666)
+    expect(sunDiskFraction(0.2666, 0.5 * AU)).toBeLessThan(1)
   })
 })
