@@ -1,0 +1,6 @@
+numpy==1.26.4
+rasterio==1.5.0
+pyproj==3.7.2
+skyfield==1.55
+requests==2.34.2
+pytest

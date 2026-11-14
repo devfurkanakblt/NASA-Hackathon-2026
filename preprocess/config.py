@@ -20,7 +20,7 @@ STEP_S = 600  # 10 minutes
 AZ_STEP_DEG = 0.1
 NEAR_RANGE_M = 7_000.0
 NEAR_STEP_M = 2.5
-FAR_RANGE_M = 100_000.0
+FAR_RANGE_M = 250_000.0  # 100 km missed far massifs at Site07 (up to 1.3 deg)
 FAR_STEP_M = 40.0
 MIN_RANGE_M = 10.0  # skip DEM noise directly under the observer
 
