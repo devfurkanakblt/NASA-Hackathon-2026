@@ -86,7 +86,7 @@ Talking points:
   RMS 1.3–2.4 m on gentle ground (< 10°), 16–18 m on Shackleton's steep wall (> 25°).
 - **Engine:** the TypeScript engine reproduces the Python pipeline's reference values (visibility
   percentages, every window, horizon test vectors, mean Sun-disk fraction) exactly on all nine
-  sites; 135 automated tests.
+  sites; 203 automated tests.
 
 ## Model limits (say them out loud)
 

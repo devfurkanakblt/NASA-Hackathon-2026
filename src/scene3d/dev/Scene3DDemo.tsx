@@ -8,6 +8,7 @@ import { nextTransition } from '../../sim/visibility.ts'
 import type { VisibilityWindow } from '../../sim/visibility.ts'
 import { bodyStatus, earthAngularDiameterDeg, sunAngularDiameterDeg } from '../coords.ts'
 import { MissionScene3D } from '../index.ts'
+import { earthOrientationAt, earthSunDirectionAt } from '../appearance.ts'
 import type { BodyPath, BodyState, PanelState, TerrainGrid } from '../types.ts'
 import './demo.css'
 
@@ -39,12 +40,13 @@ function countdown(name: string, windows: VisibilityWindow[], visibleNow: boolea
 
 /**
  * Stand-alone harness: the 3D view plus the simulation engine, run on the files in
- * `public/data/`. It stands in for the app shell until the real screen layout exists.
+ * `public/data/`. Open with `?demo=3d`; the main screen remains Person B's responsibility.
  *
  *   ?fail=terrain   hand the scene a malformed grid to check the fallback
  */
 export function Scene3DDemo() {
   const broken = useMemo(() => new URLSearchParams(window.location.search).get('fail') === 'terrain', [])
+  const diagnostics = useMemo(() => new URLSearchParams(window.location.search).get('diagnostics') === '1', [])
 
   const [loaded, setLoaded] = useState<LoadedData | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -92,7 +94,7 @@ export function Scene3DDemo() {
   }, [playing, lastStep])
 
   const k = Math.min(step, lastStep)
-  const startMs = Date.parse(startUtc)
+  const startMs = Date.parse(result?.alignedStartUtc ?? startUtc)
 
   // Tracks of the Sun and Earth over the mission, flagged by the engine.
   const paths = useMemo<{ sun: BodyPath; earth: BodyPath } | null>(() => {
@@ -117,7 +119,7 @@ export function Scene3DDemo() {
     () => ({ mode: settings.panelMode, areaM2: settings.panelAreaM2, fixedNormalAzDeg: settings.fixedNormalAzDeg, fixedNormalElDeg: settings.fixedNormalElDeg }),
     [settings.panelMode, settings.panelAreaM2, settings.fixedNormalAzDeg, settings.fixedNormalElDeg],
   )
-  const sceneTerrain = useMemo<TerrainGrid | null>(() => (data ? (broken ? { ...data.terrain, zM: [0, 1, 2] } : data.terrain) : null), [broken, data])
+  const sceneTerrain = useMemo<TerrainGrid | undefined>(() => (data?.terrain ? (broken ? { ...data.terrain, zM: [0, 1, 2] } : data.terrain) : undefined), [broken, data])
 
   const coverage = loaded?.sites.coverage
   const shiftStart = (hours: number) => {
@@ -125,7 +127,12 @@ export function Scene3DDemo() {
     setStep(0)
   }
   const patchSettings = (patch: Partial<MissionSettings>) => setSettings((s) => ({ ...s, ...patch }))
-  const warnings = [...(data?.site.warnings ?? []), ...(data?.horizon.warnings ?? [])]
+  const updateStartDate = (value: string) => {
+    if (!value) return
+    setStartUtc(`${value}T00:00:00Z`)
+    setStep(0)
+  }
+  const warnings = [...(data?.site.warnings ?? []), ...(data?.horizon.warnings ?? []), ...(data?.visualWarnings ?? [])]
   const summary = result?.summary
 
   return (
@@ -148,11 +155,8 @@ export function Scene3DDemo() {
             value={startUtc.slice(0, 10)}
             min={coverage?.startUtc.slice(0, 10)}
             max={coverage?.endUtc.slice(0, 10)}
-            onChange={(e) => {
-              if (!e.target.value) return
-              setStartUtc(`${e.target.value}T00:00:00Z`)
-              setStep(0)
-            }}
+            onInput={e => updateStartDate(e.currentTarget.value)}
+            onChange={e => updateStartDate(e.currentTarget.value)}
           />
         </label>
         <span className="demo__group">
@@ -183,6 +187,11 @@ export function Scene3DDemo() {
             <option value="fixed">fixed</option>
           </select>
         </label>
+        {diagnostics && <button type="button" onClick={() => {
+          const canvas = document.querySelector<HTMLCanvasElement>('.scene3d canvas')
+          const gl = canvas?.getContext('webgl2') ?? canvas?.getContext('webgl')
+          gl?.getExtension('WEBGL_lose_context')?.loseContext()
+        }}>Test GPU context loss</button>}
         {settings.panelMode === 'fixed' && (
           <label>
             Normal az{' '}
@@ -255,14 +264,19 @@ export function Scene3DDemo() {
           <p className="demo__message" role="alert">
             {evaluation.error}
           </p>
-        ) : data && sceneTerrain && result && now && paths ? (
+        ) : data && result && now && paths ? (
           <MissionScene3D
             terrain={sceneTerrain}
+            farTerrain={data.terrainFar}
             horizon={data.horizon}
             sun={now.sun}
             earth={now.earth}
             sunPath={paths.sun}
             earthPath={paths.earth}
+            earthOrientation={earthOrientationAt(data.earthOrientation, new Date(Date.parse(result.alignedStartUtc) + now.tS * 1000).toISOString())}
+            earthSunDirection={earthSunDirectionAt(data.earthOrientation, new Date(Date.parse(result.alignedStartUtc) + now.tS * 1000).toISOString())}
+            panelPowerW={result.generationW[k]}
+            diagnostics={diagnostics}
             panel={panel}
             observerHeightM={data.site.observerHeightM}
             surfaceElevationM={data.site.surfaceElevationM}

@@ -1,34 +1,66 @@
-import type { EphemerisDoc, HorizonDoc, LoadedData, MapDoc, SeasonDoc, SitesDoc, TerrainDoc } from './contract.ts'
+import type { LoadedData } from './contract.ts'
+import { validateEarthOrientation, validateEphemeris, validateHorizon, validateMap, validateSeason, validateSites, validateTerrain } from './validate.ts'
 
-async function getJson<T>(url: string): Promise<T> {
-  const response = await fetch(url)
-  if (!response.ok) throw new Error(`${url}: HTTP ${response.status}`)
-  return (await response.json()) as T
+class HttpError extends Error {
+  status: number
+  constructor(url: string, status: number) {
+    super(`${url}: HTTP ${status}`)
+    this.status = status
+  }
 }
 
-/** For files the app can do without: a missing one leaves its panel showing "not available". */
-const optional = <T>(promise: Promise<T>): Promise<T | undefined> => promise.catch(() => undefined)
+async function getJson(url: string): Promise<unknown> {
+  let response: Response
+  try {
+    response = await fetch(url)
+  } catch (error) {
+    throw new Error(`${url}: network request failed (${error instanceof Error ? error.message : String(error)})`)
+  }
+  if (!response.ok) throw new HttpError(url, response.status)
+  try {
+    return await response.json()
+  } catch {
+    throw new Error(`${url}: response is not valid JSON`)
+  }
+}
 
-/**
- * Loads `sites.json` and every site's files in one go. After this resolves the app makes
- * no further network requests: every later calculation runs on what is in memory.
- * `terrain`, `horizon` and `ephemeris` are required; `season.json` and `map.json` are optional
- * (contrast points have no `map.json`, so it is not requested for them).
- */
+/** Optional visuals never replace or suppress required scientific data. */
+async function optionalVisual<T>(url: string, parse: (value: unknown) => T, warnings: string[], missingWarning?: string): Promise<T | undefined> {
+  try {
+    return parse(await getJson(url))
+  } catch (error) {
+    if (error instanceof HttpError && error.status === 404) {
+      if (missingWarning) warnings.push(missingWarning)
+    } else {
+      warnings.push(`${error instanceof Error ? error.message : String(error)}. Visual unavailable; scientific results remain available.`)
+    }
+    return undefined
+  }
+}
+
+/** Loads the catalogue's sites once; user interaction makes no further NASA requests. */
 export async function loadAllData(baseUrl = `${import.meta.env.BASE_URL}data`): Promise<LoadedData> {
-  const sites = await getJson<SitesDoc>(`${baseUrl}/sites.json`)
-  const entries = await Promise.all(
-    sites.sites.map(async (site) => {
-      const dir = `${baseUrl}/${site.id}`
-      const [terrain, horizon, ephemeris, season, map] = await Promise.all([
-        getJson<TerrainDoc>(`${dir}/terrain.json`),
-        getJson<HorizonDoc>(`${dir}/horizon.json`),
-        getJson<EphemerisDoc>(`${dir}/ephemeris.json`),
-        optional(getJson<SeasonDoc>(`${dir}/season.json`)),
-        site.category === 'contrast' ? Promise.resolve(undefined) : optional(getJson<MapDoc>(`${dir}/map.json`)),
-      ])
-      return [site.id, { site, terrain, horizon, ephemeris, season, map }] as const
-    }),
-  )
+  const base = baseUrl.replace(/\/+$/, '')
+  const sites = validateSites(await getJson(`${base}/sites.json`), `${base}/sites.json`)
+  const entries = await Promise.all(sites.sites.map(async (site) => {
+    const root = `${base}/${encodeURIComponent(site.id)}`
+    const [ephemeris, horizon] = await Promise.all([
+      getJson(`${root}/ephemeris.json`).then((doc) => validateEphemeris(doc, site, sites.coverage, `${root}/ephemeris.json`)),
+      getJson(`${root}/horizon.json`).then((doc) => validateHorizon(doc, site.id, `${root}/horizon.json`)),
+    ])
+    const visualWarnings: string[] = []
+    const [terrain, terrainFar, earthOrientation, season, map] = await Promise.all([
+      optionalVisual(`${root}/terrain.json`, (doc) => validateTerrain(doc, site.id, `${root}/terrain.json`), visualWarnings,
+        `${root}/terrain.json: local 3D terrain unavailable. Scientific results remain available.`),
+      // Missing regional meshes are expected for newly generated A catalogue entries.
+      optionalVisual(`${root}/terrain-far.json`, (doc) => validateTerrain(doc, site.id, `${root}/terrain-far.json`), visualWarnings),
+      optionalVisual(`${root}/earth-orientation.json`, (doc) => validateEarthOrientation(doc, site.id, ephemeris, `${root}/earth-orientation.json`, site), visualWarnings,
+        `${root}/earth-orientation.json: registered Earth texture orientation unavailable.`),
+      optionalVisual(`${root}/season.json`, (doc) => validateSeason(doc, site.id, sites.coverage, `${root}/season.json`), visualWarnings),
+      site.category === 'contrast' ? Promise.resolve(undefined) :
+        optionalVisual(`${root}/map.json`, (doc) => validateMap(doc, site.id, sites.coverage, `${root}/map.json`), visualWarnings),
+    ])
+    return [site.id, { site, ephemeris, horizon, terrain, terrainFar, earthOrientation, visualWarnings, season, map }] as const
+  }))
   return { sites, bySite: Object.fromEntries(entries) }
 }

@@ -79,6 +79,9 @@ describe('buildTerrainMeshData', () => {
     expect(() => buildTerrainMeshData({ ...grid, zM: [1, 2, 3] })).toThrow()
     expect(() => buildTerrainMeshData({ sizeM: 5, n: 1, cellM: 5, zM: [0] })).toThrow()
     expect(() => buildTerrainMeshData({ ...grid, cellM: 0 })).toThrow()
+    expect(() => buildTerrainMeshData({ ...grid, cellM: Infinity })).toThrow()
+    expect(() => buildTerrainMeshData({ ...grid, zM: new Array(16).fill(NaN) })).toThrow(/non-finite/)
+    expect(() => buildTerrainMeshData(grid, Infinity)).toThrow(/finite/)
   })
 })
 

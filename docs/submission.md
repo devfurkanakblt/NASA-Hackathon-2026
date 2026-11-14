@@ -63,7 +63,7 @@ rise/set times from 10-minute data agree with a 1-minute series within 0.33 min 
 on gentle ground. Against NASA GSFC's independent polar illumination maps (Mazarico et al., 18.6
 years) our Sun and Earth visibility falls within the map's local 3×3-pixel range at all 7 polar
 sites (rank correlation 0.96 for both), and Shackleton's floor is permanently shadowed in both.
-The TypeScript engine reproduces the Python reference values exactly; 135 automated tests run on
+The TypeScript engine reproduces the Python reference values exactly; 203 automated tests run on
 every change.
 
 **Limits.** Sites are research region centres, not certified landing sites; hardware values are
