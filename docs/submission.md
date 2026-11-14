@@ -58,7 +58,7 @@ rise/set times from 10-minute data agree with a 1-minute series within 0.33 min 
 on gentle ground. Against NASA GSFC's independent polar illumination maps (Mazarico et al., 18.6
 years) our Sun and Earth visibility falls within the map's local 3×3-pixel range at all 7 polar
 sites (rank correlation 0.96 for both), and Shackleton's floor is permanently shadowed in both.
-The TypeScript engine reproduces the Python reference values exactly; 108 automated tests run on
+The TypeScript engine reproduces the Python reference values exactly; 122 automated tests run on
 every change.
 
 **Limits.** Sites are research region centres, not certified landing sites; hardware values are
@@ -97,7 +97,6 @@ data; every number in the app is computed from the NASA sources below by code in
 ## Space agency partner and other data
 
 - Skyfield with JPL DE421 ephemeris and lunar PA frame (independent cross-check) — https://rhodesmill.org/skyfield/
-- LROC (Arizona State University), "First Look: Chang'e 6" (Chang'e-6 landing coordinates) — https://lroc.asu.edu/images/1374
 
 ## References
 

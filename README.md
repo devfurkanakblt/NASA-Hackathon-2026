@@ -120,8 +120,7 @@ rise/set time. DEM pixel size and the checks below are not a statement of absolu
 - LOLA global DEM LDEM_64, PDS LRO-L-LOLA-4-GDR-V1.0 (contrast points)
 - NASA GSFC PGDA Lunar Polar Illumination maps (Mazarico et al.) — https://pgda.gsfc.nasa.gov/products/69
 - Solar constant 1361 W/m² — NASA GSFC solar irradiance — https://earth.gsfc.nasa.gov/climate/projects/solar-irradiance/science
-- Mazarico, E. et al. (2011), *Illumination conditions of the lunar polar regions using LOLA topography*, Icarus 211, 1066–1081; NASA PGDA Lunar Polar Illumination products — https://pgda.gsfc.nasa.gov/products/69
-- LOLA global DEM LDEM_64 (PDS LRO-L-LOLA-4-GDR-V1.0), contrast points
+- Mazarico, E. et al. (2011), *Illumination conditions of the lunar polar regions using LOLA topography*, Icarus 211, 1066–1081. doi:10.1016/j.icarus.2010.10.030
 - Contrast-point coordinates: LROC *First Look: Chang'e 6* (lroc.asu.edu/images/1374); NASA NSSDC Apollo landing site coordinates
 - Software: Skyfield, NumPy, SciPy, Rasterio, PyProj, Requests, React, three.js / React Three Fiber, Vite, Vitest
 
