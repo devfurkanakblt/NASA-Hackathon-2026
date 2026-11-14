@@ -11,9 +11,13 @@ import argparse
 import json
 import time
 
+import numpy as np
+
 from . import config as C, writer as W
 from . import horizon as Hz, terrain as T
 from .dem import load_site_dems, surface_elevation
+
+REFINE_TOL_DEG = 0.02  # stricter than the 0.05 deg acceptance threshold
 
 
 def ephemeris(site_id, eye_alt_m, source):
@@ -46,13 +50,22 @@ def build_site(site_id, args):
 
     d = Hz.distances(far_range=args.far_range)
     elev, dist, fb = Hz.compute(s["lat"], s["lon"], eye, near, far, near.crs, d=d)
+    # Refinement: recompute with halved steps; keep the finer value where they disagree.
+    d_fine = Hz.distances(near_step=C.NEAR_STEP_M / 2, far_step=C.FAR_STEP_M / 2, far_range=args.far_range)
+    elev_f, dist_f, _ = Hz.compute(s["lat"], s["lon"], eye, near, far, near.crs, d=d_fine)
+    bad = np.abs(elev_f - elev) > REFINE_TOL_DEG
+    elev[bad], dist[bad] = elev_f[bad], dist_f[bad]
+    refined_az = [round(i * C.AZ_STEP_DEG, 1) for i in np.flatnonzero(bad)]
+    print(f"  refined {bad.sum()} / {bad.size} azimuths with halved steps")
     hw = []
     if fb:
         hw.append(f"{fb} near-field samples (<= {C.NEAR_RANGE_M:.0f} m) used the 80 m DEM")
     params = {"nearRangeM": C.NEAR_RANGE_M, "nearStepM": C.NEAR_STEP_M,
               "maxRangeM": args.far_range, "farStepM": C.FAR_STEP_M,
               "minRangeM": C.MIN_RANGE_M, "curvature": True}
-    W.write(out / "horizon.json", W.horizon_doc(site_id, elev, dist, params, hw))
+    doc = W.horizon_doc(site_id, elev, dist, params, hw)
+    doc["refinedAzDeg"] = refined_az
+    W.write(out / "horizon.json", doc)
     print(f"  horizon: min {elev.min():.3f}, max {elev.max():.3f} deg")
 
     z, miss = T.build(s["lat"], s["lon"], eye, near, far, near.crs)
