@@ -1,0 +1,223 @@
+.scene3d {
+  position: relative;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  min-height: 320px;
+  overflow: hidden;
+  background: #000;
+  color: #e8ecf3;
+  font: 13px/1.4 system-ui, 'Segoe UI', Roboto, sans-serif;
+}
+
+.scene3d canvas {
+  display: block;
+  touch-action: none;
+}
+
+.scene3d__toolbar {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  z-index: 20;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  pointer-events: none;
+}
+
+.scene3d__toolbar > * {
+  pointer-events: auto;
+}
+
+.scene3d__segmented {
+  display: inline-flex;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 6px;
+  overflow: hidden;
+  background: rgba(10, 13, 20, 0.78);
+}
+
+.scene3d__segmented button {
+  appearance: none;
+  border: 0;
+  padding: 6px 11px;
+  background: transparent;
+  color: #c6cedb;
+  font: inherit;
+  cursor: pointer;
+}
+
+.scene3d__segmented button + button {
+  border-left: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.scene3d__segmented button[aria-pressed='true'] {
+  background: #e8ecf3;
+  color: #0b0e14;
+}
+
+.scene3d__segmented button:focus-visible,
+.scene3d__check input:focus-visible,
+.scene3d--fallback button:focus-visible,
+.scene3d__lost button:focus-visible {
+  outline: 2px solid #7fb4ff;
+  outline-offset: -2px;
+}
+
+.scene3d__check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 11px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 6px;
+  background: rgba(10, 13, 20, 0.78);
+  cursor: pointer;
+  user-select: none;
+}
+
+.scene3d__check input {
+  margin: 0;
+  accent-color: #ff9f43;
+}
+
+.scene3d__explain {
+  position: absolute;
+  left: 10px;
+  bottom: 34px;
+  z-index: 20;
+  max-width: min(560px, calc(100% - 20px));
+  padding: 8px 11px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 6px;
+  background: rgba(10, 13, 20, 0.84);
+  pointer-events: none;
+}
+
+.scene3d__explain p {
+  margin: 4px 0 0;
+}
+
+.scene3d__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  color: #aab3c2;
+  font-size: 12px;
+}
+
+.scene3d__legend i {
+  display: inline-block;
+  width: 22px;
+  height: 2px;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+.scene3d__legend i.scene3d__dash {
+  height: 0;
+  border-top: 2px dashed currentColor;
+}
+
+.scene3d__note {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 8px;
+  z-index: 20;
+  margin: 0;
+  color: #8f99aa;
+  font-size: 11.5px;
+  pointer-events: none;
+}
+
+.scene3d__labels {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* Positioned every frame by LabelProjector; hidden until first placed. */
+.scene3d__label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  visibility: hidden;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(5, 7, 11, 0.7);
+  font: 11.5px/1.5 system-ui, 'Segoe UI', Roboto, sans-serif;
+  white-space: nowrap;
+  user-select: none;
+  will-change: transform;
+}
+
+.scene3d__label-name {
+  font-weight: 600;
+}
+
+.scene3d__label--compass {
+  color: #aab3c2;
+  background: transparent;
+  font-weight: 600;
+}
+
+.scene3d__label--north {
+  color: #ff5a4f;
+  font-weight: 700;
+}
+
+.scene3d--fallback,
+.scene3d--loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 24px;
+  text-align: center;
+  color: #aab3c2;
+  background: #0b0e14;
+}
+
+.scene3d--fallback strong {
+  color: #e8ecf3;
+  font-size: 15px;
+}
+
+.scene3d--fallback p {
+  max-width: 46ch;
+  margin: 0;
+}
+
+.scene3d--fallback button,
+.scene3d__lost button {
+  margin-top: 8px;
+  padding: 6px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 6px;
+  background: transparent;
+  color: #e8ecf3;
+  font: inherit;
+  cursor: pointer;
+}
+
+.scene3d__lost {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(5, 7, 11, 0.88);
+}
+
+.scene3d__lost p {
+  margin: 0;
+}

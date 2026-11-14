@@ -20,7 +20,7 @@ Veri formatının tamamı: [`docs/data-contract.md`](data-contract.md). Gerçek 
 - A-> Ufuk panoraması: `horizon.json` → `elevDeg` 3600 değer, 0.1° adım. `distanceM[i]` ile "ufku X km ötedeki sırt oluşturuyor" bilgisi gösterilebilir.
 - A-> Açı kuralları: azimut kuzeyden saat yönünde (K=0, D=90, G=180, B=270); yükseklik açısı yerel yatay düzleme göre; zaman UTC.
 - A-> Zaman dizisi yok: `t[i] = startUtc + i * stepS` (`stepS` = 600 s).
-- A-> Görünürlük kontrolü için sözleşmedeki `horizonAt` fonksiyonunu kullanın; D ile aynı kodu paylaşın ki sayılar tutarlı olsun. Beklenen değerler: `docs/reference/visibility.json`.
+- A-> Görünürlük kontrolü için sözleşmedeki `horizonAt` fonksiyonunu kullanın; D ile aynı kodu paylaşın ki sayılar tutarlı olsun.
 - A-> Karşılaştırma ekranı için kontrol değerleri (1 Kas 2026 – 1 Oca 2027, arazi dahil):
 
   | Site | Güneş | Dünya | İkisi birden |
@@ -54,12 +54,4 @@ Veri formatının tamamı: [`docs/data-contract.md`](data-contract.md). Gerçek 
 - A-> Yukarıdaki görünürlük tablosu (B bölümü) birim testleri için referans değer olarak kullanılabilir.
 - A-> Doğrulama sonuçları `docs/validation.md`'de: Horizons ile Skyfield farkı ≤ 0.00006°, ufuk yakınsaması ≤ 0.019° (tolerans 0.05°). Proje metni ve slaytlarda kullanılabilir.
 - A-> Sunum için güçlü bir hikâye: Site04'ün katalog noktası krater duvarında (%27 Güneş, %0 Dünya). Sadece 1.9 km ötedeki sırtta (Site04R) Güneş %100, Dünya %48.
-- A-> Birim testleri için hazır beklenen değerler: [`docs/reference/visibility.json`](reference/visibility.json) (özet: `visibility.md`). İçinde site başına yüzdeler, olay sayıları, tüm görünürlük pencereleri, `horizonAt` test vektörleri (359.95°→0° geçişi dahil) ve uç durumlar var: Site04'te Dünya hiç doğmuyor, Site07'de Güneş hiç batmıyor, pencere veri sonunda açık (`openAtEnd`). Motorunuz aynı dosyalardan bu sayıları birebir üretmeli.
-- A-> Doğuş/batış anını ardışık iki örnek arasında doğrusal ara değerle bulun (`el − horizonAt(az)` işaret değiştirdiği yer). Ara değerle hata < 20 s; örnekleri doğrudan kullanırsanız 10 dk'ya kadar kayar (`docs/validation.md` §4).
-- A-> Sunum notu: kutupta Güneş ufku saatte 0.02–0.10° hızla geçiyor; 0.05°'lik ufuk hatası doğuş/batışı 30–140 dk kaydırabilir. Bu yüzden zaman sonuçlarını dakika hassasiyetiyle "kesin" diye sunmayın.
-- A-> "Data & Methods" metnini ve bilimsel temel slaytının (slayt 6) içeriğini A hazırlayacak.
-- C-> Sen gelmeden motorun ilk hâli `src/sim/` altına yazıldı (plandaki model, 43 birim testi + gerçek veri testi). Gözden geçir; değiştirmek ya da kendi motorunla değiştirmek senin kararın. İmzası plandaki `evaluateScenarios`, ek olarak üçüncü parametre `bySite` (yüklenmiş veriler).
-- C-> Motordaki varsayımlar: (1) adım enerjisi = iki örneğin açık gökyüzü gücü ortalaması × adımın Güneş'in göründüğü kısmı (doğuş/batış ara değerle); (2) şarj ve deşarj verimi ayrı ayrı %90; üretim yükü doğrudan besler, yalnızca fark bataryadan geçer; (3) rezerv ihlali = doluluk rezervin altına indiği ilk örnek; (4) içeride enerji J, güç W (`J_PER_WH = 3600`); (5) kısmi Güneş diski modellenmiyor.
-- C-> Dikkat: varsayılan 6 saatlik Dünya kesintisi sınırı 15 Kasım / 7 günlük görevde dört sitenin dördünde de aşılıyor (en kısa kesinti 1 gün 18 saat). Varsayılanı ya da anlatımı gözden geçirmek isteyebilirsin.
-- C-> Sunum için gerçek veriden örnek: Site04'te varsayılan görevde batarya T+6 gün 14 saatte rezervin altına iniyor, karşılanamayan talep 1.0 kWh; başlangıç 72 saat kayınca 15.4 kWh. Aynı görevde 1.9 km ötedeki Site04R hiç rezervin altına inmiyor.
-- C-> AI beyanı: 3B, motor ve Moon Trek betiği yapay zekâ desteğiyle yazıldı; commit mesajlarında ve kaynak dosyalarda not var (resmî rehber kod için açıklama metni + meta veri istiyor). Proje metnindeki beyana ekle.
+
