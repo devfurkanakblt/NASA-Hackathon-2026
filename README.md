@@ -43,6 +43,7 @@ NASA data ──► Python preprocessing (offline) ──► public/data/*.json 
 | Preprocessing | [`preprocess/`](preprocess/README.md) | Downloads LOLA DEMs, queries JPL Horizons, computes terrain horizons and 3D grids, validates them |
 | Data contract | [`docs/data-contract.md`](docs/data-contract.md) | File formats, units (SI) and angle conventions |
 | Simulation engine | [`src/sim/`](src/sim/) | Pure TypeScript functions, unit-tested |
+| App screen | [`src/app/`](src/app/) | Scenarios, hardware form, comparison, horizon panorama, timelines, charts |
 | 3D view | [`src/scene3d/`](src/scene3d/) | React Three Fiber; terrain is visual only |
 | Validation | [`docs/validation.md`](docs/validation.md), [`docs/validation-moontrek.md`](docs/validation-moontrek.md) | Numerical checks and cross-checks |
 
@@ -54,8 +55,14 @@ NASA data ──► Python preprocessing (offline) ──► public/data/*.json 
 | Site04 | Shackleton Rim | −89.7668° | −171.87° | catalogue point lies on the ~32° inner crater wall |
 | Site04R | Shackleton Rim (ridge point) | −89.7804° | −156.1970° | derived: highest ≤ 10° slope 5 m pixel within 2 km of Site04 |
 | Site07 | Peak Near Shackleton | −88.811° | 123.6901° | |
+| Site11 | de Gerlache Rim 1 | −88.6834° | −67.9321° | |
+| Site20 | Leibnitz Beta Plateau | −85.4266° | 31.7428° | |
+| Site23 | Malapert Massif | −85.9948° | −0.2358° | |
+| CE6 | Chang'e-6 landing site (far side) | −41.6385° | −153.9852° | contrast point: Earth never rises; coordinates from LROC |
+| Apollo11 | Apollo 11 landing site | 0.6742° | 23.4731° | contrast point: Earth always up; coordinates from NASA NSSDC |
 
-Coordinates: NASA Lunar Surface Data Book, Table A2.1-1. Data covers 1 Nov 2026 – 1 Jan 2027 UTC
+South-pole coordinates: NASA Lunar Surface Data Book, Table A2.1-1. The two contrast points use the
+global LOLA LDEM_64 (~474 m/px) and are for educational comparison only. Data covers 1 Nov 2026 – 1 Jan 2027 UTC
 at 10-minute steps; missions of 1–30 days must fit inside it.
 
 ### Model
@@ -87,15 +94,16 @@ battery, 80 % initial charge, 20 % reserve, 90 % charge/discharge efficiency; 20
 
 **Limits.** Not modelled: eclipses, temperature, dust, battery ageing, limb darkening. Earth view
 is line of sight only: no ground-station schedule, antenna or link budget. Near the pole the Sun
-and Earth cross the horizon slowly, so a 0.05° horizon error equals roughly 30–140 minutes of
-rise/set time. DEM pixel size and the checks below are not a statement of absolute accuracy.
+and Earth cross the horizon slowly, so a 0.05° horizon error equals roughly 30 minutes to 4 hours
+of rise/set time at the polar sites. DEM pixel size and the checks below are not a statement of absolute accuracy.
 
 ### Validation (summary)
 
 - Horizons vs. Skyfield (DE421), every sample: ≤ 0.00006°.
 - JSON vs. a fresh Horizons query at 14 epochs per site: ≤ 0.00005° (storage rounding).
 - Horizon convergence with halved ray steps: ≤ 0.019° (tolerance 0.05°).
-- Rise/set from 10-minute samples vs. a 1-minute Horizons series: ≤ 0.33 min.
+- Rise/set from 10-minute samples vs. a 1-minute Horizons series: ≤ 0.08 min at most sites, ≤ 2.4 min worst case (Site20).
+- Long-term Sun and Earth visibility vs. NASA's LOLA polar illumination maps (Mazarico et al., 18.6 years): all 7 polar sites within the product's 3×3-pixel range, rank correlation 0.96; Shackleton's floor is permanently shadowed in both.
 - 3D terrain vs. NASA Moon Trek LOLA 5 m DEM: RMS 1.3–2.4 m on gentle ground, 16–18 m on Shackleton's steep wall.
 - The TypeScript engine reproduces the Python reference values (`docs/reference/`) exactly on all sites.
 
@@ -107,8 +115,10 @@ rise/set time. DEM pixel size and the checks below are not a statement of absolu
 - NASA Moon Trek (LOLA 5 m south-pole mosaic, cross-check) — https://trek.nasa.gov/moon/
 - NASA, *Lunar Surface Data Book*, Table A2.1-1 (site coordinates) — https://ntrs.nasa.gov/citations/20250002845
 - Solar constant 1361 W/m² — NASA GSFC solar irradiance — https://earth.gsfc.nasa.gov/climate/projects/solar-irradiance/science
-- Mazarico, E. et al. (2011), *Illumination conditions of the lunar polar regions using LOLA topography*, Icarus 211, 1066–1081
-- Software: Skyfield, NumPy, Rasterio, PyProj, React, three.js / React Three Fiber, Vite, Vitest
+- Mazarico, E. et al. (2011), *Illumination conditions of the lunar polar regions using LOLA topography*, Icarus 211, 1066–1081; NASA PGDA Lunar Polar Illumination products — https://pgda.gsfc.nasa.gov/products/69
+- LOLA global DEM LDEM_64 (PDS LRO-L-LOLA-4-GDR-V1.0), contrast points
+- Contrast-point coordinates: LROC *First Look: Chang'e 6* (lroc.asu.edu/images/1374); NASA NSSDC Apollo landing site coordinates
+- Software: Skyfield, NumPy, SciPy, Rasterio, PyProj, Requests, React, three.js / React Three Fiber, Vite, Vitest
 
 NASA data are used under NASA's open data policy; NASA does not endorse this project.
 

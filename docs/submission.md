@@ -27,7 +27,9 @@ a ridge 1.9 km away gets continuous sunlight and keeps its reserve.
 
 ## Project details
 
-**What it does.** A mission planner picks a site, a start date (1 Nov 2026 – 1 Jan 2027 UTC) and a
+**What it does.** A mission planner picks one of seven south-pole sites (six from NASA's Lunar
+Surface Data Book plus a derived ridge point) or two contrast points (Chang'e-6 on the far side,
+Apollo 11 near the equator), a start date (1 Nov 2026 – 1 Jan 2027 UTC) and a
 mission length (1–30 days), sets panel, battery and load assumptions, and pins up to three
 scenarios. The app shows a horizon panorama (terrain skyline with the Sun and Earth tracks), a 3D
 view of the local terrain with the lander, timelines of Sun / Earth / both in view, panel output
@@ -50,21 +52,24 @@ hardware and see which conditions hold, with sources and model limits on screen.
 
 **Validation.** Horizons and Skyfield agree within 0.00006°; a fresh Horizons query matches the
 stored data within 0.00005°; halving the horizon ray steps changes the horizon by at most 0.019°;
-rise/set times from 10-minute data agree with a 1-minute series within 0.33 min; our terrain grids
-agree with NASA Moon Trek's LOLA 5 m DEM within 1.3–2.4 m RMS on gentle ground. The TypeScript
-engine reproduces the Python reference values exactly; 118 automated tests run on every change.
+rise/set times from 10-minute data agree with a 1-minute series within 2.4 min (most sites within
+20 s); over 18.6 years our Sun and Earth visibility agrees with NASA's LOLA polar illumination maps
+(Mazarico et al.) at all seven polar sites (rank correlation 0.96), and Shackleton's floor is
+permanently shadowed in both; our terrain grids agree with NASA Moon Trek's LOLA 5 m DEM within
+1.3–2.4 m RMS on gentle ground. The TypeScript
+engine reproduces the Python reference values exactly; 122 automated tests run on every change.
 
 **Limits.** Sites are research region centres, not certified landing sites; hardware values are
 example assumptions. Not modelled: eclipses, temperature, dust, battery ageing, ground-station
-schedules and link budgets. Near the pole a 0.05° horizon error equals about 30–140 minutes of
-rise/set time.
+schedules and link budgets. Near the pole a 0.05° horizon error equals about 30 minutes to 4 hours
+of rise/set time.
 
 **Tools.** Python (NumPy, Rasterio, PyProj, Skyfield, Requests), TypeScript, React, three.js /
 React Three Fiber, inline SVG charts, Vite, Vitest. Static hosting on [Vercel / GitHub Pages]; the same
 build runs offline.
 
-**Next steps.** More curated sites (Site11 de Gerlache Rim, Site20 Leibnitz β plateau, Site23
-Malapert massif) through the same automatic pipeline, shareable scenario links, thermal and
+**Next steps.** Regional maps in the app (every 100–200 m cell around a site already has its own
+pre-computed Sun and Earth share), a full-year season view, shareable scenario links, thermal and
 relay-satellite models.
 
 ## Use of Artificial Intelligence (AI)
@@ -82,14 +87,18 @@ data; every number in the app is computed from the NASA sources below by code in
 - LOLA 80 m/px south-pole DEM, NASA GSFC PGDA (Barker et al. 2023) — https://pgda.gsfc.nasa.gov/products/90
 - NASA Moon Trek, LOLA 5 m south-pole mosaic (terrain cross-check) — https://trek.nasa.gov/moon/
 - NASA Lunar Surface Data Book, Table A2.1-1 (site coordinates) — https://ntrs.nasa.gov/citations/20250002845
+- LOLA polar illumination products, NASA GSFC PGDA (Mazarico et al. 2011; long-term cross-check) — https://pgda.gsfc.nasa.gov/products/69
+- LOLA global DEM LDEM_64, PDS LRO-L-LOLA-4-GDR-V1.0 (terrain of the two contrast points) — https://pds-geosciences.wustl.edu/missions/lro/lola.htm
+- NASA NSSDC, Apollo landing site coordinates (Apollo 11 contrast point) — https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_sites.html
 
 ## Space agency partner and other data
 
 - Skyfield with JPL DE421 ephemeris and lunar PA frame (independent cross-check) — https://rhodesmill.org/skyfield/
+- LROC (Arizona State University), "First Look: Chang'e 6" (Chang'e-6 landing coordinates) — https://lroc.asu.edu/images/1374
 
 ## References
 
 - Barker, M.K. et al. (2021). Improved LOLA elevation maps for south pole landing sites. Planetary and Space Science 203, 105119. doi:10.1016/j.pss.2020.105119
 - Barker, M.K. et al. (2023). A New View of the Lunar South Pole from LOLA. Planetary Science Journal 4, 183. doi:10.3847/PSJ/acf3e1
-- Mazarico, E. et al. (2011). Illumination conditions of the lunar polar regions using LOLA topography. Icarus 211, 1066–1081.
+- Mazarico, E. et al. (2011). Illumination conditions of the lunar polar regions using LOLA topography. Icarus 211, 1066–1081. doi:10.1016/j.icarus.2010.10.030
 - NASA GSFC, Solar irradiance (solar constant 1361 W/m²) — https://earth.gsfc.nasa.gov/climate/projects/solar-irradiance/science

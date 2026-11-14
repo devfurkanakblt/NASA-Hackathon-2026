@@ -53,6 +53,14 @@ describe('windowsFromMargins', () => {
     close(windows[1].endS, 4 * STEP)
   })
 
+  it('keeps a window that only starts in the last step of the data', () => {
+    const windows = windowsFromMargins([-1, -1, -1, 1], STEP)
+    expect(windows.length).toBe(1)
+    expect([windows[0].startIndex, windows[0].endIndex, windows[0].openAtStart, windows[0].openAtEnd]).toEqual([3, 4, false, true])
+    close(windows[0].startS, 2.5 * STEP)
+    close(windows[0].endS, 3 * STEP)
+  })
+
   it('treats a centre exactly on the horizon as not visible', () => {
     expect(windowsFromMargins([0, 0, 0], STEP)).toEqual([])
     const [w] = windowsFromMargins([0, 1, 0], STEP)
