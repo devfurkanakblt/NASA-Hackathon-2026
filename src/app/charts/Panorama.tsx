@@ -24,10 +24,16 @@ const COMPASS: Record<number, string> = { 0: 'N', 45: 'NE', 90: 'E', 135: 'SE', 
 
 const fmtKm = (m: number) => (m < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(1)} km`)
 
-/** Distance to the terrain that forms the horizon at an azimuth (nearest 0.1° sample). */
-function ridgeDistanceM(horizon: HorizonDoc, azDeg: number): number {
+/** Distance to the terrain that forms the horizon at an azimuth (nearest sample); undefined for map cells. */
+function ridgeDistanceM(horizon: HorizonDoc, azDeg: number): number | undefined {
+  if (!horizon.distanceM) return undefined
   const i = Math.round((((azDeg % 360) + 360) % 360) / horizon.azStepDeg) % horizon.count
   return horizon.distanceM[i]
+}
+
+function cursorRidge(horizon: HorizonDoc, azDeg: number): string {
+  const d = ridgeDistanceM(horizon, azDeg)
+  return d === undefined ? '' : `, formed by terrain ${fmtKm(d)} away`
 }
 
 /**
@@ -152,12 +158,12 @@ export function Panorama({ horizon, sun, earth, k }: Props) {
       <div className="pano__readout">
         {[sunNow, earthNow].map((b) => (
           <span key={b.name} className={b.visible ? 'ok' : 'bad'}>
-            {b.name}: az {b.az.toFixed(1)}°, el {b.el.toFixed(2)}° · terrain horizon {b.h.toFixed(2)}° (ridge {fmtKm(b.dist)} away) · <strong>{b.state}</strong>
+            {b.name}: az {b.az.toFixed(1)}°, el {b.el.toFixed(2)}° · terrain horizon {b.h.toFixed(2)}°{b.dist === undefined ? '' : ` (ridge ${fmtKm(b.dist)} away)`} · <strong>{b.state}</strong>
           </span>
         ))}
         <span className="muted">
           {hoverAz !== null
-            ? `Cursor: az ${hoverAz.toFixed(1)}° — terrain horizon ${horizonAt(horizon, hoverAz).toFixed(2)}°, formed by terrain ${fmtKm(ridgeDistanceM(horizon, hoverAz))} away`
+            ? `Cursor: az ${hoverAz.toFixed(1)}° — terrain horizon ${horizonAt(horizon, hoverAz).toFixed(2)}°${cursorRidge(horizon, hoverAz)}`
             : 'Move the pointer over the panorama to read the terrain horizon at any azimuth.'}
         </span>
       </div>
