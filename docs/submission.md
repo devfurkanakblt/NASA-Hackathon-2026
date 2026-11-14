@@ -28,7 +28,9 @@ a ridge 1.9 km away gets continuous sunlight and keeps its reserve.
 
 ## Project details
 
-**What it does.** A mission planner picks a site, a start date (1 Nov 2026 – 1 Jan 2027 UTC) and a
+**What it does.** A mission planner picks one of seven south-pole sites (six from NASA's Lunar
+Surface Data Book plus a derived ridge point) or two contrast points (Chang'e-6 on the far side,
+Apollo 11 near the equator), a start date (1 Nov 2026 – 1 Jan 2027 UTC) and a
 mission length (1–30 days), sets panel, battery and load assumptions, and pins up to three
 scenarios. The app shows a horizon panorama (terrain skyline with the Sun and Earth tracks), a 3D
 view of the local terrain with the lander, timelines of Sun / Earth / both in view, panel output
@@ -66,7 +68,7 @@ rise/set time. The contrast points use the 474 m/px global LOLA map, so small ne
 not resolved.
 
 **Tools.** Python (NumPy, Rasterio, PyProj, Skyfield, Requests), TypeScript, React, three.js /
-React Three Fiber, [ECharts — keep only if the final UI uses it], Vite, Vitest. Static hosting on [Vercel / GitHub Pages]; the same
+React Three Fiber, inline SVG charts, Vite, Vitest. Static hosting on [Vercel / GitHub Pages]; the same
 build runs offline.
 
 **Next steps.** Show the precomputed regional maps (Sun / Earth visibility and slope on a ±3 km
@@ -95,10 +97,11 @@ data; every number in the app is computed from the NASA sources below by code in
 ## Space agency partner and other data
 
 - Skyfield with JPL DE421 ephemeris and lunar PA frame (independent cross-check) — https://rhodesmill.org/skyfield/
+- LROC (Arizona State University), "First Look: Chang'e 6" (Chang'e-6 landing coordinates) — https://lroc.asu.edu/images/1374
 
 ## References
 
 - Barker, M.K. et al. (2021). Improved LOLA elevation maps for south pole landing sites. Planetary and Space Science 203, 105119. doi:10.1016/j.pss.2020.105119
 - Barker, M.K. et al. (2023). A New View of the Lunar South Pole from LOLA. Planetary Science Journal 4, 183. doi:10.3847/PSJ/acf3e1
-- Mazarico, E. et al. (2011). Illumination conditions of the lunar polar regions using LOLA topography. Icarus 211, 1066–1081.
+- Mazarico, E. et al. (2011). Illumination conditions of the lunar polar regions using LOLA topography. Icarus 211, 1066–1081. doi:10.1016/j.icarus.2010.10.030
 - NASA GSFC, Solar irradiance (solar constant 1361 W/m²) — https://earth.gsfc.nasa.gov/climate/projects/solar-irradiance/science

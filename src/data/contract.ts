@@ -18,6 +18,8 @@ export interface SiteEntry {
   warnings: string[]
   derivedFrom?: string
   derivation?: string
+  /** `contrast`: a point outside the south polar region, for educational comparison. */
+  category?: string
 }
 
 export interface SitesDoc {
