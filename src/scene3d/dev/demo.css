@@ -1,0 +1,72 @@
+.demo {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.demo__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  padding: 8px 12px;
+  background: #121722;
+  border-bottom: 1px solid #263044;
+  font-size: 13px;
+}
+
+.demo__source {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 18px;
+  padding: 5px 12px;
+  background: #0f131c;
+  border-bottom: 1px solid #263044;
+  color: #8f99aa;
+  font-size: 12px;
+}
+
+.demo__warning {
+  color: #ffcf99;
+}
+
+.demo__message {
+  margin: 0;
+  padding: 24px;
+  color: #aab3c2;
+}
+
+.demo__slider {
+  flex: 1 1 220px;
+  min-width: 160px;
+}
+
+.demo__time,
+.demo__readout {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.demo__readout {
+  color: #aab3c2;
+}
+
+.demo__bar button,
+.demo__bar select,
+.demo__bar input[type='number'] {
+  padding: 4px 9px;
+  border: 1px solid #3a465c;
+  border-radius: 5px;
+  background: #1a2130;
+  color: inherit;
+  font: inherit;
+}
+
+.demo__bar input[type='number'] {
+  width: 4.5em;
+}
+
+.demo__scene {
+  flex: 1;
+  min-height: 0;
+}
