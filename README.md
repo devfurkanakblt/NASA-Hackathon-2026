@@ -54,9 +54,17 @@ NASA data ──► Python preprocessing (offline) ──► public/data/*.json 
 | Site04 | Shackleton Rim | −89.7668° | −171.87° | catalogue point lies on the ~32° inner crater wall |
 | Site04R | Shackleton Rim (ridge point) | −89.7804° | −156.1970° | derived: highest ≤ 10° slope 5 m pixel within 2 km of Site04 |
 | Site07 | Peak Near Shackleton | −88.811° | 123.6901° | |
+| Site11 | de Gerlache Rim 1 | −88.6834° | −67.9321° | |
+| Site20 | Leibnitz Beta Plateau | −85.4266° | 31.74276° | |
+| Site23 | Malapert Massif | −85.9948° | −0.23578° | |
+| CE6 | Chang'e-6 landing site | −41.6385° | −153.9852° | contrast point (far side, Earth never rises); global 474 m/px DEM |
+| Apollo11 | Apollo 11 landing site | 0.67416° | 23.47314° | contrast point (near-side equator); global 474 m/px DEM |
 
-Coordinates: NASA Lunar Surface Data Book, Table A2.1-1. Data covers 1 Nov 2026 – 1 Jan 2027 UTC
-at 10-minute steps; missions of 1–30 days must fit inside it.
+Coordinates: NASA Lunar Surface Data Book (M2M-30044, 2025), Table A2.1-1; contrast points from
+LROC (Chang'e-6) and NASA NSSDC (Apollo 11). Data covers 1 Nov 2026 – 1 Jan 2027 UTC at 10-minute
+steps; missions of 1–30 days must fit inside it. Each polar site also has a regional map
+(`map.json`: Sun / Earth visibility and slope on a ±3 km grid) and a one-year monthly summary
+(`season.json`, Nov 2026 – Nov 2027); see the [data contract](docs/data-contract.md).
 
 ### Model
 
@@ -87,7 +95,7 @@ battery, 80 % initial charge, 20 % reserve, 90 % charge/discharge efficiency; 20
 
 **Limits.** Not modelled: eclipses, temperature, dust, battery ageing, limb darkening. Earth view
 is line of sight only: no ground-station schedule, antenna or link budget. Near the pole the Sun
-and Earth cross the horizon slowly, so a 0.05° horizon error equals roughly 30–140 minutes of
+and Earth cross the horizon slowly, so a 0.05° horizon error equals roughly 30 minutes to 4 hours of
 rise/set time. DEM pixel size and the checks below are not a statement of absolute accuracy.
 
 ### Validation (summary)
@@ -95,7 +103,9 @@ rise/set time. DEM pixel size and the checks below are not a statement of absolu
 - Horizons vs. Skyfield (DE421), every sample: ≤ 0.00006°.
 - JSON vs. a fresh Horizons query at 14 epochs per site: ≤ 0.00005° (storage rounding).
 - Horizon convergence with halved ray steps: ≤ 0.019° (tolerance 0.05°).
-- Rise/set from 10-minute samples vs. a 1-minute Horizons series: ≤ 0.33 min.
+- Rise/set from 10-minute samples vs. a 1-minute Horizons series: ≤ 0.33 min (2.4 min at Site20).
+- NASA GSFC polar illumination maps (Mazarico et al., 18.6 years): all 7 polar sites within the local 3×3-pixel range; rank correlation 0.96 (Sun) and 0.96 (Earth); Shackleton floor permanently shadowed in both.
+- Regional map cells vs. a full-resolution horizon at the same cell: ≤ 0.06 percentage points.
 - 3D terrain vs. NASA Moon Trek LOLA 5 m DEM: RMS 1.3–2.4 m on gentle ground, 16–18 m on Shackleton's steep wall.
 - The TypeScript engine reproduces the Python reference values (`docs/reference/`) exactly on all sites.
 
@@ -105,7 +115,9 @@ rise/set time. DEM pixel size and the checks below are not a statement of absolu
 - LOLA 5 m/px south-pole site DEMs: Barker, M.K. et al. (2021), *Improved LOLA elevation maps for south pole landing sites*, PSS 203, 105119. doi:10.1016/j.pss.2020.105119 — https://pgda.gsfc.nasa.gov/data/LOLA_5mpp/
 - LOLA 80 m/px south-pole DEM: Barker, M.K. et al. (2023), *A New View of the Lunar South Pole from LOLA*, PSJ 4, 183. doi:10.3847/PSJ/acf3e1; data doi:10.60903/gsfcpgda-lola-spole — https://pgda.gsfc.nasa.gov/products/90
 - NASA Moon Trek (LOLA 5 m south-pole mosaic, cross-check) — https://trek.nasa.gov/moon/
-- NASA, *Lunar Surface Data Book*, Table A2.1-1 (site coordinates) — https://ntrs.nasa.gov/citations/20250002845
+- NASA, *Lunar Surface Data Book*, M2M-30044 (2025), Table A2.1-1 (site coordinates) — https://ntrs.nasa.gov/citations/20250002845
+- LOLA global DEM LDEM_64, PDS LRO-L-LOLA-4-GDR-V1.0 (contrast points)
+- NASA GSFC PGDA Lunar Polar Illumination maps (Mazarico et al.) — https://pgda.gsfc.nasa.gov/products/69
 - Solar constant 1361 W/m² — NASA GSFC solar irradiance — https://earth.gsfc.nasa.gov/climate/projects/solar-irradiance/science
 - Mazarico, E. et al. (2011), *Illumination conditions of the lunar polar regions using LOLA topography*, Icarus 211, 1066–1081
 - Software: Skyfield, NumPy, Rasterio, PyProj, React, three.js / React Three Fiber, Vite, Vitest
