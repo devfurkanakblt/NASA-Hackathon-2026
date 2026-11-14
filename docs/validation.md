@@ -14,13 +14,16 @@ Every 10-minute sample over 2026-11-01 to 2027-01-01 is compared.
 | Site04 | earth | jpl-horizons | 8785 | 0.00006 | 0.00006 | yes |
 | Site07 | sun | jpl-horizons | 8785 | 0.00005 | 0.00006 | yes |
 | Site07 | earth | jpl-horizons | 8785 | 0.00006 | 0.00006 | yes |
+| Site04R | sun | jpl-horizons | 8785 | 0.00005 | 0.00006 | yes |
+| Site04R | earth | jpl-horizons | 8785 | 0.00006 | 0.00006 | yes |
 
 ## 2. Horizon convergence and range sensitivity (32 azimuths, every 11.25 deg)
 
 | Site | Halved steps: max |d| [deg] | Failing az | File vs recompute [deg] | 100 vs 250 km: max |d| [deg] | Azimuths changed > tol |
 |---|---|---|---|---|---|
-| Site01 | 0.0104 | none | 0.00723 | 0.0000 | none |
-| Site04 | 0.0548 | 135.0 | 0.02619 | 0.0000 | none |
-| Site07 | 0.0182 | none | 0.01130 | 1.3395 | 123.75 (0.886), 135 (1.008), 202.5 (0.308), 225 (1.339), 247.5 (0.111), 258.75 (0.727) |
+| Site01 | 0.0104 | none | 0.00005 | 0.0000 | none |
+| Site04 | 0.0180 | none | 0.00005 | 0.0548 | 135 (0.055) |
+| Site07 | 0.0191 | none | 0.00005 | 1.3395 | 123.8 (0.902), 135 (1.008), 202.5 (0.308), 225 (1.339), 247.5 (0.111), 258.8 (0.734) |
+| Site04R | 0.0065 | none | 0.00005 | 1.2765 | 45 (0.175), 135 (0.175), 146.2 (0.316), 157.5 (1.032), 180 (0.257), 191.2 (1.276), 202.5 (0.502), 225 (0.070), 236.2 (0.236) |
 
 Pixel size and these numerical checks are not a statement of the DEM's absolute accuracy.
