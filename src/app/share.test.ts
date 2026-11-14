@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { DEFAULT_SETTINGS } from '../sim/evaluate.ts'
 import { decodeShare, encodeShare } from './share.ts'
 
-const SITES = ['Site04', 'Site04R', 'CE6']
+const SITES = (id: string) => ['Site04', 'Site04R', 'CE6'].includes(id) || /^Site04:r\d+c\d+$/.test(id)
 const strip = (state: ReturnType<typeof decodeShare>) => state && { ...state, scenarios: state.scenarios.map(({ siteId, startUtc }) => ({ siteId, startUtc })) }
 
 describe('shareable link', () => {
@@ -34,5 +34,13 @@ describe('shareable link', () => {
   it('keeps at most three scenarios', () => {
     const many = '#s=' + Array(5).fill('Site04@2026-11-15T00:00').join(',')
     expect(decodeShare(many, SITES)?.scenarios).toHaveLength(3)
+  })
+
+  it('share link keeps a cell scenario', () => {
+    const cell = [{ key: 'c', siteId: 'Site04:r5c55', startUtc: '2027-04-10T00:00:00Z' }, ...scenarios]
+    const hash = encodeShare({ scenarios: cell, active: 0, settings: DEFAULT_SETTINGS })
+    expect(hash).toBe('#s=Site04:r5c55@2027-04-10T00:00,Site04@2026-11-15T00:00,Site04R@2026-11-18T00:00')
+    expect(strip(decodeShare(hash, SITES))?.scenarios[0]).toEqual({ siteId: 'Site04:r5c55', startUtc: '2027-04-10T00:00:00Z' })
+    expect(decodeShare('#s=CE6:r1c1@2026-11-15T00:00', SITES)).toBeNull()
   })
 })

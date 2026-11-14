@@ -58,7 +58,8 @@ export const centreCell = (map: MapDoc) => cellAt(map, Math.floor(map.grid.ny / 
 const MOON_RADIUS_M = 1737400
 const RAD = Math.PI / 180
 
-function arcM(lat1: number, lon1: number, lat2: number, lon2: number): number {
+/** Great-circle distance on the 1737.4 km sphere, metres. */
+export function arcM(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const dLat = (lat2 - lat1) * RAD
   const dLon = (lon2 - lon1) * RAD
   const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * RAD) * Math.cos(lat2 * RAD) * Math.sin(dLon / 2) ** 2

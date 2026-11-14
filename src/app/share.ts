@@ -1,6 +1,7 @@
 /**
  * Shareable link: the comparison (scenarios, active scenario, mission hardware) lives in the URL
- * fragment, e.g. `#s=Site04@2026-11-15T00:00,Site04R@2026-11-15T00:00&a=B&set=durationDays:10`.
+ * fragment, e.g. `#s=Site04@2026-11-15T00:00,Site01:r36c32@2027-04-10T00:00&a=B&set=durationDays:10`
+ * (`Site01:r36c32` is a regional map point).
  * Only settings that differ from the defaults are written. The fragment never reaches a server,
  * so sharing a link sends nothing anywhere; anything unreadable in it is ignored.
  */
@@ -22,7 +23,7 @@ const KEYS = Object.keys(DEFAULT_SETTINGS) as Key[]
 const TEXT_VALUES: Partial<Record<Key, readonly string[]>> = { panelMode: ['tracking', 'fixed'], sunDiskModel: ['centre', 'partial'] }
 
 export function encodeShare({ scenarios, active, settings }: SharedState): string {
-  const parts = [`s=${scenarios.map((s) => `${encodeURIComponent(s.siteId)}@${toInputUtc(s.startUtc)}`).join(',')}`]
+  const parts = [`s=${scenarios.map((s) => `${encodeURIComponent(s.siteId).replaceAll('%3A', ':')}@${toInputUtc(s.startUtc)}`).join(',')}`]
   if (active > 0) parts.push(`a=${LETTERS[active]}`)
   const changed = KEYS.filter((key) => settings[key] !== undefined && settings[key] !== DEFAULT_SETTINGS[key])
   if (changed.length) parts.push(`set=${changed.map((key) => `${key}:${encodeURIComponent(String(settings[key]))}`).join(',')}`)
@@ -30,7 +31,8 @@ export function encodeShare({ scenarios, active, settings }: SharedState): strin
 }
 
 /** Reads a fragment written by `encodeShare`. Returns null when it holds no usable scenario. */
-export function decodeShare(hash: string, siteIds: string[]): SharedState | null {
+/** `isKnownSite` accepts catalogue site ids and valid map cell ids. */
+export function decodeShare(hash: string, isKnownSite: (id: string) => boolean): SharedState | null {
   const params = new Map<string, string>()
   for (const part of hash.replace(/^#/, '').split('&')) {
     const eq = part.indexOf('=')
@@ -42,7 +44,7 @@ export function decodeShare(hash: string, siteIds: string[]): SharedState | null
     if (at <= 0) continue
     const siteId = safeDecode(item.slice(0, at))
     const startUtc = fromInputUtc(safeDecode(item.slice(at + 1)))
-    if (siteId && siteIds.includes(siteId) && startUtc && scenarios.length < MAX_SCENARIOS) scenarios.push({ key: newKey(), siteId, startUtc })
+    if (siteId && isKnownSite(siteId) && startUtc && scenarios.length < MAX_SCENARIOS) scenarios.push({ key: newKey(), siteId, startUtc })
   }
   if (scenarios.length === 0) return null
 

@@ -18,6 +18,7 @@ import { ScenarioList } from './ScenarioList.tsx'
 import { defaultScenarios, evaluateAll, isEvaluated } from './scenarios.ts'
 import type { Scenario } from './scenarios.ts'
 import { SettingsForm } from './SettingsForm.tsx'
+import { isKnownSiteId } from './extendedSites.ts'
 import { decodeShare, encodeShare } from './share.ts'
 import { Sources } from './Sources.tsx'
 import { Timelines } from './Timelines.tsx'
@@ -56,7 +57,7 @@ export function MissionApp() {
         if (cancelled) return
         const siteIds = data.sites.sites.map((s) => s.id)
         // A shared link (#s=...) opens the comparison it describes; otherwise the demo default.
-        const shared = decodeShare(window.location.hash, siteIds)
+        const shared = decodeShare(window.location.hash, (id) => isKnownSiteId(id, data.bySite))
         const initial = shared?.scenarios ?? defaultScenarios(siteIds)
         if (shared) setSettings(shared.settings)
         setLoaded(data)
