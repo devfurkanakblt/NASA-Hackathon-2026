@@ -112,7 +112,7 @@ export function Panorama({ horizon, sun, earth, k }: Props) {
 
   return (
     <div className="pano" ref={ref}>
-      <svg width={width} height={HEIGHT} role="img" aria-label="Horizon panorama with the Sun and Earth tracks" onMouseMove={onMove} onMouseLeave={() => setHoverAz(null)}>
+      <svg width={width} height={HEIGHT} role="img" aria-label="Horizon panorama with the Sun and Earth tracks" onPointerMove={onMove} onPointerLeave={() => setHoverAz(null)}>
         <defs>
           <clipPath id="pano-clip">
             <rect x={PAD.left} y={PAD.top} width={plotW} height={plotH} />
@@ -130,7 +130,7 @@ export function Panorama({ horizon, sun, earth, k }: Props) {
           <g key={az} className="axis">
             <line x1={x(az)} x2={x(az)} y1={PAD.top} y2={PAD.top + plotH} className="grid" />
             <text x={x(az)} y={HEIGHT - 10} textAnchor="middle">
-              {COMPASS[az]} {az}°
+              {plotW < 520 ? COMPASS[az] : `${COMPASS[az]} ${az}°`}
             </text>
           </g>
         ))}

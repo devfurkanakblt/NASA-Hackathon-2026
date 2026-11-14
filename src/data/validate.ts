@@ -1,4 +1,4 @@
-import type { EarthOrientationDoc, EphemerisDoc, HorizonDoc, SiteEntry, SitesDoc, TerrainDoc } from './contract.ts'
+import type { EarthOrientationDoc, EphemerisDoc, HorizonDoc, MapDoc, SeasonDoc, SiteEntry, SitesDoc, TerrainDoc } from './contract.ts'
 
 export const TERRAIN_FRAME = 'local ENU, origin at observer eye; x = east, y = north, z = up'
 export const EARTH_TEXTURE_FRAME = 'Three sphere: +X=ITRS Greenwich/equator, +Y=ITRS north pole, +Z=-ITRS 90E/equator; u=0 at longitude -180, u=0.5 at 0'
@@ -57,6 +57,91 @@ function version(doc: Record<string, unknown>, source: string): void {
 
 function siteId(doc: Record<string, unknown>, expected: string, source: string): void {
   if (doc.siteId !== expected) fail(source, 'siteId', expected)
+}
+
+/** Summary files declare their own time grid; only maps/mainPeriod must match the mission grid. */
+function summaryCoverage(value: unknown, source: string) {
+  const c = record(value, source, 'coverage')
+  const start = utc(c.startUtc, source, 'coverage.startUtc')
+  const end = utc(c.endUtc, source, 'coverage.endUtc')
+  const step = integer(c.stepS, source, 'coverage.stepS', 1)
+  const count = integer(c.count, source, 'coverage.count', 2)
+  if (end !== start + (count - 1) * step * 1000) fail(source, 'coverage', 'an inclusive whole-step time grid')
+  return { start, end, step, count }
+}
+
+function nullableNumbers(value: unknown, length: number, source: string, path: string, min = -Infinity, max = Infinity): void {
+  if (!Array.isArray(value) || value.length !== length) fail(source, path, `an array of ${length} numbers or null values`)
+  value.forEach((entry, i) => { if (entry !== null) number(entry, source, `${path}[${i}]`, min, max) })
+}
+
+export function validateMap(value: unknown, expectedSite: string, coverage: SitesDoc['coverage'], source = 'map.json'): MapDoc {
+  const doc = record(value, source, 'document')
+  version(doc, source)
+  siteId(doc, expectedSite, source)
+  const grid = record(doc.grid, source, 'grid')
+  const nx = integer(grid.nx, source, 'grid.nx', 2)
+  const ny = integer(grid.ny, source, 'grid.ny', 2)
+  const spacing = number(grid.spacingM, source, 'grid.spacingM', Number.MIN_VALUE)
+  const half = number(grid.halfSizeM, source, 'grid.halfSizeM', Number.MIN_VALUE)
+  if ([nx, ny].some(n => Math.abs((n - 1) * spacing - 2 * half) > 1e-6)) fail(source, 'grid', 'nx/ny and spacing covering +/-halfSizeM')
+  const cells = nx * ny
+  if (!Number.isSafeInteger(cells)) fail(source, 'grid', 'a safe integer cell count')
+  const time = summaryCoverage(doc.coverage, source)
+  if (time.start !== Date.parse(coverage.startUtc) || time.end !== Date.parse(coverage.endUtc) || time.step !== coverage.stepS) fail(source, 'coverage', 'the catalogue main-period coverage')
+  numbers(doc.latDeg, cells, source, 'latDeg', -90, 90)
+  numbers(doc.lonDeg, cells, source, 'lonDeg', -180, 180)
+  nullableNumbers(doc.surfaceElevationM, cells, source, 'surfaceElevationM')
+  for (const key of ['sunPct', 'earthPct', 'bothPct']) nullableNumbers(doc[key], cells, source, key, 0, 100)
+  nullableNumbers(doc.sunDiskFractionMean, cells, source, 'sunDiskFractionMean', 0, 1)
+  for (const key of ['longestNoSunS', 'longestNoEarthS']) nullableNumbers(doc[key], cells, source, key, 0, time.count * time.step)
+  nullableNumbers(doc.slopeDeg, cells, source, 'slopeDeg', 0, 90)
+  if (doc.warnings !== undefined) strings(doc.warnings, source, 'warnings')
+  return value as MapDoc
+}
+
+function seasonSummary(value: unknown, step: number, source: string, path: string): number {
+  const summary = record(value, source, path)
+  const samples = integer(summary.samples, source, `${path}.samples`, 1)
+  for (const key of ['sunPct', 'earthPct', 'bothPct']) number(summary[key], source, `${path}.${key}`, 0, 100)
+  number(summary.sunDiskFractionMean, source, `${path}.sunDiskFractionMean`, 0, 1)
+  for (const key of ['longestNoSunS', 'longestNoEarthS']) number(summary[key], source, `${path}.${key}`, 0, samples * step)
+  const high = number(summary.sunElMaxDeg, source, `${path}.sunElMaxDeg`, -90, 90)
+  const low = number(summary.sunElMinDeg, source, `${path}.sunElMinDeg`, -90, 90)
+  if (low > high) fail(source, path, 'minimum Sun elevation <= maximum')
+  number(summary.earthElMaxDeg, source, `${path}.earthElMaxDeg`, -90, 90)
+  return samples
+}
+
+export function validateSeason(value: unknown, expectedSite: string, coverage: SitesDoc['coverage'], source = 'season.json'): SeasonDoc {
+  const doc = record(value, source, 'document')
+  version(doc, source)
+  siteId(doc, expectedSite, source)
+  if (doc.source !== 'jpl-horizons' && doc.source !== 'skyfield-de421') fail(source, 'source', 'jpl-horizons or skyfield-de421 summary data')
+  const year = summaryCoverage(doc.coverage, source)
+  if (seasonSummary(doc.year, year.step, source, 'year') !== year.count) fail(source, 'year.samples', 'the annual coverage sample count')
+  const main = record(doc.mainPeriod, source, 'mainPeriod')
+  const start = utc(main.startUtc, source, 'mainPeriod.startUtc')
+  const end = utc(main.endUtc, source, 'mainPeriod.endUtc')
+  if (start !== Date.parse(coverage.startUtc) || end !== Date.parse(coverage.endUtc) || start < year.start || end > year.end) fail(source, 'mainPeriod', 'the catalogue period inside the independent annual coverage')
+  const mainCount = (end - start) / (coverage.stepS * 1000) + 1
+  if (seasonSummary(main, coverage.stepS, source, 'mainPeriod') !== mainCount) fail(source, 'mainPeriod.samples', 'the main-period inclusive sample count')
+  if (!Array.isArray(doc.months) || !doc.months.length) fail(source, 'months', 'a non-empty monthly summary list')
+  let previousEnd = 0
+  let previousMonth = ''
+  doc.months.forEach((value, i) => {
+    const path = `months[${i}]`
+    const month = record(value, source, path)
+    const label = string(month.month, source, `${path}.month`)
+    if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(label) || label <= previousMonth) fail(source, `${path}.month`, 'unique chronological YYYY-MM labels')
+    const first = integer(month.startIndex, source, `${path}.startIndex`, 0)
+    const last = integer(month.endIndex, source, `${path}.endIndex`, 1)
+    if (first < previousEnd || last <= first || last > year.count || new Date(year.start + first * year.step * 1000).toISOString().slice(0, 7) !== label) fail(source, path, 'ordered sample ranges within the annual grid and stated UTC month')
+    if (seasonSummary(month, year.step, source, path) !== last - first) fail(source, `${path}.samples`, 'endIndex - startIndex')
+    previousEnd = last
+    previousMonth = label
+  })
+  return value as SeasonDoc
 }
 
 export function validateSites(value: unknown, source = 'sites.json'): SitesDoc {

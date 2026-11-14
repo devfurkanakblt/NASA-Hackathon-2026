@@ -50,6 +50,7 @@ const EARTH_FRAGMENT = /* glsl */ `
     float incidence = max(dot(n, normalize(uSunDirection)), 0.0);
     vec3 albedo = uHasMap > 0.5 ? texture2D(uMap, vUv).rgb : uColor;
     gl_FragColor = vec4(albedo * incidence, uOpacity);
+    #include <tonemapping_fragment>
     #include <colorspace_fragment>
   }
 `

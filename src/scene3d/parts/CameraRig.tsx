@@ -9,6 +9,8 @@ import type { BodyState, CameraMode, LookTarget } from '../types.ts'
 
 const OVERVIEW_FOV = 45
 const LANDER_FOV = 55
+const EARTH_TARGET_FOV = 18
+const SUN_TARGET_FOV = 32
 const LANDER_FOV_MIN = 6
 const LANDER_FOV_MAX = 75
 const PITCH_MIN = -89.9
@@ -88,7 +90,15 @@ export function CameraRig({ mode, halfExtentM, farPlaneM, eyeHeightM, lookTarget
     }
   })
 
-  // Follow the selected body in the lander view.
+  // Selecting a body starts with an inspection zoom. Target motion is deliberately
+  // absent from these dependencies, so playback does not undo a manual wheel zoom.
+  useEffect(() => {
+    if (mode !== 'lander' || lookTarget === 'free') return
+    look.current.fov = lookTarget === 'earth' ? EARTH_TARGET_FOV : SUN_TARGET_FOV
+    applyLook()
+  }, [mode, lookTarget, applyLook])
+
+  // Follow the selected body in the lander view, keeping the current field of view.
   const target = lookTarget === 'sun' ? sun : lookTarget === 'earth' ? earth : null
   const targetAz = target?.azDeg
   const targetEl = target?.elDeg

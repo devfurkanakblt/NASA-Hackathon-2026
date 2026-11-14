@@ -28,7 +28,7 @@ export function HorizonCurtain({ profile, radius, xray }: { profile: HorizonProf
     <mesh geometry={geometry} renderOrder={1}>
       <meshBasicMaterial
         key={xray ? 'xray' : 'solid'}
-        color="#1d2430"
+        color="#494843"
         side={DoubleSide}
         transparent={xray}
         opacity={xray ? 0.55 : 1}

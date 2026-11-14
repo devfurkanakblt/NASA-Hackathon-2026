@@ -3,13 +3,18 @@ import { BufferAttribute, BufferGeometry, DoubleSide } from 'three'
 import { buildPatchSkirt, buildReferenceSphereAroundMesh } from '../terrainGeometry.ts'
 import type { TerrainMeshData } from '../terrainGeometry.ts'
 
-/** Brightness of the lowest ground relative to the highest (elevation tint). */
-const LOW_GROUND_TINT = 0.5
+// Neutral, untextured display material, not a measured lunar albedo map.
+// One shared tone prevents arbitrary colour bands at the different terrain resolutions.
+const REGOLITH_COLOR = '#94938f'
+
+function LunarSurfaceMaterial({ reliefTint = false, doubleSided = false }: { reliefTint?: boolean; doubleSided?: boolean }) {
+  return <meshPhysicalMaterial color={REGOLITH_COLOR} vertexColors={reliefTint} roughness={1} metalness={0} specularIntensity={0.06} envMapIntensity={0} side={doubleSided ? DoubleSide : undefined} />
+}
 
 /**
  * Low-poly local terrain. Visualisation only — it never decides visibility.
- * Vertices are tinted by elevation (low = darker) so the relief stays readable
- * when the Sun is down and only the fill light is left.
+ * Smooth normals come from the actual DEM mesh. The optional inspection aid adds only
+ * a small normal-derived contrast; height is never painted as invented surface albedo.
  */
 export function Terrain({ data, reliefTint = false }: { data: TerrainMeshData; reliefTint?: boolean }) {
   const geometry = useMemo(() => {
@@ -17,16 +22,17 @@ export function Terrain({ data, reliefTint = false }: { data: TerrainMeshData; r
     g.setAttribute('position', new BufferAttribute(data.positions, 3))
     g.setIndex(new BufferAttribute(data.indices.subarray(0, data.seamIndexStart ?? data.indices.length), 1))
 
+    g.computeVertexNormals()
+    const normals = g.getAttribute('normal')
     const count = data.positions.length / 3
     const colors = new Float32Array(count * 3)
-    const range = Math.max(1e-6, data.maxY - data.minY)
     for (let i = 0; i < count; i++) {
-      const t = (data.positions[i * 3 + 1] - data.minY) / range
-      colors.fill(LOW_GROUND_TINT + (1 - LOW_GROUND_TINT) * t, i * 3, i * 3 + 3)
+      // At most 8% contrast, enabled only together with the explicit viewing aid.
+      const tone = 0.92 + 0.08 * Math.max(0, Math.min(1, normals.getY(i)))
+      colors.fill(tone, i * 3, i * 3 + 3)
     }
     g.setAttribute('color', new BufferAttribute(colors, 3))
 
-    g.computeVertexNormals()
     g.computeBoundingSphere()
     return g
   }, [data])
@@ -38,6 +44,7 @@ export function Terrain({ data, reliefTint = false }: { data: TerrainMeshData; r
     const g = new BufferGeometry()
     g.setAttribute('position', new BufferAttribute(data.positions, 3))
     g.setIndex(new BufferAttribute(data.indices.subarray(data.seamIndexStart), 1))
+    g.computeVertexNormals()
     g.computeBoundingSphere()
     return g
   }, [data])
@@ -46,10 +53,10 @@ export function Terrain({ data, reliefTint = false }: { data: TerrainMeshData; r
   return (
     <>
       <mesh geometry={geometry} castShadow receiveShadow>
-        <meshStandardMaterial color="#888888" vertexColors={reliefTint} roughness={1} metalness={0} />
+        <LunarSurfaceMaterial reliefTint={reliefTint} />
       </mesh>
       {/* Display-only LOD join; it must not cast invented ridge shadows. */}
-      {seam && <mesh geometry={seam}><meshBasicMaterial color="#474541" side={DoubleSide} /></mesh>}
+      {seam && <mesh geometry={seam} receiveShadow><LunarSurfaceMaterial doubleSided /></mesh>}
     </>
   )
 }
@@ -87,10 +94,10 @@ export function ReferenceSphere({ data, siteElevationM, outerRadiusM }: { data: 
   return (
     <>
       <mesh geometry={sphere} receiveShadow>
-        <meshStandardMaterial color="#5d5b59" roughness={1} metalness={0} />
+        <LunarSurfaceMaterial />
       </mesh>
-      <mesh geometry={skirt}>
-        <meshBasicMaterial color="#1f1f22" side={DoubleSide} />
+      <mesh geometry={skirt} receiveShadow>
+        <LunarSurfaceMaterial doubleSided />
       </mesh>
     </>
   )

@@ -1,5 +1,5 @@
 import type { LoadedData } from './contract.ts'
-import { validateEarthOrientation, validateEphemeris, validateHorizon, validateSites, validateTerrain } from './validate.ts'
+import { validateEarthOrientation, validateEphemeris, validateHorizon, validateMap, validateSeason, validateSites, validateTerrain } from './validate.ts'
 
 class HttpError extends Error {
   status: number
@@ -49,15 +49,18 @@ export async function loadAllData(baseUrl = `${import.meta.env.BASE_URL}data`): 
       getJson(`${root}/horizon.json`).then((doc) => validateHorizon(doc, site.id, `${root}/horizon.json`)),
     ])
     const visualWarnings: string[] = []
-    const [terrain, terrainFar, earthOrientation] = await Promise.all([
+    const [terrain, terrainFar, earthOrientation, season, map] = await Promise.all([
       optionalVisual(`${root}/terrain.json`, (doc) => validateTerrain(doc, site.id, `${root}/terrain.json`), visualWarnings,
         `${root}/terrain.json: local 3D terrain unavailable. Scientific results remain available.`),
       // Missing regional meshes are expected for newly generated A catalogue entries.
       optionalVisual(`${root}/terrain-far.json`, (doc) => validateTerrain(doc, site.id, `${root}/terrain-far.json`), visualWarnings),
       optionalVisual(`${root}/earth-orientation.json`, (doc) => validateEarthOrientation(doc, site.id, ephemeris, `${root}/earth-orientation.json`, site), visualWarnings,
         `${root}/earth-orientation.json: registered Earth texture orientation unavailable.`),
+      optionalVisual(`${root}/season.json`, (doc) => validateSeason(doc, site.id, sites.coverage, `${root}/season.json`), visualWarnings),
+      site.category === 'contrast' ? Promise.resolve(undefined) :
+        optionalVisual(`${root}/map.json`, (doc) => validateMap(doc, site.id, sites.coverage, `${root}/map.json`), visualWarnings),
     ])
-    return [site.id, { site, ephemeris, horizon, terrain, terrainFar, earthOrientation, visualWarnings }] as const
+    return [site.id, { site, ephemeris, horizon, terrain, terrainFar, earthOrientation, visualWarnings, season, map }] as const
   }))
   return { sites, bySite: Object.fromEntries(entries) }
 }

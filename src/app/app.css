@@ -338,6 +338,7 @@
 .pano svg,
 .chart svg {
   display: block;
+  touch-action: pan-y;
 }
 .axis text {
   fill: var(--muted);
@@ -544,6 +545,7 @@
 }
 .sources dd {
   margin: 0;
+  overflow-wrap: anywhere;
 }
 .tag-line {
   margin: 0;
@@ -551,4 +553,230 @@
 }
 .warnings {
   color: #ffcf99;
+}
+
+/* Segmented control (map layers) */
+.segmented {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+.app .segmented button {
+  font-size: 13px;
+}
+.app .segmented button.is-on {
+  background: #2b3550;
+  border-color: #9db7ff;
+}
+
+/* Regional map */
+.sitemap__body {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: flex-start;
+}
+.sitemap__plot {
+  position: relative;
+  flex: none;
+  max-width: 100%;
+  cursor: crosshair;
+  touch-action: none;
+  border-radius: 4px;
+  outline-offset: 2px;
+}
+.sitemap__plot canvas {
+  display: block;
+  image-rendering: pixelated;
+  border-radius: 4px;
+}
+.sitemap__north {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  text-shadow: 0 0 3px #000, 0 0 3px #000;
+  pointer-events: none;
+}
+.sitemap__mark,
+.sitemap__pick,
+.sitemap__tip {
+  position: absolute;
+  pointer-events: none;
+}
+.sitemap__mark i {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  margin: -5px 0 0 -5px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1.5px #0b0e14;
+}
+.sitemap__mark--centre i {
+  border-radius: 0;
+  transform: rotate(45deg);
+}
+.sitemap__mark b {
+  position: absolute;
+  left: 9px;
+  top: -8px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: #fff;
+  text-shadow: 0 0 3px #000, 0 0 3px #000, 0 0 2px #000;
+}
+.sitemap__pick {
+  transform: translate(-50%, -50%);
+  border: 2px solid #ffd166;
+  box-shadow: 0 0 0 1px #0b0e14;
+}
+.sitemap__tip,
+.season__tip {
+  z-index: 2;
+  padding: 5px 8px;
+  background: rgba(13, 18, 27, 0.95);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  font-size: 12px;
+  white-space: nowrap;
+  transform: translate(12px, -50%);
+  font-variant-numeric: tabular-nums;
+}
+.sitemap__tip.is-left {
+  transform: translate(calc(-100% - 12px), -50%);
+}
+.sitemap__side {
+  flex: 1 1 240px;
+  min-width: 0;
+}
+.sitemap__legend {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  max-width: 260px;
+  margin-bottom: 10px;
+}
+.sitemap__ramp {
+  display: block;
+  height: 10px;
+  border-radius: 3px;
+}
+.sitemap__ramp-labels {
+  display: flex;
+  justify-content: space-between;
+}
+.sitemap__cell {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 3px 12px;
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.sitemap__cell dt {
+  color: var(--muted);
+}
+.sitemap__cell dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.sitemap__warnings {
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
+
+/* Season chart */
+.season {
+  position: relative;
+}
+.season__sim rect {
+  fill: rgba(157, 183, 255, 0.08);
+  stroke: none;
+}
+.season__sim text {
+  fill: var(--muted);
+  font-size: 11px;
+}
+.season__mission {
+  fill: #ffd166;
+  font-weight: 600;
+}
+.season__mission-line {
+  stroke: #ffd166;
+  stroke-width: 1.5;
+  stroke-dasharray: 2 3;
+}
+.season__dot {
+  stroke-width: 2;
+}
+.season__tip {
+  position: absolute;
+  pointer-events: none;
+}
+.season__tip.is-left {
+  transform: translate(calc(-100% - 12px), 0);
+}
+.season__tip:not(.is-left) {
+  transform: translate(12px, 0);
+}
+.season__legend-mission {
+  border-top: 2px dotted #ffd166;
+  background: none !important;
+  height: 0 !important;
+}
+.season__table {
+  border-collapse: collapse;
+  margin-top: 6px;
+  font-variant-numeric: tabular-nums;
+}
+.season__table th,
+.season__table td {
+  padding: 3px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+.season__table tbody th {
+  font-weight: 500;
+  color: var(--muted);
+}
+
+/* Narrow screens (phones) */
+@media (max-width: 600px) {
+  .app {
+    padding-inline: 12px;
+  }
+  .app h1 {
+    font-size: 19px;
+  }
+  .card {
+    padding: 12px;
+  }
+  .scene-box {
+    height: 340px;
+  }
+  .timebar {
+    padding: 6px 8px;
+  }
+  .timebar__time {
+    width: 100%;
+    font-size: 12px;
+  }
+  .field__input input {
+    width: 72px;
+  }
+  .app button,
+  .app input,
+  .app select {
+    min-height: 32px;
+  }
+  .sitemap__tip {
+    white-space: normal;
+    width: 150px;
+  }
 }

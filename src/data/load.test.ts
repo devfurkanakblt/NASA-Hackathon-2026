@@ -11,7 +11,7 @@ const endUtc = '2026-11-01T00:20:00Z'
 function fixture(id = 'Site01') {
   const site = { id, name: 'Research example', latDeg: -89, lonDeg: 12, surfaceElevationM: 100,
     observerHeightM: 2, coordSource: 'NASA catalogue', demNear: 'NASA LOLA 5m', demFar: 'NASA LOLA 80m',
-    label: 'Not a certified landing site', warnings: [] }
+    label: 'Not a certified landing site', warnings: [], category: undefined as string | undefined }
   const body = { azDeg: [359.9, 0, 0.1], elDeg: [-1, 0, 1], distanceM: [1e11, 1e11, 1e11] }
   const ephemeris = { version: 1, siteId: id, source: 'jpl-horizons', generatedUtc: startUtc,
     settings: { center: 'coord@301', frame: 'MOON_ME', refraction: false, observerHeightM: 2 },
@@ -50,6 +50,112 @@ function mockFiles(docs: Record<string, unknown>, failures: Record<string, numbe
 
 afterEach(() => vi.unstubAllGlobals())
 
+function summaryFiles(id = 'Site01') {
+  const summary = (samples: number) => ({ samples, sunPct: 50, earthPct: 40, bothPct: 20,
+    sunDiskFractionMean: 0.5, longestNoSunS: 0, longestNoEarthS: 0,
+    sunElMaxDeg: 2, sunElMinDeg: -2, earthElMaxDeg: 6 })
+  const annualEnd = '2027-11-01T00:00:00Z'
+  const count = (Date.parse(annualEnd) - Date.parse(startUtc)) / 600000 + 1
+  const months = Array.from({ length: 12 }, (_, i) => {
+    const first = Date.UTC(2026, 10 + i, 1)
+    const last = Date.UTC(2026, 11 + i, 1)
+    const startIndex = (first - Date.parse(startUtc)) / 600000
+    const endIndex = (last - Date.parse(startUtc)) / 600000
+    return { ...summary(endIndex - startIndex), month: new Date(first).toISOString().slice(0, 7), startIndex, endIndex }
+  })
+  const season = { version: 1, siteId: id, source: 'jpl-horizons',
+    coverage: { startUtc, endUtc: annualEnd, stepS: 600, count },
+    year: summary(count), mainPeriod: { ...summary(3), startUtc, endUtc }, months }
+  const values = (n: number): (number | null)[] => new Array(9).fill(n)
+  const map = { version: 1, siteId: id, grid: { nx: 3, ny: 3, spacingM: 100, halfSizeM: 100 },
+    coverage: { startUtc, endUtc, stepS: 600, count: 3 },
+    latDeg: new Array(9).fill(-89), lonDeg: new Array(9).fill(12), surfaceElevationM: values(100),
+    sunPct: values(50), earthPct: values(40), bothPct: values(20), sunDiskFractionMean: values(0.5),
+    longestNoSunS: values(0), longestNoEarthS: values(0), slopeDeg: values(5), warnings: [] }
+  return { season, map }
+}
+
+describe('map and independent annual season merge regressions', () => {
+  it('preserves valid null map metrics and the independent annual coverage', async () => {
+    const f = fixture()
+    const { map, season } = summaryFiles()
+    map.sunPct[0] = null
+    map.slopeDeg[4] = null
+    map.surfaceElevationM[8] = null
+    f.docs['/data/Site01/map.json'] = map
+    f.docs['/data/Site01/season.json'] = season
+    mockFiles(f.docs)
+    const data = (await loadAllData('/data')).bySite.Site01
+    expect(data.map).toEqual(map)
+    expect(data.season).toEqual(season)
+    expect(data.season?.coverage.endUtc).toBe('2027-11-01T00:00:00Z')
+    expect(data.ephemeris.count).toBe(3)
+    expect(data.visualWarnings).toEqual([])
+  })
+
+  it('opens when the optional map and season files are absent (404)', async () => {
+    const f = fixture()
+    mockFiles(f.docs)
+    const data = (await loadAllData('/data')).bySite.Site01
+    expect(data.map).toBeUndefined()
+    expect(data.season).toBeUndefined()
+    expect(data.visualWarnings).toEqual([])
+  })
+
+  it('does not request a regional map for contrast sites, but still loads their season', async () => {
+    const f = fixture('Apollo11')
+    f.sites.sites[0].category = 'contrast'
+    const { map, season } = summaryFiles(f.id)
+    f.docs[`/data/${f.id}/map.json`] = map // would succeed, but must never be requested
+    f.docs[`/data/${f.id}/season.json`] = season
+    const fetch = mockFiles(f.docs)
+    const data = (await loadAllData('/data')).bySite.Apollo11
+    expect(data.map).toBeUndefined()
+    expect(data.season).toEqual(season)
+    expect(fetch.mock.calls.map(([url]) => String(url))).not.toContain('/data/Apollo11/map.json')
+    expect(fetch).toHaveBeenCalledTimes(7)
+  })
+
+  it.each(['map', 'season'])('warns on an optional %s network failure without losing science', async (kind) => {
+    const f = fixture()
+    mockFiles(f.docs, { [`/data/Site01/${kind}.json`]: new Error('offline') })
+    const data = (await loadAllData('/data')).bySite.Site01
+    expect(data[kind as 'map' | 'season']).toBeUndefined()
+    expect(data.visualWarnings?.join(' ')).toContain(`${kind}.json: network request failed`)
+    expect(data.ephemeris).toEqual(f.ephemeris)
+  })
+
+  it.each(['mapLength', 'mapNaN', 'mapSite', 'seasonCoverage', 'seasonSite', 'seasonMonth'])('warns and omits a malformed optional summary: %s', async (kind) => {
+    const f = fixture()
+    const { map, season } = summaryFiles()
+    if (kind === 'mapLength') map.sunPct.pop()
+    if (kind === 'mapNaN') map.sunPct[0] = NaN
+    if (kind === 'mapSite') map.siteId = 'Site04'
+    if (kind === 'seasonCoverage') season.coverage.count--
+    if (kind === 'seasonSite') season.siteId = 'Site04'
+    if (kind === 'seasonMonth') season.months[1].month = season.months[0].month
+    f.docs['/data/Site01/map.json'] = map
+    f.docs['/data/Site01/season.json'] = season
+    mockFiles(f.docs)
+    const data = (await loadAllData('/data')).bySite.Site01
+    const field = kind.startsWith('map') ? 'map' : 'season'
+    expect(data[field]).toBeUndefined()
+    expect(data.visualWarnings?.join(' ')).toMatch(new RegExp(`${field}\\.json: invalid`))
+    expect(data.horizon).toEqual(f.horizon)
+  })
+
+  it('warns on malformed optional JSON, rather than treating a broken response as missing', async () => {
+    const f = fixture()
+    const ordinaryFetch = mockFiles(f.docs)
+    vi.stubGlobal('fetch', async (input: string | URL | Request) => String(input).endsWith('/season.json')
+      ? { ok: true, status: 200, json: async () => { throw new SyntaxError('invalid JSON') } } as unknown as Response
+      : ordinaryFetch(input))
+    const data = (await loadAllData('/data')).bySite.Site01
+    expect(data.season).toBeUndefined()
+    expect(data.visualWarnings?.join(' ')).toMatch(/season.json: response is not valid JSON/)
+  })
+})
+
 describe('catalogue-driven loading and optional visuals', () => {
   it('does not register an old Earth map after A changes the site coordinate', async () => {
     const f = fixture()
@@ -71,7 +177,7 @@ describe('catalogue-driven loading and optional visuals', () => {
     expect(data.earthOrientation).toEqual(f.orientation)
     expect(data.terrainFar).toBeUndefined() // expected optional 404, without a warning
     expect(data.visualWarnings).toEqual([])
-    expect(fetch).toHaveBeenCalledTimes(6)
+    expect(fetch).toHaveBeenCalledTimes(8)
   })
 
   it('keeps science usable when only the local visual terrain is HTTP 404', async () => {
@@ -148,8 +254,8 @@ describe('required scientific data is rejected clearly', () => {
     const loaded = await loadAllData('data')
     expect(Object.keys(loaded.bySite)).toEqual(['Site01'])
     const urls = fetch.mock.calls.map(([url]) => String(url))
-    expect(urls).toHaveLength(6)
-    expect(new Set(urls).size).toBe(6)
+    expect(urls).toHaveLength(8)
+    expect(new Set(urls).size).toBe(8)
     expect(urls.every(url => url.startsWith('data/'))).toBe(true)
   })
 
@@ -221,5 +327,7 @@ it('loads the published scientific datasets without changing their values (local
     expect(loaded.bySite[id].terrain).toBeDefined()
     if (existsSync(`${directory}${id}/terrain-far.json`)) expect(loaded.bySite[id].terrainFar).toBeDefined()
     if (existsSync(`${directory}${id}/earth-orientation.json`)) expect(loaded.bySite[id].earthOrientation).toBeDefined()
+    expect(loaded.bySite[id].season).toEqual(JSON.parse(readFileSync(`${directory}${id}/season.json`, 'utf8')))
+    if (existsSync(`${directory}${id}/map.json`)) expect(loaded.bySite[id].map).toEqual(JSON.parse(readFileSync(`${directory}${id}/map.json`, 'utf8')))
   }
 })

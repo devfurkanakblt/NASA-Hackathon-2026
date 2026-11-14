@@ -36,7 +36,10 @@ scenarios. The app shows a horizon panorama (terrain skyline with the Sun and Ea
 view of the local terrain with the lander, timelines of Sun / Earth / both in view, panel output
 versus demand, and battery state of charge. Each scenario reports whether it keeps the battery
 reserve, the first reserve violation, unmet energy, the longest Earth outage against the accepted
-limit, and the time to the next rise or set.
+limit, and the time to the next rise or set. Around each polar site a ±3 km map shows Sun / Earth
+visibility and slope for every 100 m cell (on Shackleton's map the catalogue point and the ridge
+1.9 km away sit side by side), and a one-year monthly chart shows the seasonal effect. The whole
+comparison (sites, dates, hardware) is kept in the page link, so it can be shared as is.
 
 **How it works.** Offline Python preprocessing queries JPL Horizons for Sun and Earth azimuth,
 elevation and distance seen from each site (10-minute steps, observer 2 m above the surface),
@@ -58,7 +61,7 @@ rise/set times from 10-minute data agree with a 1-minute series within 0.33 min 
 on gentle ground. Against NASA GSFC's independent polar illumination maps (Mazarico et al., 18.6
 years) our Sun and Earth visibility falls within the map's local 3×3-pixel range at all 7 polar
 sites (rank correlation 0.96 for both), and Shackleton's floor is permanently shadowed in both.
-The TypeScript engine reproduces the Python reference values exactly; 122 automated tests run on
+The TypeScript engine reproduces the Python reference values exactly; 132 automated tests run on
 every change.
 
 **Limits.** Sites are research region centres, not certified landing sites; hardware values are
@@ -71,9 +74,8 @@ not resolved.
 React Three Fiber, inline SVG charts, Vite, Vitest. Static hosting on [Vercel / GitHub Pages]; the same
 build runs offline.
 
-**Next steps.** Show the precomputed regional maps (Sun / Earth visibility and slope on a ±3 km
-grid around each polar site) and the one-year monthly summary in the app, shareable scenario links,
-thermal and relay-satellite models.
+**Next steps.** Run the full mission simulation for any map cell (not only the listed sites),
+extend the time series to a full year, thermal and relay-satellite models.
 
 ## Use of Artificial Intelligence (AI)
 

@@ -1,6 +1,6 @@
 # Person C: terrain and registered Earth display
 
-This change is based on `main` commit `79e657030147452c39eff8bfd34356bca29f8c79`, including A's nine-site expansion and the current B/D interface handoff, and includes the previously unmerged C regional-terrain work. It does not modify Person B's application layout, Person D's simulation functions/tests, or Person A's scientific site catalogue, local terrain, horizon and ephemeris files.
+This change is based on `main` commit `2357d7d5c866653421917f0bd123467dfa32dede`, including A's nine-site expansion and the current B/D interface handoff, and includes the previously unmerged C regional-terrain work. The follow-up integration connects C's optional props in B's main screen and keeps B's regional map, seasonal chart and shareable scenarios. Person D's simulation functions/tests and Person A's scientific site catalogue, local terrain, horizon and ephemeris files remain unchanged by C.
 
 ## Terrain geometry
 
@@ -15,8 +15,8 @@ The old regional mesh lowered only its sparse vertices by 25 m. Its large triang
 - The generator checks the returned GeoTIFF projection numerically, uses its actual transform, rejects no-data and records the source SHA-256, dimensions, projection, resampling, observer and catalogue-coordinate metadata.
 - The grey reference sphere is only drawn beyond the measured mesh. It is a reference datum, not measured terrain.
 - Vertical exaggeration is 1. The display mesh is downsampled; small stones and lander-scale relief are unresolved. LOD join faces are display connections and do not cast invented ridge shadows.
-- Local and regional mesh shading uses the actual solar direction. Local sunlight absence does not switch off lighting for every mountain in the region. The scientific visibility flag still controls the lander's status/panel indicator. Mesh shadows remain a visual approximation.
-- The optional **Relief lighting (view aid)** control adds fill light and height tint for inspection. It is off by default. It is not a measured illumination product.
+- Local and regional meshes use a shared neutral, rough material with weak specular response; no invented rocks, albedo or noise texture is added. Local and regional mesh shading uses the actual solar direction. Local sunlight absence does not switch off lighting for every mountain in the region. The scientific visibility flag still controls the lander's status/panel indicator. Mesh shadows remain a visual approximation.
+- The **Relief lighting (view aid)** control is on by default for readable terrain. It adds neutral hemisphere and inspection light, with at most 8% normal-derived contrast. Switching it off leaves Sun-only illumination. Neither mode claims a calibrated lunar photometric model.
 
 Reproduce regional visual data, after A generates the catalogue and scientific files:
 
@@ -90,21 +90,33 @@ Existing props keep their meaning. Added optional props:
 />
 ```
 
-`earthOrientationAt` and `earthSunDirectionAt` are pure helpers in `src/scene3d/appearance.ts`; they do not import Three.js into the main bundle. Use the engine's `alignedStartUtc` or `sampleUtc` for the displayed UTC. The C-owned temporary harness demonstrates all these connections; B's application code is unchanged.
+`earthOrientationAt` and `earthSunDirectionAt` are pure helpers in `src/scene3d/appearance.ts`; they do not import Three.js into the main bundle. Use the engine's `alignedStartUtc` or `sampleUtc` for the displayed UTC. Both the main planner and the C-owned temporary harness now provide these connections. The main planner also displays C's optional-data warnings in Sources and model.
 
-### Handoff to B (no B files edited)
+### Main-screen integration
 
-At the current base, the main `src/app/MissionApp.tsx` still passes only the original props. C's fully connected check view is **`/?demo=3d`**. B needs to pass `farTerrain`, `earthOrientation`, `earthSunDirection`, and `panelPowerW` as shown above, using the active scenario data and its displayed UTC. Also expose `activeData.visualWarnings` beside the existing model/source notes. Without those optional props the old main screen still works, but does not display the new regional mesh or registered NASA Earth map. This integration was deliberately left to B under the user's ownership boundary.
+`src/app/MissionApp.tsx` now passes `farTerrain`, `earthOrientation`, `earthSunDirection` and `panelPowerW`, using the active scenario and the exact displayed UTC. `Sources.tsx` exposes `visualWarnings` with duplicate messages removed. B's map, season and share functions are preserved. The data loader combines both extensions instead of replacing B's new files with the older C-only shape.
+
+The annual season range is independent of the mission ephemeris range. Regional-map missing cells may be `null` and remain unavailable rather than being turned into zero. Contrast sites do not request regional `map.json` files. These optional summaries never replace the per-site horizon or ephemeris used by the engine.
 
 `panelPowerW` lets the visual panel indicator follow the existing engine when its optional partial-Sun mode is used. The 3D view does not change power, visibility windows, battery integration or model selection.
 
+## Readability follow-up
+
+The display uses ACES tone mapping, exposure 1.2, a 1.5–2 pixel ratio, and 4096 soft solar shadow maps fitted to the local patch (light at 45 km, shadow depth 30–60 km). These settings improve readability; shadows still do not decide scientific visibility. The regional mesh now renders in both cameras, with the horizon silhouette outside its measured boundary rather than a flat wall in front of it. Sun/Earth positions and apparent diameters remain unchanged. Earth uses the same tone-mapping pipeline as the terrain.
+
+Selecting Earth in the lander camera sets an 18-degree inspection field of view; Sun uses 32 degrees. This is camera zoom, not an enlarged body model. Playback preserves later manual zoom. No finer terrain detail is claimed than the source grid resolves.
+
+The browser date-input regression was fixed in `ScenarioList.tsx`: input and change events both update the validated UTC value. A manual 18 November entry now updates the shared UTC, panorama and scene together.
+
+A 30-second silent step-through demo is delivered separately as `C-3D-Demo.mp4`. It uses actual UI frames at Site23, 18 November 2026: Earth is terrain-blocked at 00:30 and visible at 00:40 UTC. Frames are held for readability; this is not real-time video or a claim of event timing to the minute.
+
 ## Tests and manual QA
 
-Measured on this Windows computer: **179 JavaScript/TypeScript tests and 39 C Python tests passed; production build passed**. The build reports a large lazy Three.js scene chunk (~262 kB gzip); the main bundle remains separate (~88 kB gzip).
+Measured on this Windows computer: **200 JavaScript/TypeScript tests and 39 C Python tests passed; production build passed**. The build reports a large lazy Three.js scene chunk (~262 kB gzip); the main bundle remains separate (~93 kB gzip).
 
-Manual checks: all nine sites in overview and lander cameras; registered Earth/Sun targets; date input and UTC readout; GPU context loss and recovery; malformed-terrain fallback with scientific readouts preserved; 390 x 844 responsive scene/source details. During playback one desktop sample reported ~138 render FPS, 27 draw calls, 25 geometries and 3 textures. This is one device sample, not a device-independent guarantee. Site/camera changes did not show monotonic GPU resource growth.
+Manual checks: all nine sites in overview and lander cameras; registered Earth/Sun targets; date input and UTC readout; GPU context loss and recovery; malformed-terrain fallback with scientific readouts preserved; 390 x 844 responsive scene/source details. A local ten-run benchmark loaded nine sites (7 maps, 9 seasons, 9 regional meshes and 9 Earth orientations) without warnings; evaluating three cached scenarios took 0.78–5.66 ms, mean 1.76 ms, with zero extra data requests. This is this computer’s computation timing, not a browser FPS or cross-device guarantee. A physical phone was not available; 390 x 844 browser layout was checked.
 
-The production page was loaded, then its own local HTTP server was stopped. Site23 selection, +72 h, camera/target changes and playback still worked from loaded data (00:00 to 06:20 UTC). This checks loaded-page isolation; cold starts still require serving the local bundle. No OS network settings were changed.
+The merged main screen was loaded, then its own local HTTP server was stopped. Switching to scenario B, overview camera and playback still worked; its regional map and annual chart remained available without a load error. The earlier C-only test also passed site/date/target changes with its server stopped. This checks loaded-page isolation; cold starts still require serving the local bundle. No OS network settings were changed.
 
 Repeatable commands:
 

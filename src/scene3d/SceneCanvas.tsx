@@ -2,6 +2,7 @@ import { Canvas } from '@react-three/fiber'
 import { useCallback, useMemo, useRef, useState } from 'react'
 import type { RefObject } from 'react'
 import type { Object3D } from 'three'
+import { ACESFilmicToneMapping, SRGBColorSpace } from 'three'
 import type { QuaternionXyzw } from './appearance.ts'
 import { useEarthTexture } from './earthTexture.ts'
 import sourceLinks from './sources.json'
@@ -126,7 +127,7 @@ export default function SceneCanvas({
   const [lookTarget, setLookTarget] = useState<LookTarget>('sun')
   const [contextLost, setContextLost] = useState(false)
   const [showAnnotations, setShowAnnotations] = useState(true)
-  const [reliefLighting, setReliefLighting] = useState(false)
+  const [reliefLighting, setReliefLighting] = useState(true)
   const [canvasKey, setCanvasKey] = useState(0)
   const diagnosticOutput = useRef<HTMLOutputElement | null>(null)
   const { texture: earthMap, failed: earthMapFailed } = useEarthTexture()
@@ -138,7 +139,8 @@ export default function SceneCanvas({
     [farTerrain, observerHeightM, meshData],
   )
   const overviewRadius = half * 0.9
-  const curtainRadius = half * 2.2
+  // Keep the full-resolution horizon silhouette beyond the measured regional mesh.
+  const curtainRadius = Math.max(half * 2.2, (farTerrain?.sizeM ?? 0) * 0.75)
   // The sky sits far beyond the terrain patch and travels with the camera (see SkyFollow).
   // It must lie beyond the limb of the reference sphere as seen from the highest overview camera.
   const skyRadius = half * SKY_RADIUS
@@ -172,10 +174,10 @@ export default function SceneCanvas({
       <Canvas
         key={canvasKey}
         frameloop="demand"
-        shadows
-        dpr={[1, 2]}
+        shadows="soft"
+        dpr={[1.5, 2]}
         camera={{ fov: 45, near: 5, far: half * FAR_PLANE, position: [half, half * 0.5, half * 2.3] }}
-        gl={{ antialias: true, powerPreference: 'high-performance' }}
+        gl={{ antialias: true, powerPreference: 'high-performance', toneMapping: ACESFilmicToneMapping, toneMappingExposure: 1.2, outputColorSpace: SRGBColorSpace }}
         onCreated={({ gl }) => {
           gl.domElement.addEventListener('webglcontextlost', (event) => {
             event.preventDefault()
@@ -184,26 +186,28 @@ export default function SceneCanvas({
         }}
       >
         <color attach="background" args={['#000000']} />
-        <hemisphereLight args={['#c3cbdb', '#2a2d35', reliefLighting ? 1.5 : 0]} />
+        <hemisphereLight args={['#f5f5f3', '#6c6c69', reliefLighting ? 0.9 : 0]} />
+        {/* Inspection fill preserves visible relief without claiming measured lunar irradiance. */}
+        <directionalLight position={[-12000, 12000, 16000]} intensity={reliefLighting ? 1.1 : 0} color="#f2f2f0" />
         {/* Local visibility does not turn off sunlight for every mountain in the region. */}
         <directionalLight
-          position={[sunDirection[0] * 250000, sunDirection[1] * 250000, sunDirection[2] * 250000]}
-          intensity={3}
-          color="#fff4e0"
+          position={[sunDirection[0] * 45000, sunDirection[1] * 45000, sunDirection[2] * 45000]}
+          intensity={4}
+          color="#fff8ed"
           castShadow
-          shadow-mapSize={[2048, 2048]}
+          shadow-mapSize={[4096, 4096]}
           shadow-camera-left={-half * 1.3}
           shadow-camera-right={half * 1.3}
           shadow-camera-top={half * 1.3}
           shadow-camera-bottom={-half * 1.3}
-          shadow-camera-near={1}
-          shadow-camera-far={500000}
-          shadow-bias={-0.000003}
-          shadow-normalBias={1}
+          shadow-camera-near={30000}
+          shadow-camera-far={60000}
+          shadow-bias={-0.00001}
+          shadow-normalBias={0.5}
         />
 
         <Terrain data={meshData} reliefTint={reliefLighting} />
-        {!lander && farMesh && <Terrain data={farMesh} reliefTint={reliefLighting} />}
+        {farMesh && <Terrain data={farMesh} reliefTint={reliefLighting} />}
         {!lander && surfaceElevationM !== undefined && (
           <ReferenceSphere data={farMesh ?? meshData} siteElevationM={surfaceElevationM} outerRadiusM={half * (SKY_RADIUS - 5)} />
         )}
@@ -351,7 +355,7 @@ export default function SceneCanvas({
         {!earthOrientation ? ' Earth map hidden: registered orientation is unavailable.'
           : earthMapFailed ? ' Earth map unavailable; an untextured illuminated sphere is shown.'
           : !earthMap ? ' Earth texture loading.' : ' Earth: NASA November 2004 composite, UTC-registered rotation; not live weather.'}
-        {reliefLighting && ' Relief fill light is a viewing aid.'}
+        {reliefLighting && ' Relief fill light is enabled for readability; switch it off to inspect Sun-only shading.'}
         </p>
         <p className="scene3d__note">Sources: <a href={sourceLinks.moonTrek} target="_blank" rel="noreferrer">NASA Moon Trek / LOLA</a> · <a href={sourceLinks.blueMarble} target="_blank" rel="noreferrer">NASA Blue Marble</a></p>
       </details>

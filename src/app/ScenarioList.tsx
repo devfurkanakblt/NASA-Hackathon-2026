@@ -20,6 +20,10 @@ export function ScenarioList({ sites, scenarios, outcomes, colors, activeKey, on
   const contrast = sites.sites.filter((s) => s.category === 'contrast')
   const { startUtc: minUtc, endUtc: maxUtc } = sites.coverage
   const update = (key: string, patch: Partial<Scenario>) => onChange(scenarios.map((s) => (s.key === key ? { ...s, ...patch } : s)))
+  const updateStartDate = (scenario: Scenario, value: string) => {
+    const iso = fromInputUtc(value)
+    if (iso && iso !== scenario.startUtc) update(scenario.key, { startUtc: iso })
+  }
 
   return (
     <div className="scenarios">
@@ -64,10 +68,8 @@ export function ScenarioList({ sites, scenarios, outcomes, colors, activeKey, on
                   value={toInputUtc(s.startUtc)}
                   min={toInputUtc(minUtc)}
                   max={toInputUtc(maxUtc)}
-                  onChange={(e) => {
-                    const iso = fromInputUtc(e.target.value)
-                    if (iso) update(s.key, { startUtc: iso })
-                  }}
+                  onInput={(e) => updateStartDate(s, e.currentTarget.value)}
+                  onChange={(e) => updateStartDate(s, e.currentTarget.value)}
                 />
               </label>
               <span className="scenario__shift">

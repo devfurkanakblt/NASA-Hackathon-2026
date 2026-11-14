@@ -84,6 +84,51 @@ export interface EarthOrientationDoc {
   source: { method: string; textureBodyFrame: string; [key: string]: unknown }
 }
 
+/** Per-sample visibility summaries for a year, month or main evaluation period. */
+export interface SeasonSummary {
+  samples: number
+  sunPct: number
+  earthPct: number
+  bothPct: number
+  sunDiskFractionMean: number
+  longestNoSunS: number
+  longestNoEarthS: number
+  sunElMaxDeg: number
+  sunElMinDeg: number
+  earthElMaxDeg: number
+}
+
+/** Annual data has its own coverage; it is not restricted to the mission ephemeris period. */
+export interface SeasonDoc {
+  version: number
+  siteId: string
+  source: string
+  coverage: { startUtc: string; endUtc: string; stepS: number; count: number }
+  year: SeasonSummary
+  mainPeriod: SeasonSummary & { startUtc: string; endUtc: string }
+  months: (SeasonSummary & { month: string; startIndex: number; endIndex: number })[]
+}
+
+/** Regional summary grid, row-major from south-west. A null metric is explicitly no data. */
+export interface MapDoc {
+  version: number
+  siteId: string
+  grid: { nx: number; ny: number; spacingM: number; halfSizeM: number }
+  coverage: { startUtc: string; endUtc: string; stepS: number; count: number }
+  latDeg: number[]
+  lonDeg: number[]
+  surfaceElevationM: (number | null)[]
+  sunPct: (number | null)[]
+  earthPct: (number | null)[]
+  bothPct: (number | null)[]
+  sunDiskFractionMean: (number | null)[]
+  longestNoSunS: (number | null)[]
+  longestNoEarthS: (number | null)[]
+  slopeDeg: (number | null)[]
+  method?: Record<string, string | number>
+  warnings?: string[]
+}
+
 /** Everything the app knows about one site. */
 export interface SiteData {
   site: SiteEntry
@@ -96,6 +141,9 @@ export interface SiteData {
   earthOrientation?: EarthOrientationDoc
   /** Always supplied by loadAllData; optional for existing direct engine fixtures. */
   visualWarnings?: string[]
+  /** Optional regional and annual context panels from A/B. */
+  map?: MapDoc
+  season?: SeasonDoc
 }
 
 export interface LoadedData {
