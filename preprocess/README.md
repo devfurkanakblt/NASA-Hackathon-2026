@@ -14,7 +14,8 @@ python -m preprocess.regional_map      # -> {site}/map.json (per-cell horizon, S
 python -m preprocess.validate          # -> docs/validation.md §1-4 (Skyfield, horizon, Horizons re-query, rise/set timing)
 python -m preprocess.external          # -> docs/validation.md §5 (Mazarico et al. illumination products; data_raw/illum)
 python -m preprocess.map_check         # -> docs/validation.md §6 (map cells vs full-resolution horizon)
-python -m preprocess.crosscheck_moontrek  # -> docs/validation-moontrek.md (terrain vs NASA Moon Trek LOLA 5 m DEM)
+python -m preprocess.crosscheck_moontrek  # -> docs/validation-moontrek.md (terrain vs NASA Moon Trek LOLA 5 m DEM; sites south of 87.5 S)
+python -m preprocess.figures          # -> docs/figures/*.png (Site04 map, 1-year monthly visibility; for the slides)
 python -m pytest preprocess/tests      # unit tests
 python -m preprocess.make_sample       # synthetic sample in public/data/_sample
 ```
