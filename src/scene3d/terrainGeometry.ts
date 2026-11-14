@@ -74,6 +74,89 @@ export function buildTerrainMeshData(grid: TerrainGrid, observerHeightM = OBSERV
   return { positions, indices, halfExtentM: half, minY, maxY }
 }
 
+/** Radius of the lunar reference sphere that LOLA heights are measured from. */
+export const MOON_RADIUS_M = 1_737_400
+
+/** Scene height of the reference sphere at horizontal distance `r` from the site. */
+export function referenceSphereY(r: number, siteElevationM: number): number {
+  return -siteElevationM - (MOON_RADIUS_M - Math.sqrt(MOON_RADIUS_M * MOON_RADIUS_M - r * r))
+}
+
+/**
+ * Vertical faces along the edge of the terrain patch, joining it to the reference sphere,
+ * so the patch reads as a block cut out of the Moon rather than a sheet floating above it.
+ */
+export function buildPatchSkirt(mesh: TerrainMeshData, siteElevationM: number): { positions: Float32Array; indices: Uint32Array } {
+  const m = Math.round(Math.sqrt(mesh.positions.length / 3))
+  // Edge vertices in order: south (west to east), east (south to north), north (east to west), west (north to south).
+  const edge: number[] = []
+  for (let i = 0; i < m; i++) edge.push(i)
+  for (let j = 1; j < m; j++) edge.push(j * m + m - 1)
+  for (let i = m - 2; i >= 0; i--) edge.push((m - 1) * m + i)
+  for (let j = m - 2; j >= 1; j--) edge.push(j * m)
+
+  const n = edge.length
+  const positions = new Float32Array((n + 1) * 2 * 3)
+  for (let k = 0; k <= n; k++) {
+    const v = edge[k % n] * 3
+    const x = mesh.positions[v]
+    const z = mesh.positions[v + 2]
+    positions.set([x, mesh.positions[v + 1], z, x, referenceSphereY(Math.hypot(x, z), siteElevationM), z], k * 6)
+  }
+  const indices = new Uint32Array(n * 6)
+  for (let k = 0; k < n; k++) {
+    const t0 = k * 2
+    indices.set([t0, t0 + 1, t0 + 2, t0 + 2, t0 + 1, t0 + 3], k * 6)
+  }
+  return { positions, indices }
+}
+
+/**
+ * The smooth lunar reference sphere around the square terrain patch, out to `outerRadiusM`.
+ * It is not terrain: it is the datum the heights are measured from, drawn so that the overview
+ * has the Moon's real curvature and limb beyond the patch instead of empty space.
+ * `siteElevationM` is the height of the ground at the site above that sphere.
+ */
+export function buildReferenceSphereRing(
+  halfExtentM: number,
+  siteElevationM: number,
+  outerRadiusM: number,
+  segments = 128,
+  rings = 40,
+): { positions: Float32Array; indices: Uint32Array } {
+  const positions = new Float32Array((segments + 1) * (rings + 1) * 3)
+  const indices = new Uint32Array(segments * rings * 6)
+  let p = 0
+  for (let k = 0; k <= segments; k++) {
+    const theta = (k / segments) * Math.PI * 2
+    const sin = Math.sin(theta)
+    const cos = Math.cos(theta)
+    const inner = halfExtentM / Math.max(Math.abs(sin), Math.abs(cos)) // edge of the square patch
+    for (let j = 0; j <= rings; j++) {
+      const r = inner + (outerRadiusM - inner) * (j / rings) ** 2.2
+      positions[p++] = r * sin
+      positions[p++] = referenceSphereY(r, siteElevationM)
+      positions[p++] = -r * cos
+    }
+  }
+  let q = 0
+  for (let k = 0; k < segments; k++) {
+    for (let j = 0; j < rings; j++) {
+      const a = k * (rings + 1) + j
+      const b = a + 1
+      const c = a + rings + 1
+      const d = c + 1
+      indices[q++] = a
+      indices[q++] = c
+      indices[q++] = b
+      indices[q++] = b
+      indices[q++] = c
+      indices[q++] = d
+    }
+  }
+  return { positions, indices }
+}
+
 /** Points of the terrain-horizon line on a sphere of `radius` around the observer. */
 export function horizonLinePoints(profile: HorizonProfile, radius: number): Vec3[] {
   const n = profile.elevDeg.length

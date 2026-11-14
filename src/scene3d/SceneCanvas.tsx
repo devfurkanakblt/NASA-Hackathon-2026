@@ -20,11 +20,11 @@ import { CompassPoints, HorizonCurtain, HorizonLines } from './parts/HorizonOver
 import { LabelProjector } from './parts/Labels.tsx'
 import type { LabelBinding } from './parts/Labels.tsx'
 import { Lander } from './parts/Lander.tsx'
-import { LanderViewBody, OverviewMarker } from './parts/SkyBodies.tsx'
-import { Terrain } from './parts/Terrain.tsx'
+import { DirectionArrow, SkyBody, SkyFollow, SkyTrack } from './parts/SkyBodies.tsx'
+import { ReferenceSphere, Terrain } from './parts/Terrain.tsx'
 import './scene3d.css'
 import { buildTerrainMeshData } from './terrainGeometry.ts'
-import type { BodyState, BodyStatus, CameraMode, HorizonProfile, LookTarget, PanelState, TerrainGrid } from './types.ts'
+import type { BodyPath, BodyState, BodyStatus, CameraMode, HorizonProfile, LookTarget, PanelState, TerrainGrid } from './types.ts'
 
 export interface MissionScene3DProps {
   /** Local elevation grid of the selected site (`terrain.json`). */
@@ -34,14 +34,23 @@ export interface MissionScene3DProps {
   /** Sun / Earth at the current time step; `visible` comes from the simulation engine. */
   sun: BodyState
   earth: BodyState
+  /** Real sky tracks over the period to show (e.g. the mission window), from `ephemeris.json`. */
+  sunPath?: BodyPath
+  earthPath?: BodyPath
   panel?: PanelState
   /** Elevation of the geometric (flat) horizon, drawn dashed. Default 0°. */
   geometricHorizonDeg?: number
   /** Observer height above ground. Default 2 m, as everywhere in the project. */
   observerHeightM?: number
+  /** Height of the ground at the site above the 1737.4 km sphere (`sites.json`); draws that sphere in the overview. */
+  surfaceElevationM?: number
   defaultCameraMode?: CameraMode
   defaultShowTerrainEffect?: boolean
 }
+
+/** Scene distances in units of half the terrain patch: sky sphere and camera far plane. */
+const SKY_RADIUS = 75
+const FAR_PLANE = 82
 
 const fmt = (deg: number) => `${deg.toFixed(2)}°`
 const fmtKm = (m: number) => (m < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(1)} km`)
@@ -85,9 +94,12 @@ export default function SceneCanvas({
   horizon,
   sun,
   earth,
+  sunPath,
+  earthPath,
   panel = DEFAULT_PANEL,
   geometricHorizonDeg = 0,
   observerHeightM = OBSERVER_HEIGHT_M,
+  surfaceElevationM,
   defaultCameraMode = 'overview',
   defaultShowTerrainEffect = false,
 }: MissionScene3DProps) {
@@ -101,7 +113,11 @@ export default function SceneCanvas({
   const half = meshData.halfExtentM
   const overviewRadius = half * 0.9
   const curtainRadius = half * 2.2
-  const bodyRadius = half * 2.4
+  // The sky sits far beyond the terrain patch and travels with the camera (see SkyFollow).
+  // It must lie beyond the limb of the reference sphere as seen from the highest overview camera.
+  const skyRadius = half * SKY_RADIUS
+  const trackRadius = half * (SKY_RADIUS + 4)
+  const lander = cameraMode === 'lander'
 
   const sunStatus = bodyStatus(sun, geometricHorizonDeg)
   const earthStatus = bodyStatus(earth, geometricHorizonDeg)
@@ -131,7 +147,7 @@ export default function SceneCanvas({
         key={canvasKey}
         frameloop="demand"
         dpr={[1, 2]}
-        camera={{ fov: 45, near: 5, far: half * 40, position: [half, half * 1.15, half * 1.7] }}
+        camera={{ fov: 45, near: 5, far: half * FAR_PLANE, position: [half, half * 0.5, half * 2.3] }}
         gl={{ antialias: true, powerPreference: 'high-performance' }}
         onCreated={({ gl }) => {
           gl.domElement.addEventListener('webglcontextlost', (event) => {
@@ -150,29 +166,59 @@ export default function SceneCanvas({
         />
 
         <Terrain data={meshData} />
+        {!lander && surfaceElevationM !== undefined && (
+          <ReferenceSphere data={meshData} siteElevationM={surfaceElevationM} outerRadiusM={half * (SKY_RADIUS - 5)} />
+        )}
         {cameraMode === 'overview' && <Lander panelNormal={normal} panelLit={lit} panelAreaM2={panel.areaM2} northLabelAnchor={northLabel.anchor} />}
 
         <group position={[0, observerHeightM, 0]}>
           {cameraMode === 'overview' ? (
             <>
               {showTerrainEffect && <HorizonLines profile={horizon} radius={overviewRadius} geometricHorizonDeg={geometricHorizonDeg} />}
-              <OverviewMarker color={SUN_COLOR} body={sun} status={sunStatus} labelAnchor={sunLabel.anchor} radius={overviewRadius} markerRadius={half * 0.03} />
-              <OverviewMarker color={EARTH_COLOR} body={earth} status={earthStatus} labelAnchor={earthLabel.anchor} radius={overviewRadius} markerRadius={half * 0.03} />
+              <DirectionArrow color={SUN_COLOR} body={sun} status={sunStatus} labelAnchor={sunLabel.anchor} length={half * 0.42} />
+              <DirectionArrow color={EARTH_COLOR} body={earth} status={earthStatus} labelAnchor={earthLabel.anchor} length={half * 0.42} />
             </>
           ) : (
             <>
               <HorizonCurtain profile={horizon} radius={curtainRadius} xray={showTerrainEffect} />
               {showTerrainEffect && <HorizonLines profile={horizon} radius={curtainRadius * 0.999} geometricHorizonDeg={geometricHorizonDeg} />}
-              <LanderViewBody color={SUN_COLOR} body={sun} status={sunStatus} labelAnchor={sunLabel.anchor} radius={bodyRadius} angularDiameterDeg={sunAngularDiameterDeg(sun.distanceM)} xray={showTerrainEffect} />
-              <LanderViewBody color={EARTH_COLOR} body={earth} status={earthStatus} labelAnchor={earthLabel.anchor} radius={bodyRadius} angularDiameterDeg={earthAngularDiameterDeg(earth.distanceM)} xray={showTerrainEffect} />
               <CompassPoints radius={curtainRadius} anchors={compassAnchors} />
             </>
           )}
         </group>
 
+        {/* Sun and Earth at their true direction and apparent size, with their real tracks. */}
+        <SkyFollow>
+          {sunPath && <SkyTrack path={sunPath} color={SUN_COLOR} radius={trackRadius} />}
+          {earthPath && <SkyTrack path={earthPath} color={EARTH_COLOR} radius={trackRadius} />}
+          <SkyBody
+            kind="sun"
+            color={SUN_COLOR}
+            body={sun}
+            status={sunStatus}
+            radius={skyRadius}
+            angularDiameterDeg={sunAngularDiameterDeg(sun.distanceM)}
+            sunDirection={sunDirection}
+            xray={lander && showTerrainEffect}
+            labelAnchor={lander ? sunLabel.anchor : undefined}
+          />
+          <SkyBody
+            kind="earth"
+            color={EARTH_COLOR}
+            body={earth}
+            status={earthStatus}
+            radius={skyRadius}
+            angularDiameterDeg={earthAngularDiameterDeg(earth.distanceM)}
+            sunDirection={sunDirection}
+            xray={lander && showTerrainEffect}
+            labelAnchor={lander ? earthLabel.anchor : undefined}
+          />
+        </SkyFollow>
+
         <CameraRig
           mode={cameraMode}
           halfExtentM={half}
+          farPlaneM={half * FAR_PLANE}
           eyeHeightM={observerHeightM}
           lookTarget={lookTarget}
           sun={sun}
@@ -240,8 +286,11 @@ export default function SceneCanvas({
       )}
 
       <p className="scene3d__note">
-        {cameraMode === 'overview' ? 'Lander and markers not to scale. ' : 'Sun and Earth discs at true angular size. Drag to look, scroll to zoom. '}
-        3D shading is illustrative — visibility and power come from the terrain-horizon profile.
+        {lander
+          ? 'Drag to look, scroll to zoom. '
+          : 'Lander not to scale; arrows point from it to the Sun and Earth. Beyond the terrain patch only the smooth reference sphere is drawn. '}
+        Sun and Earth are drawn at their true direction and apparent size; the labels give their status at the lander. 3D shading is
+        illustrative — visibility and power come from the terrain-horizon profile.
       </p>
 
       {contextLost && (

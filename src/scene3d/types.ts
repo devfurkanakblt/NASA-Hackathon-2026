@@ -47,6 +47,14 @@ export interface BodyState {
   distanceM?: number
 }
 
+/** Sky track of a body over a time window (from `ephemeris.json`), drawn as its real path. */
+export interface BodyPath {
+  azDeg: ArrayLike<number>
+  elDeg: ArrayLike<number>
+  /** Per sample: centre above the terrain horizon — the same rule as `BodyState.visible`. */
+  visible?: ArrayLike<boolean>
+}
+
 export type BodyStatus = 'visible' | 'terrain-blocked' | 'below-horizon'
 
 export type PanelMode = 'tracking' | 'fixed'

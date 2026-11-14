@@ -4,5 +4,5 @@
 export { MissionScene3D } from './MissionScene3D.tsx'
 export { isWebGLAvailable } from './webgl.ts'
 export type { MissionScene3DProps } from './SceneCanvas.tsx'
-export type { BodyState, BodyStatus, CameraMode, HorizonProfile, PanelMode, PanelState, TerrainGrid } from './types.ts'
+export type { BodyPath, BodyState, BodyStatus, CameraMode, HorizonProfile, PanelMode, PanelState, TerrainGrid } from './types.ts'
 export { OBSERVER_HEIGHT_M, azElToUnitVector, bodyStatus, horizonElevationAt } from './coords.ts'

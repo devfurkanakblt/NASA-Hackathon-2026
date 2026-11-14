@@ -2,10 +2,14 @@ import { OrbitControls } from '@react-three/drei'
 import { useThree } from '@react-three/fiber'
 import { useCallback, useEffect, useRef } from 'react'
 import type { PerspectiveCamera } from 'three'
-import { azElToUnitVector, normalizeAzimuth } from '../coords.ts'
+import { DEG2RAD, azElToUnitVector, normalizeAzimuth } from '../coords.ts'
 import type { BodyState, CameraMode, LookTarget } from '../types.ts'
 
 const OVERVIEW_FOV = 45
+/** Overview start position, in units of half the terrain patch: ~12° above the horizontal. */
+const OVERVIEW_DISTANCE = 2.3
+const OVERVIEW_HEIGHT = 0.5
+const OVERVIEW_SIDE_OFFSET_DEG = 12
 const LANDER_FOV = 55
 const LANDER_FOV_MIN = 6
 const LANDER_FOV_MAX = 75
@@ -16,8 +20,10 @@ const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v
 
 export interface CameraRigProps {
   mode: CameraMode
-  /** Half the terrain patch width (m) — sets camera distances and clip planes. */
+  /** Half the terrain patch width (m) — sets camera distances. */
   halfExtentM: number
+  /** Far clip plane (m): beyond the sky sphere. */
+  farPlaneM: number
   eyeHeightM: number
   lookTarget: LookTarget
   sun: BodyState
@@ -32,11 +38,14 @@ export interface CameraRigProps {
  *  - lander: stand at the observer point (2 m above ground) and look at the horizon.
  *    Drag to look around, wheel to zoom. While a look target is set the view follows it.
  */
-export function CameraRig({ mode, halfExtentM, eyeHeightM, lookTarget, sun, earth, onUserLook }: CameraRigProps) {
+export function CameraRig({ mode, halfExtentM, farPlaneM, eyeHeightM, lookTarget, sun, earth, onUserLook }: CameraRigProps) {
   const camera = useThree((s) => s.camera) as PerspectiveCamera
   const gl = useThree((s) => s.gl)
   const invalidate = useThree((s) => s.invalidate)
   const look = useRef({ yawDeg: 0, pitchDeg: 2, fov: LANDER_FOV })
+  // Azimuth of the Sun when the overview is (re)entered: the camera starts out facing it.
+  const sunAzDeg = useRef(sun.azDeg)
+  sunAzDeg.current = sun.azDeg
 
   const applyLook = useCallback(() => {
     const { yawDeg, pitchDeg, fov } = look.current
@@ -50,11 +59,14 @@ export function CameraRig({ mode, halfExtentM, eyeHeightM, lookTarget, sun, eart
 
   // Camera placement and clip planes for the active mode.
   useEffect(() => {
-    camera.far = halfExtentM * 40
+    camera.far = farPlaneM
     if (mode === 'overview') {
       camera.near = 5
       camera.fov = OVERVIEW_FOV
-      camera.position.set(halfExtentM * 1.0, halfExtentM * 1.15, halfExtentM * 1.7)
+      // Low and behind the lander, looking towards the Sun, so the horizon and the sky are in frame.
+      const behind = (sunAzDeg.current + 180 + OVERVIEW_SIDE_OFFSET_DEG) * DEG2RAD
+      const distance = halfExtentM * OVERVIEW_DISTANCE
+      camera.position.set(Math.sin(behind) * distance, halfExtentM * OVERVIEW_HEIGHT, -Math.cos(behind) * distance)
       camera.lookAt(0, 0, 0)
       camera.updateProjectionMatrix()
       invalidate()
@@ -62,7 +74,7 @@ export function CameraRig({ mode, halfExtentM, eyeHeightM, lookTarget, sun, eart
       camera.near = 1
       applyLook()
     }
-  }, [mode, halfExtentM, camera, invalidate, applyLook])
+  }, [mode, halfExtentM, farPlaneM, camera, invalidate, applyLook])
 
   // Follow the selected body in the lander view.
   const target = lookTarget === 'sun' ? sun : lookTarget === 'earth' ? earth : null
