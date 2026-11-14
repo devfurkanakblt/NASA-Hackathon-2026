@@ -60,7 +60,7 @@ direction (`el > horizonAt(az)`).
 | **External:** 18.6-year Sun visibility vs Mazarico et al. product | 7/7 sites within the product's 3×3-pixel range; rank correlation 0.96 (Sun) and 0.96 (Earth) |
 | **External:** Shackleton crater floor | never lit in our model over 18.6 years (Sun ≥ 17.9° below the terrain horizon); product: permanent shadow |
 | Regional map vs full-resolution horizon (centre + 6 random cells per site, 7 maps) | ≤ 0.06 percentage points (tolerance 1) |
-| **External:** terrain grid vs NASA Moon Trek LOLA 5 m DEM (`LRO_LOLA_DEM_SPole875_5mp_v04`), 4 sites | RMS 1.3–2.4 m on slopes < 10°, 16–18 m on slopes > 25° (`validation-moontrek.md`) |
+| **External:** terrain grid vs NASA Moon Trek LOLA 5 m DEM (`LRO_LOLA_DEM_SPole875_5mp_v04`), 5 sites (all inside the mosaic, 87.5–90 S) | RMS 1.3–2.4 m on slopes < 10°, 16–18 m on slopes > 25° (`validation-moontrek.md`) |
 
 ## Limits of the model
 
@@ -84,6 +84,10 @@ direction (`el > horizonAt(az)`).
 The main period (Nov–Dec 2026) is southern summer at the pole. Over a full year the picture changes a
 lot: Site07 sees the Sun 100 % of the time in Nov–Dec but 68 % over the year and 14 % in April 2027;
 Site01 drops from 73 % to 47 %. The `season.json` files give the monthly table for every site.
+
+Figures for the slides (`python -m preprocess.figures`): `docs/figures/season-polar-sites.png` (monthly Sun and
+Earth visibility, 7 polar sites) and `docs/figures/site04-map.png` (Site04 regional map: Sun, Sun + Earth, slope,
+with the catalogue point and the Site04R ridge point).
 
 ## References
 

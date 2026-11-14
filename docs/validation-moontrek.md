@@ -15,6 +15,7 @@ the LOLA site DEMs (Barker et al. 2021). Differences are Moon Trek minus `terrai
 | Site04 | 4079 | 769.7 / 776.6 | -4.21 | 12.81 | 3.16 | 30.08 | 89.7 | 0.999939 |
 | Site07 | 1620 | 1645.3 / 1646.5 | +0.57 | 3.05 | 1.35 | 5.63 | 95.6 | 0.999953 |
 | Site04R | 3480 | 1739.1 / 1738.0 | -3.00 | 11.56 | 2.35 | 27.67 | 91.6 | 0.999896 |
+| Site11 | 1893 | 1793.7 / 1794.3 | +0.34 | 2.83 | 1.69 | 5.32 | 159.6 | 0.999979 |
 
 Where the difference sits (slope of the grid at ~39 m cells; gentle < 10 deg, steep > 25 deg):
 
@@ -24,6 +25,7 @@ Where the difference sits (slope of the grid at ~39 m cells; gentle < 10 deg, st
 | Site04 | 6% | 2.41 | 58% | 16.41 |
 | Site07 | 44% | 2.24 | 0% | 6.44 |
 | Site04R | 10% | 2.21 | 39% | 17.51 |
+| Site11 | 15% | 1.92 | 4% | 3.62 |
 
 Downloaded from `https://trek.nasa.gov/moon/trekarcgis/rest/services/LRO_LOLA_DEM_SPole875_5mp_v04/ImageServer/exportImage` (32-bit float GeoTIFF, native 5 m pixels, no resampling):
 
@@ -33,6 +35,7 @@ Downloaded from `https://trek.nasa.gov/moon/trekarcgis/rest/services/LRO_LOLA_DE
 | Site04 | `data_raw/moontrek/Site04/LRO_LOLA_DEM_SPole875_5mp_v04_-6720_-12720_4720_-1280.tif` | 21.2 |
 | Site07 | `data_raw/moontrek/Site07/LRO_LOLA_DEM_SPole875_5mp_v04_23005_-26995_36995_-13005.tif` | 31.7 |
 | Site04R | `data_raw/moontrek/Site04R/LRO_LOLA_DEM_SPole875_5mp_v04_-9345_-12750_3970_565.tif` | 28.9 |
+| Site11 | `data_raw/moontrek/Site11/LRO_LOLA_DEM_SPole875_5mp_v04_-43575_8425_-30425_21575.tif` | 28.9 |
 
 Site notes carried over from `sites.json`:
 - Site04: catalogue coordinate lies on the ~32 deg inner wall of Shackleton, not on the rim crest; see Site04R for the nearby ridge point
@@ -43,4 +46,9 @@ differences are expected and grow with slope, where a small horizontal offset be
 difference. This is a consistency check between two NASA products, not a statement of either DEM's
 absolute accuracy.
 
-Download check: 4 pixels of each crop were compared with Moon Trek's own point lookup at the same coordinates (4 of 4 sites checked); largest difference 0.00 m.
+Download check: 4 pixels of each crop were compared with Moon Trek's own point lookup at the same coordinates (5 of 5 sites checked); largest difference 0.00 m.
+
+Largest single differences, inspected:
+- Site11: the 160 m max is a ~5-cell spike (~200 m wide) in the Moon Trek mosaic 2.7 km from the site at azimuth 164 deg; `terrain.json` is smooth there, only 10 of 65 536 cells differ by more than 20 m, and the horizon at that azimuth is formed 40-140 km away, so it is not affected.
+
+Not covered by this mosaic (north of 87.5 S, where it holds no data): Site20, Site23, CE6, Apollo11. Their terrain also comes from LOLA products (5 m site DEMs; global LDEM_64 for the contrast points) but has no Moon Trek check here.
