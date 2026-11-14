@@ -780,3 +780,388 @@
     width: 150px;
   }
 }
+
+/* ---- Simpler layout: header help, results, tabs, tour ---- */
+.app__title p {
+  max-width: 62ch;
+  font-size: 15px;
+}
+.app .app__help {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border-color: #4a5a80;
+  font-weight: 600;
+}
+.app__help span {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--earth);
+  color: #0b0e14;
+  font-size: 13px;
+}
+.app button.primary {
+  background: #9db7ff;
+  border-color: #9db7ff;
+  color: #0b0e14;
+  font-weight: 600;
+}
+.app button.primary:hover:not(:disabled) {
+  background: #b9cbff;
+}
+.app button:focus-visible,
+.app summary:focus-visible,
+.sitemap__plot:focus-visible {
+  outline: 2px solid #9db7ff;
+  outline-offset: 2px;
+}
+
+/* Result cards: one per place, two plain answers each */
+.results {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 12px;
+}
+.result {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  background: #0d1320;
+  border: 1px solid var(--line);
+  border-top: 4px solid;
+  border-radius: 8px;
+}
+.result__head {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+.result__head div {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.result__head b {
+  font-size: 15px;
+}
+.result__letter {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  color: #0b0e14;
+  font-weight: 700;
+}
+.answer {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+.answer > div {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.answer__icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  font-weight: 700;
+  font-size: 14px;
+}
+.answer--ok .answer__icon {
+  background: rgba(95, 211, 141, 0.18);
+  color: var(--ok);
+}
+.answer--bad .answer__icon {
+  background: rgba(255, 122, 122, 0.18);
+  color: var(--bad);
+}
+.answer__q {
+  font-size: 12px;
+  color: var(--muted);
+}
+.answer__title {
+  font-size: 15px;
+}
+.answer--ok .answer__title {
+  color: var(--ok);
+}
+.answer--bad .answer__title {
+  color: var(--bad);
+}
+.answer__detail {
+  font-size: 13px;
+  color: #c3cad6;
+}
+.meters {
+  display: grid;
+  gap: 4px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+.meter {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr) 50px;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.meter__bar {
+  height: 8px;
+  background: #1a2130;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.meter__bar i {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+}
+.meter--sun i {
+  background: var(--sun);
+}
+.meter--earth i {
+  background: var(--earth);
+}
+.meter__value {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+.comparison__summary {
+  margin: 12px 0 0;
+  font-size: 14px;
+}
+.comparison__more {
+  margin-top: 10px;
+}
+.comparison__more summary,
+.season details summary {
+  cursor: pointer;
+  color: #9db7ff;
+  font-size: 13px;
+}
+.comparison__more .table-wrap {
+  margin-top: 8px;
+}
+
+/* Lander settings, folded by default */
+.settings-box summary {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  cursor: pointer;
+  list-style: none;
+}
+.settings-box summary::-webkit-details-marker {
+  display: none;
+}
+.settings-box__title {
+  font-size: 15px;
+  font-weight: 600;
+}
+.settings-box__title::after {
+  content: '▸';
+  float: right;
+  color: var(--muted);
+}
+.settings-box[open] .settings-box__title::after {
+  content: '▾';
+}
+.settings-box[open] summary {
+  margin-bottom: 8px;
+}
+
+/* "See why" tabs */
+.explore__head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px 16px;
+  margin-bottom: 12px;
+}
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 3px;
+  background: #0d121b;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.app .tabs button {
+  border: none;
+  background: none;
+  color: var(--muted);
+  padding: 6px 12px;
+  border-radius: 6px;
+}
+.app .tabs button.is-on {
+  background: #2b3550;
+  color: var(--text);
+  font-weight: 600;
+}
+.explore__which {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.app .chip {
+  min-width: 32px;
+  border-color: var(--chip);
+  color: var(--chip);
+  font-weight: 700;
+}
+.app .chip.is-on {
+  background: var(--chip);
+  color: #0b0e14;
+}
+.explore__panel h3 {
+  margin: 18px 0 8px;
+  font-size: 14px;
+}
+.explore__panel .timebar {
+  position: static;
+  margin-bottom: 4px;
+}
+.explain {
+  margin: 0 0 12px;
+  max-width: 75ch;
+  font-size: 14px;
+  color: #c3cad6;
+}
+.explain .sun {
+  color: var(--sun);
+}
+.explain .earth {
+  color: var(--earth);
+}
+
+/* Guided tour */
+.tour {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+}
+.tour__shade {
+  position: absolute;
+  inset: 0;
+  background: rgba(3, 5, 10, 0.72);
+}
+.tour__spot {
+  position: fixed;
+  border-radius: 10px;
+  box-shadow: 0 0 0 9999px rgba(3, 5, 10, 0.72);
+  outline: 2px solid #9db7ff;
+  pointer-events: none;
+  transition: left 0.25s, top 0.25s, width 0.25s, height 0.25s;
+}
+.tour__card {
+  position: fixed;
+  width: min(340px, calc(100vw - 24px));
+  padding: 16px 18px 14px;
+  background: #182033;
+  border: 1px solid #4a5a80;
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  color: var(--text);
+}
+.tour__card:focus {
+  outline: none;
+}
+.tour__card.is-centre {
+  left: 50%;
+  top: 50%;
+  width: min(440px, calc(100vw - 24px));
+  transform: translate(-50%, -50%);
+}
+.tour__card.is-docked {
+  left: 12px;
+  right: 12px;
+  bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  width: auto;
+}
+.tour__card h2 {
+  margin: 8px 0 6px;
+  font-size: 17px;
+}
+.tour__card p {
+  margin: 0 0 14px;
+  font-size: 14px;
+  color: #c3cad6;
+}
+.tour__progress {
+  display: flex;
+  gap: 4px;
+}
+.tour__progress i {
+  flex: 1;
+  height: 3px;
+  border-radius: 2px;
+  background: #2b3550;
+}
+.tour__progress i.is-on {
+  background: #9db7ff;
+}
+.tour__actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.tour__actions > span {
+  display: flex;
+  gap: 6px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tour__spot {
+    transition: none;
+  }
+}
+@media (max-width: 600px) {
+  .meter {
+    grid-template-columns: 84px minmax(0, 1fr) 48px;
+  }
+  .app .tabs button {
+    padding: 6px 9px;
+  }
+}
+
+/* Compact status and legends */
+.status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 20px;
+  margin: 6px 0 0;
+  font-size: 13px;
+}
+.pano__legend {
+  margin-top: 4px;
+}
+.chart__legend i.dotted {
+  height: 0;
+  border-top: 2px dotted var(--muted);
+  background: none;
+}
+.pano__hover-read {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.season__legend-sim {
+  height: 10px !important;
+  background: rgba(157, 183, 255, 0.18) !important;
+}

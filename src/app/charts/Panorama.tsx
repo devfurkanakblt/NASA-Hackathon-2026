@@ -149,17 +149,24 @@ export function Panorama({ horizon, sun, earth, k }: Props) {
           flat horizon 0°
         </text>
       </svg>
-      <div className="pano__readout">
-        {[sunNow, earthNow].map((b) => (
-          <span key={b.name} className={b.visible ? 'ok' : 'bad'}>
-            {b.name}: az {b.az.toFixed(1)}°, el {b.el.toFixed(2)}° · terrain horizon {b.h.toFixed(2)}° (ridge {fmtKm(b.dist)} away) · <strong>{b.state}</strong>
-          </span>
-        ))}
-        <span className="muted">
-          {hoverAz !== null
-            ? `Cursor: az ${hoverAz.toFixed(1)}° — terrain horizon ${horizonAt(horizon, hoverAz).toFixed(2)}°, formed by terrain ${fmtKm(ridgeDistanceM(horizon, hoverAz))} away`
-            : 'Move the pointer over the panorama to read the terrain horizon at any azimuth.'}
+      <div className="chart__legend pano__legend">
+        <span>
+          <i style={{ background: 'var(--sun)' }} />
+          Sun
         </span>
+        <span>
+          <i style={{ background: 'var(--earth)' }} />
+          Earth
+        </span>
+        <span>
+          <i className="dotted" />
+          dotted: hidden behind the terrain
+        </span>
+        {hoverAz !== null && (
+          <span className="pano__hover-read">
+            {Math.round(hoverAz)}°: skyline {horizonAt(horizon, hoverAz).toFixed(1)}° high, {fmtKm(ridgeDistanceM(horizon, hoverAz))} away
+          </span>
+        )}
       </div>
     </div>
   )

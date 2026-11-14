@@ -1,8 +1,10 @@
 import type { ReactNode } from 'react'
 import type { SiteData } from '../data/contract.ts'
 import type { MissionSettings } from '../sim/evaluate.ts'
-import { fmtDuration, fmtHours, fmtKWh, fmtPct, fmtUtc } from './format.ts'
-import { comparisonSentences, isEvaluated } from './scenarios.ts'
+import { fmtHours, fmtKWh, fmtPct, fmtUtc } from './format.ts'
+import { earthVerdict, powerVerdict } from './plain.ts'
+import type { Verdict } from './plain.ts'
+import { isEvaluated } from './scenarios.ts'
 import type { ScenarioOutcome } from './scenarios.ts'
 
 interface Props {
@@ -16,16 +18,44 @@ function Check({ ok, yes, no }: { ok: boolean; yes: string; no: string }) {
   return <span className={`pill ${ok ? 'pill--ok' : 'pill--bad'}`}>{ok ? `✓ ${yes}` : `✗ ${no}`}</span>
 }
 
+/** "15 Nov 2026" (UTC). */
+const fmtDay = (iso: string) => new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
+
+function Answer({ question, verdict }: { question: string; verdict: Verdict }) {
+  return (
+    <div className={`answer ${verdict.ok ? 'answer--ok' : 'answer--bad'}`}>
+      <span className="answer__icon" aria-hidden>
+        {verdict.ok ? '✓' : '✗'}
+      </span>
+      <div>
+        <span className="answer__q">{question}</span>
+        <b className="answer__title">{verdict.title}</b>
+        <span className="answer__detail">{verdict.detail}</span>
+      </div>
+    </div>
+  )
+}
+
+function Meter({ label, fraction, kind }: { label: string; fraction: number; kind: 'sun' | 'earth' }) {
+  return (
+    <div className={`meter meter--${kind}`}>
+      <span className="meter__label">{label}</span>
+      <span className="meter__bar" aria-hidden>
+        <i style={{ width: `${Math.max(0, Math.min(1, fraction)) * 100}%` }} />
+      </span>
+      <span className="meter__value">{fmtPct(fraction)}</span>
+    </div>
+  )
+}
+
 /**
  * Side-by-side comparison with the same hardware. It states the two conditions plainly
  * (battery reserve kept, Earth outage within the accepted limit) — there is no hidden score.
  */
 export function Comparison({ outcomes, settings, bySite, colors }: Props) {
-  const sentences = comparisonSentences(outcomes, settings)
   const ok = outcomes.filter(isEvaluated)
   const shortestOutage = ok.length > 1 ? Math.min(...ok.map((o) => o.result.summary.longestEarthOutageS)) : null
   const reserve = `${Math.round(settings.reserveFraction * 100)} %`
-  const limit = fmtDuration(settings.maxEarthOutageH * 3600)
 
   const rows: { label: string; cell: (o: (typeof ok)[number]) => ReactNode }[] = [
     { label: 'Site', cell: (o) => <span title={bySite[o.scenario.siteId]?.site.name}>{o.scenario.siteId}</span> },
@@ -58,13 +88,39 @@ export function Comparison({ outcomes, settings, bySite, colors }: Props) {
 
   return (
     <div className="comparison">
-      {sentences.length > 0 && (
-        <ul className="comparison__verdict" data-testid="comparison-verdict">
-          {sentences.map((s) => (
-            <li key={s}>{s}</li>
-          ))}
-        </ul>
-      )}
+      <div className="results">
+        {outcomes.map((o, i) => (
+          <article key={o.scenario.key} className="result" style={{ borderTopColor: colors[i] }}>
+            <header className="result__head">
+              <span className="result__letter" style={{ background: colors[i] }}>
+                {o.letter}
+              </span>
+              <div>
+                <b>{bySite[o.scenario.siteId]?.site.name ?? o.scenario.siteId}</b>
+                <span className="muted small">
+                  {fmtDay(o.result?.alignedStartUtc ?? o.scenario.startUtc)}, {settings.durationDays} {settings.durationDays === 1 ? 'day' : 'days'}
+                </span>
+              </div>
+            </header>
+            {isEvaluated(o) ? (
+              <>
+                <Answer question="Power?" verdict={powerVerdict(o.result, settings)} />
+                <Answer question="Talk to Earth?" verdict={earthVerdict(o.result, settings)} />
+                <div className="meters">
+                  <Meter label="Sunlight" fraction={o.result.summary.sunVisibleFraction} kind="sun" />
+                  <Meter label="Earth in view" fraction={o.result.summary.earthVisibleFraction} kind="earth" />
+                </div>
+              </>
+            ) : (
+              <p className="bad small" role="alert">
+                {o.error}
+              </p>
+            )}
+          </article>
+        ))}
+      </div>
+      <details className="comparison__more">
+        <summary>All numbers</summary>
       <div className="table-wrap">
         <table>
           <thead>
@@ -89,9 +145,7 @@ export function Comparison({ outcomes, settings, bySite, colors }: Props) {
           </tbody>
         </table>
       </div>
-      <p className="muted small">
-        Same mission hardware for every scenario. Conditions: battery stays above the {reserve} reserve; longest Earth outage at most {limit}. No weighted score.
-      </p>
+      </details>
     </div>
   )
 }

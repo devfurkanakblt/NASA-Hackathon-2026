@@ -49,11 +49,10 @@ function NumberField(props: { label: string; unit: string; value: number; min?: 
 export function SettingsForm({ settings: s, issues, onChange, onReset }: Props) {
   return (
     <div className="settings">
-      <p className="muted small">Example mission hardware — assumptions, not a real lander. Applied to every scenario.</p>
       <fieldset>
-        <legend>Mission</legend>
+        <legend>Mission goals</legend>
         <NumberField label="Duration" unit="days" value={s.durationDays} min={MIN_DURATION_DAYS} max={MAX_DURATION_DAYS} onValue={(v) => onChange({ durationDays: v })} />
-        <NumberField label="Accepted Earth outage" unit="h" value={s.maxEarthOutageH} min={0} step={1} onValue={(v) => onChange({ maxEarthOutageH: v })} />
+        <NumberField label="Longest time without Earth allowed" unit="h" value={s.maxEarthOutageH} min={0} step={1} onValue={(v) => onChange({ maxEarthOutageH: v })} />
       </fieldset>
       <fieldset>
         <legend>Solar panel</legend>
@@ -82,14 +81,14 @@ export function SettingsForm({ settings: s, issues, onChange, onReset }: Props) 
         <legend>Battery</legend>
         <NumberField label="Capacity" unit="kWh" value={s.batteryCapacityWh} scale={1000} min={0} step={0.5} onValue={(v) => onChange({ batteryCapacityWh: v })} />
         <NumberField label="Charge at start" unit="%" value={s.initialSocFraction} scale={0.01} min={0} max={100} onValue={(v) => onChange({ initialSocFraction: v })} />
-        <NumberField label="Reserve" unit="%" value={s.reserveFraction} scale={0.01} min={0} max={100} onValue={(v) => onChange({ reserveFraction: v })} />
+        <NumberField label="Safety reserve" unit="%" value={s.reserveFraction} scale={0.01} min={0} max={100} onValue={(v) => onChange({ reserveFraction: v })} />
         <NumberField label="Charge efficiency" unit="%" value={s.chargeEfficiency} scale={0.01} min={1} max={100} onValue={(v) => onChange({ chargeEfficiency: v })} />
         <NumberField label="Discharge efficiency" unit="%" value={s.dischargeEfficiency} scale={0.01} min={1} max={100} onValue={(v) => onChange({ dischargeEfficiency: v })} />
       </fieldset>
       <fieldset>
         <legend>Power demand</legend>
-        <NumberField label="Base load" unit="W" value={s.baseLoadW} min={0} step={10} onValue={(v) => onChange({ baseLoadW: v })} />
-        <NumberField label="Extra while Earth in view" unit="W" value={s.commLoadW} min={0} step={10} onValue={(v) => onChange({ commLoadW: v })} />
+        <NumberField label="Power used at all times" unit="W" value={s.baseLoadW} min={0} step={10} onValue={(v) => onChange({ baseLoadW: v })} />
+        <NumberField label="Extra power for the radio" unit="W" value={s.commLoadW} min={0} step={10} onValue={(v) => onChange({ commLoadW: v })} />
       </fieldset>
       {issues.length > 0 && (
         <ul className="issues" role="alert">

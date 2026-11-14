@@ -13,10 +13,10 @@ efficiency, 200 W base load + 100 W while Earth is in view, 6 h accepted Earth o
 | # | Title | On the slide | Visual |
 |---|---|---|---|
 | 1 | Problem & promise | At the south pole the Sun and Earth skim the horizon: a few hundred metres of terrain decide power and contact. We show it and let planners test it. | Polar map with the 9 sites (7 south-pole sites + 2 contrast points: Chang'e-6, Apollo 11) |
-| 2 | User flow | Site → date → mission hardware → compare up to 3 scenarios. No server, instant updates. | App screenshot with the 4 steps labelled |
+| 2 | User flow | Pick up to 3 places / dates → (optional) lander settings → result cards answer "Power?" and "Talk to Earth?" → "See why" tabs. Built-in "How it works" tour. No server, instant updates. | App screenshot with the 3 steps labelled |
 | 3 | Terrain evidence | Horizon panorama: real skyline vs. flat horizon, Sun/Earth tracks; Site04 Earth hidden behind the crater wall all week. | Panorama screenshot (+ 3D view if ready) |
-| 4 | Energy evidence | Same site, change the hardware or date → battery result changes (Site04: +72 h start → unmet 1.0 → 15.4 kWh). | Battery / power chart screenshot |
-| 5 | Comparison | Site04 vs. Site04R vs. Site04R +72 h with the same hardware; plain conditions, no score. | Comparison screen screenshot + table below |
+| 4 | Energy evidence | Same site, change the hardware or date → battery result changes (Site04: +72 h start → unmet 1.0 → 15.4 kWh). | "Battery" tab screenshot |
+| 5 | Comparison | Site04 vs. Site04R vs. Site04R +72 h with the same hardware; plain answers, no score. | Result cards A / B / C screenshot (+ "All numbers" table if needed) |
 | 6 | Scientific basis | NASA data, validation numbers, model limits (sections below). | Small table of checks |
 | 7 | Impact & access | Live app, source (MIT), offline build, team, next steps (simulation for any map cell, full-year series, thermal / relay models). | Links + QR code, team names |
 
@@ -66,8 +66,8 @@ Talking points:
   dry" into "continuous Sun, reserve kept".
 - Choosing the date matters too: three days later, Site04R and Site07 see Earth for the whole
   week, so the 6 h outage limit is met; on 15 Nov no site meets it.
-- The comparison reports plain conditions ("keeps the battery reserve", "Earth outage within
-  limit"), not a hidden-weight score.
+- Each result card answers two questions in plain words ("Enough power" / "Runs short of power",
+  "Always in contact" / "Long silences" / "No contact with Earth"), not a hidden-weight score.
 
 ## Scientific basis and validation (slide 6)
 
@@ -86,7 +86,7 @@ Talking points:
   RMS 1.3–2.4 m on gentle ground (< 10°), 16–18 m on Shackleton's steep wall (> 25°).
 - **Engine:** the TypeScript engine reproduces the Python pipeline's reference values (visibility
   percentages, every window, horizon test vectors, mean Sun-disk fraction) exactly on all nine
-  sites; 132 automated tests.
+  sites; 135 automated tests.
 
 ## Model limits (say them out loud)
 

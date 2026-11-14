@@ -1,8 +1,8 @@
 /// <reference types="node" />
 /**
- * The app's default comparison (slide 5) on the real data: the numbers on screen must be the
- * ones in docs/presentation-notes.md, and the comparison sentences must answer the planner
- * question ("which keeps the reserve and has the shorter Earth outage?") correctly.
+ * The app's default comparison (slide 5) on the real data: the numbers must be the ones in
+ * docs/presentation-notes.md. The screen states them as result cards (tests/plainLanguage.test.ts);
+ * the comparison sentences are the same answer in one paragraph, for the project text and slides.
  */
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
