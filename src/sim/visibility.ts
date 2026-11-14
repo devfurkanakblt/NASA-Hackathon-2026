@@ -26,6 +26,24 @@ export function marginSeries(series: BodySeries, horizon: Pick<HorizonDoc, 'azSt
   return out
 }
 
+/** Angular radius of the Sun seen from 1 au, in degrees (docs/data-contract.md). */
+export const SUN_RADIUS_AT_1AU_DEG = 0.2666
+const AU_M = 1.495978707e11
+
+/** Apparent angular radius of the Sun at the given distance, in degrees. */
+export function sunAngularRadiusDeg(sunDistanceM: number): number {
+  return (SUN_RADIUS_AT_1AU_DEG * AU_M) / sunDistanceM
+}
+
+/**
+ * Part of the solar disk above the terrain horizon, 0–1: the contract's linear approximation
+ * `clamp((el − horizon + r) / (2r), 0, 1)`, with `margin = el − horizon`.
+ */
+export function sunDiskFraction(marginDeg: number, sunDistanceM: number): number {
+  const r = sunAngularRadiusDeg(sunDistanceM)
+  return Math.min(1, Math.max(0, (marginDeg + r) / (2 * r)))
+}
+
 /** A stretch of time during which a body (or both bodies) is visible. */
 export interface VisibilityWindow {
   /** First visible sample and one past the last visible sample (`[startIndex, endIndex)`). */

@@ -176,3 +176,27 @@ describe('evaluateScenarios', () => {
     expect(() => evaluateScenarios([{ siteId: 'Nowhere', startUtc: start }], DEFAULT_SETTINGS, bySite)).toThrow(RangeError)
   })
 })
+
+describe('partial Sun disk model (optional)', () => {
+  const site = syntheticSite()
+  const base = { ...DEFAULT_SETTINGS, durationDays: 2 }
+  const centre = evaluateScenario(site, '2026-11-01T00:00:00Z', base)
+  const partial = evaluateScenario(site, '2026-11-01T00:00:00Z', { ...base, sunDiskModel: 'partial' })
+
+  it('is off by default and leaves the centre-based results unchanged', () => {
+    expect(DEFAULT_SETTINGS.sunDiskModel).toBe('centre')
+    expect(centre.model.sunDiskModel).toBe('centre')
+    const implicit = evaluateScenario(site, '2026-11-01T00:00:00Z', { ...base, sunDiskModel: undefined })
+    expect(implicit.summary).toEqual(centre.summary)
+  })
+
+  it('keeps visibility on the centre and only reweights the panel output', () => {
+    expect(partial.model.sunDiskModel).toBe('partial')
+    expect(partial.sunWindows).toEqual(centre.sunWindows)
+    expect(partial.summary.sunVisibleFraction).toBe(centre.summary.sunVisibleFraction)
+    // the synthetic Sun sits 2° above or below a flat horizon: whole disk or none of it
+    for (let k = 0; k < partial.count; k++) close(partial.sunDiskFraction[k], centre.sunVisible[k] ? 1 : 0)
+    expect(Array.from(partial.generationW)).toEqual(Array.from(centre.generationW))
+    close(partial.summary.energyGeneratedJ / J_PER_WH, centre.summary.energyGeneratedJ / J_PER_WH, 544.4 * 0.2)
+  })
+})
