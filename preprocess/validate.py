@@ -2,7 +2,7 @@
 
 1. Ephemeris cross-check: JSON (Horizons) vs independent Skyfield/DE421, full series.
 2. Horizon convergence: 32 azimuths, ray steps halved, |delta| <= 0.05 deg.
-3. Range sensitivity: 32 azimuths, 100 km vs 250 km.
+3. Range sensitivity: 32 azimuths, 100 km vs the used range (250 km).
 
 Usage: python -m preprocess.validate [--sites Site01 ...] [--skip-range]
 """
@@ -51,26 +51,34 @@ def load_eye(site_id):
 
 def check_horizon(site_id, skip_range):
     s = C.SITES[site_id]
-    near, far, xy = load_site_dems(site_id, far_range_m=250_000 if not skip_range else C.FAR_RANGE_M)
+    near, far, xy = load_site_dems(site_id, far_range_m=C.FAR_RANGE_M)
     z0, _ = surface_elevation(near, far, xy)
     eye = z0 + C.OBSERVER_HEIGHT_M
     base_d = Hz.distances()
     fine_d = Hz.distances(near_step=C.NEAR_STEP_M / 2, far_step=C.FAR_STEP_M / 2)
     e0, d0, _ = Hz.compute(s["lat"], s["lon"], eye, near, far, near.crs, az_deg=AZ32, d=base_d)
     e1, _, _ = Hz.compute(s["lat"], s["lon"], eye, near, far, near.crs, az_deg=AZ32, d=fine_d)
+    # Where the build refined an azimuth (published value = half steps), test half vs quarter steps.
+    hz_file = load(site_id, "horizon.json")
+    refined = np.isin(np.round(AZ32, 1), np.round(hz_file.get("refinedAzDeg", []), 1))
     conv = np.abs(e1 - e0)
+    if refined.any():
+        q_d = Hz.distances(near_step=C.NEAR_STEP_M / 4, far_step=C.FAR_STEP_M / 4)
+        e2, _, _ = Hz.compute(s["lat"], s["lon"], eye, near, far, near.crs, az_deg=AZ32[refined], d=q_d)
+        conv[refined] = np.abs(e2 - e1[refined])
+        e0 = np.where(refined, e1, e0)
     res = {"conv_max": float(conv.max()), "conv_fail": [float(a) for a in AZ32[conv > TOL_HORIZON]]}
-    # consistency with the published file at the same azimuths
+    # consistency with the published file (which may contain refined azimuths)
     hz = load(site_id, "horizon.json")
     idx = np.round(AZ32 / hz["azStepDeg"]).astype(int)
     res["file_vs_recompute"] = float(np.abs(np.array(hz["elevDeg"])[idx] - e0).max())
     if not skip_range:
-        e250, d250, _ = Hz.compute(s["lat"], s["lon"], eye, near, far, near.crs, az_deg=AZ32,
-                                   d=Hz.distances(far_range=250_000))
-        rng = np.abs(e250 - e0)
+        e100, _, _ = Hz.compute(s["lat"], s["lon"], eye, near, far, near.crs, az_deg=AZ32,
+                                d=Hz.distances(far_range=100_000))
+        rng = np.abs(e0 - e100)
         res["range_max"] = float(rng.max())
         res["range_changed"] = [(float(a), float(x)) for a, x in zip(AZ32, rng) if x > TOL_HORIZON]
-        res["far_hits"] = int((d250 > C.FAR_RANGE_M).sum())
+        res["far_hits"] = int((d0 > 100_000).sum())
     return res
 
 
