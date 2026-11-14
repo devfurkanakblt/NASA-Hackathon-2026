@@ -53,3 +53,20 @@ def test_one_degree_cells_match_map(sid):
     from preprocess import extended
     d = extended.check(sid)
     assert max(d["sunPct"], d["earthPct"], d["bothPct"]) <= 0.2
+
+
+def test_warning_text():
+    from preprocess import extended
+    assert extended.near_field_warning(27, 1000) == ("2.7 % of terrain samples within 7 km of each cell fell "
+                                                    "outside the 5 m DEM and used the 80 m DEM")
+
+
+def test_near_field_total_counts_near_steps():
+    from preprocess import extended, horizon as Hz
+    n_near = int((Hz.distances() <= C.NEAR_RANGE_M).sum())
+    assert extended.near_field_total(10) == 10 * 720 * n_near
+
+
+def test_no_raw_counts_left_in_maps():
+    for sid in MAP_SITES:
+        assert not any("near-field ray samples" in w for w in load(sid, "map.json").get("warnings", []))

@@ -13,6 +13,7 @@ Usage: python -m preprocess.extended [--sites ...] [--only year|cells|warning|re
 """
 import argparse
 import json
+import re
 
 import numpy as np
 
@@ -125,6 +126,43 @@ def reference_doc():
     return out
 
 
+# ---------------------------------------------------------------- near-field warning
+NEAR_FIELD_RE = re.compile(r"(\d+) near-field ray samples")
+
+
+def near_field_total(n_cells, n_az=720):
+    """Number of near-field terrain samples of a map: cells x azimuths x ray steps <= NEAR_RANGE_M
+    (the same is_near set as horizon.compute, whose misses are the fallback count)."""
+    from . import horizon as Hz
+    return int(n_cells) * int(n_az) * int((Hz.distances() <= C.NEAR_RANGE_M).sum())
+
+
+def near_field_warning(fallback, total):
+    return (f"{100 * fallback / total:.1f} % of terrain samples within {C.NEAR_RANGE_M / 1000:.0f} km "
+            "of each cell fell outside the 5 m DEM and used the 80 m DEM")
+
+
+def rewrite_warning(site_id):
+    """Replace only the raw near-field count line in map.json; every other byte stays the same."""
+    path = C.OUT_DIR / site_id / "map.json"
+    text = path.read_text(encoding="utf-8")
+    old = json.loads(text)
+    ws = old.get("warnings", [])
+    hits = [w for w in ws if NEAR_FIELD_RE.match(w)]
+    if not hits:
+        print(f"[{site_id}] no raw near-field count, unchanged")
+        return
+    (w,) = hits
+    n = len(old["latDeg"])
+    new_w = near_field_warning(int(NEAR_FIELD_RE.match(w).group(1)), near_field_total(n))
+    new_text = text.replace(json.dumps(w), json.dumps(new_w))
+    new = json.loads(new_text)
+    assert new["warnings"] == [new_w if x == w else x for x in ws]
+    assert {k: v for k, v in new.items() if k != "warnings"} == {k: v for k, v in old.items() if k != "warnings"}
+    path.write_text(new_text, encoding="utf-8")
+    print(f"[{site_id}] {new_w}")
+
+
 def read_header(site_id):
     p = C.OUT_DIR / site_id / "extended.json"
     return json.loads(p.read_text(encoding="utf-8")) if p.exists() else None
@@ -158,6 +196,9 @@ def main():
             old = read_header(sid)
             assert old is not None, f"{sid}: run --only year first"
             write_header(sid, old["year"], write_cells(sid))
+    if args.only in (None, "warning"):
+        for sid in [s for s in args.sites if s in MAP_SITES]:
+            rewrite_warning(sid)
     if args.only in (None, "reference"):
         p = C.ROOT / "docs" / "reference" / "cells.json"
         p.write_text(json.dumps(reference_doc(), indent=1), encoding="utf-8")
