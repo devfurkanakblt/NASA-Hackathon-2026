@@ -6,9 +6,15 @@ Format and units: [`docs/data-contract.md`](../docs/data-contract.md).
 ```bash
 pip install -r preprocess/requirements.txt
 python -m preprocess.download          # LOLA DEMs -> data_raw/dem (~300 MB, not committed)
+python -m preprocess.download Site11 Site20 Site23   # further site DEMs (same URL pattern)
 python -m preprocess.build_all         # ephemeris + horizon + terrain + sites.json
-python -m preprocess.validate          # -> docs/validation.md (Skyfield, horizon, Horizons re-query, rise/set timing)
 python -m preprocess.reference         # -> docs/reference/visibility.{json,md} (expected values for the web app's tests)
+python -m preprocess.season            # -> {site}/season.json (1 year, monthly summary; needs reference first)
+python -m preprocess.regional_map      # -> {site}/map.json (per-cell horizon, Sun/Earth %, slope; ~30 min/site)
+python -m preprocess.validate          # -> docs/validation.md §1-4 (Skyfield, horizon, Horizons re-query, rise/set timing)
+python -m preprocess.external          # -> docs/validation.md §5 (Mazarico et al. illumination products; data_raw/illum)
+python -m preprocess.map_check         # -> docs/validation.md §6 (map cells vs full-resolution horizon)
+python -m preprocess.crosscheck_moontrek  # -> docs/validation-moontrek.md (terrain vs NASA Moon Trek LOLA 5 m DEM)
 python -m pytest preprocess/tests      # unit tests
 python -m preprocess.make_sample       # synthetic sample in public/data/_sample
 ```
@@ -17,7 +23,7 @@ python -m preprocess.make_sample       # synthetic sample in public/data/_sample
 
 | Step | Source / model |
 |---|---|
-| Site coordinates | NASA Lunar Surface Data Book, Table A2.1-1 |
+| Site coordinates | NASA Lunar Surface Data Book (M2M-30044 Baseline, 18 Mar 2025), Table A2.1-1. (The 2023 Rev A table has shifted rows; do not use it) |
 | Sun & Earth az/el | JPL Horizons API, observer `coord@301` (geodetic, MEAN_ME frame, R = 1737.4 km), airless, 10-min steps, observer 2 m above the DEM surface |
 | Cross-check | Skyfield + DE421 + `moon_pa_de421` in the `MOON_ME_DE421` frame |
 | Near terrain (≤ 7 km) | LOLA 5 m/px site DEMs (Barker et al. 2021) |
@@ -25,6 +31,10 @@ python -m preprocess.make_sample       # synthetic sample in public/data/_sample
 | Horizon | 3600 great-circle rays (0.1°), 2.5 m steps near / 40 m far, bilinear DEM sampling, exact spherical curvature: `elev = atan2(Rt cos θ − Ro, Rt sin θ)` |
 | Site04R | Site04's catalogue coordinate lies on the ~32° inner wall of Shackleton. Derived ridge point: highest 5 m pixel with slope ≤ 10° (25 m baseline) within 2 km (`preprocess/ridge.py`); 1.9 km offset, stable for 2–3 km / 10–15° |
 | 3D terrain | 256×256 ENU grid, ±5 km, 4× oversampled mean, curvature included. Visual only |
+| Coverage check | Rays that leave the 80 m DEM (−80° edge, Site20/23) are bounded with 10.8 km high terrain at the edge; flagged in `coverageLimitedAzDeg` if that could raise the horizon (none for current sites) |
+| Season | Same horizon, Horizons ephemeris for 1 year (2026-11-01 – 2027-11-01, 10 min), monthly table |
+| Regional map | ±3 km grid (100 m; 200 m for Site11/20/23). Per cell: own horizon (0.5° azimuth, same steps and 250 km range), Sun/Earth rebuilt in the Moon-fixed frame from the site's Horizons ephemeris and projected into the cell's local frame, slope over 25 m |
+| External check | PGDA Lunar Polar Illumination (Mazarico et al.), 85S 60 m: AVGVISIB (Sun, Earth), LPSR; our horizon + Skyfield over 18.6 years with the product definitions |
 
 Azimuth: from local north, clockwise toward east. Elevation: above the local horizontal plane.
 
@@ -32,6 +42,8 @@ Azimuth: from local north, clockwise toward east. Elevation: above the local hor
 
 - Barker, M.K. et al. (2021), *Improved LOLA elevation maps for south pole landing sites*, PSS 203, 105119. doi:10.1016/j.pss.2020.105119
 - Barker, M.K. et al. (2023), *A New View of the Lunar South Pole from LOLA*, PSJ 4, 183. doi:10.3847/PSJ/acf3e1; data doi:10.60903/gsfcpgda-lola-spole
-- Mazarico, E. et al. (2011), *Illumination conditions of the lunar polar regions using LOLA topography*, Icarus 211, 1066–1081
+- Mazarico, E. et al. (2011), *Illumination conditions of the lunar polar regions using LOLA topography*, Icarus 211, 1066–1081. doi:10.1016/j.icarus.2010.10.030
+- PGDA, *Lunar Polar Illumination* products (AVGVISIB, LPSR, 2016-08 release), https://pgda.gsfc.nasa.gov/products/69
+- NASA (2025), *Moon to Mars Lunar Surface Data Book*, M2M-30044 Baseline, NASA/TP-20250002845
 - JPL Horizons System, https://ssd.jpl.nasa.gov/horizons/
 - Rhodes, B., Skyfield, https://rhodesmill.org/skyfield/
