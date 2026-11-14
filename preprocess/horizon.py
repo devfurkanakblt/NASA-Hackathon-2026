@@ -37,6 +37,34 @@ def ray_lonlat(lat_deg, lon_deg, az_deg, d):
     return lon, lat
 
 
+def coverage_check(lat_deg, lon_deg, eye_height_m, far, crs, elev_deg, az_deg=None, d=None,
+                   near_range=C.NEAR_RANGE_M, h_max=C.MAX_LUNAR_HEIGHT_M):
+    """Rays that leave the regional DEM before the maximum range ignore the missing terrain.
+    For each such azimuth, bound the elevation that any terrain beyond the DEM edge could reach
+    (height h_max at the first missing distance; for a fixed height the elevation only falls with
+    distance past a few km) and compare it with the computed horizon.
+
+    Returns (n_leaving, affected_az): azimuths whose ray leaves the DEM, and those where the
+    missing terrain could raise the horizon."""
+    if az_deg is None:
+        az_deg = np.arange(int(round(360 / C.AZ_STEP_DEG))) * C.AZ_STEP_DEG
+    if d is None:
+        d = distances(near_range=near_range)
+    az_deg = np.atleast_1d(np.asarray(az_deg, dtype=np.float64))
+    df = d[d > near_range]
+    tf = Transformer.from_crs(LONLAT, crs, always_xy=True)
+    lon, lat = ray_lonlat(lat_deg, lon_deg, az_deg, df)
+    x, y = tf.transform(lon, lat)
+    miss = np.isnan(far.sample(x, y))
+    leaving = miss.any(axis=1)
+    first = np.where(leaving, np.argmax(miss, axis=1), 0)
+    th = df[first] / R
+    Rt, Ro = R + h_max, R + eye_height_m
+    bound = np.degrees(np.arctan2(Rt * np.cos(th) - Ro, Rt * np.sin(th)))
+    affected = leaving & (bound > np.asarray(elev_deg))
+    return int(leaving.sum()), [round(float(a), 1) for a in az_deg[affected]]
+
+
 def compute(lat_deg, lon_deg, eye_height_m, near, far, crs, az_deg=None, d=None,
             near_range=C.NEAR_RANGE_M, block=60):
     """Return (elev_deg, dist_m, near_fallback_count) per azimuth.

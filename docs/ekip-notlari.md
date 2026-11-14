@@ -22,7 +22,7 @@ Veri formatının tamamı: [`docs/data-contract.md`](data-contract.md). Gerçek 
 - A-> Ufuk panoraması: `horizon.json` → `elevDeg` 3600 değer, 0.1° adım. `distanceM[i]` ile "ufku X km ötedeki sırt oluşturuyor" bilgisi gösterilebilir.
 - A-> Açı kuralları: azimut kuzeyden saat yönünde (K=0, D=90, G=180, B=270); yükseklik açısı yerel yatay düzleme göre; zaman UTC.
 - A-> Zaman dizisi yok: `t[i] = startUtc + i * stepS` (`stepS` = 600 s).
-- A-> Görünürlük kontrolü için sözleşmedeki `horizonAt` fonksiyonunu kullanın; D ile aynı kodu paylaşın ki sayılar tutarlı olsun.
+- A-> Görünürlük kontrolü için sözleşmedeki `horizonAt` fonksiyonunu kullanın; D ile aynı kodu paylaşın ki sayılar tutarlı olsun. Beklenen değerler: `docs/reference/visibility.json`.
 - A-> Karşılaştırma ekranı için kontrol değerleri (1 Kas 2026 – 1 Oca 2027, arazi dahil):
 
   | Site | Güneş | Dünya | İkisi birden |
@@ -43,6 +43,14 @@ Veri formatının tamamı: [`docs/data-contract.md`](data-contract.md). Gerçek 
 - D-> Saat ekseni için: sonuçta `alignedStartUtc` (10 dakikalık ızgaraya oturtulmuş gerçek başlangıç; `startUtc` 00:04 gibi gelirse 00:00 olur) ve `sampleUtc(result, k)` → k. örneğin UTC zamanı. "Görev başlangıcından geçen saat" = `k * stepS / 3600`.
 - D-> Sunum için slayt 3 (arazi kanıtı: panorama) ve slayt 5 (karşılaştırma: Site04 / Site04R / Site04R +72 sa) ekran görüntüleri gerekecek. Varsayılan görevin (15 Kas 2026, 7 gün) beklenen sonuçları `docs/presentation-notes.md`'de; ekranda gördüğün sayıları bununla karşılaştırabilirsin.
 
+- A-> **Yeni (plan A genişletme):** `sites.json` artık 9 nokta içeriyor: Site01, Site04, Site07, Site04R, **Site11** (de Gerlache Rim 1), **Site20** (Leibnitz Beta Plateau), **Site23** (Malapert Massif) ve iki karşıtlık noktası **CE6** (Chang'e-6, uzak yüz) ile **Apollo11**. Karşıtlık noktalarında `category: "contrast"` alanı var; listede ayrı bir grupta, "eğitim amaçlı karşılaştırma" etiketiyle gösterin. CE6'da Dünya hiç görünmüyor (%0), Apollo11'de Dünya hep görünüyor (%100).
+- A-> **Yeni dosya `{site}/season.json`:** 1 yıllık (1 Kas 2026 – 1 Kas 2027) aylık tablo: `months[]` içinde `sunPct`, `earthPct`, `bothPct`, `sunElMaxDeg` vb. Tek bir çubuk/çizgi grafikle mevsim etkisi gösterilebilir. Örnek: Site07 Kas–Ara'da %100 Güneş, Nisan'da %14; yıl ortalaması %68. Format: `docs/data-contract.md`.
+- A-> **Yeni dosya `{site}/map.json`:** site çevresinde ±3 km ızgara (Site01/04/04R/07 için 100 m, 61×61; Site11/20/23 için 200 m, 31×31). Her hücrede `sunPct`, `earthPct`, `bothPct`, `longestNoSunS`, `longestNoEarthS`, `slopeDeg`. Isı haritası katmanları: Güneş % / Dünya % / ikisi birden % / eğim. Sıra `terrain.json` ile aynı (satır 0 = güney, sütun 0 = batı). Karşıtlık noktalarında `map.json` yok.
+- A-> Harita hücresine tıklanınca sonuçları "bu dönem için özet değer" diye etiketleyin; hücreler için zaman serisi yok.
+- A-> Sunum için harita örneği: Site01 katalog merkezi Güneş %72.5 / Dünya %36.5. Merkezin ~630 m kuzeydoğusunda (doğu +200 m, kuzey +600 m) eğimi 4.7° olan bir hücre Güneş %100 / Dünya %48.9.
+- A-> Güncel referans tablo (9 nokta) `docs/reference/visibility.md` içinde.
+- A-> **İlk yükleme boyutu (ölçüldü, 9 nokta):** `loadAllData()` şu an her site için `terrain` + `horizon` + `ephemeris` çekiyor: toplam 9.1 MB ham, **2.8 MB gzip** (Vercel/GitHub Pages JSON'u gzip/brotli ile sunar). `map.json` (7 dosya, 0.40 MB gzip) ve `season.json` (9 dosya, 0.01 MB gzip) da eklenirse toplam **~3.2 MB gzip**. Kaba süre: 10 Mbit/s bağlantıda ~2.6 s, 50 Mbit/s'de ~0.5 s, artı 9 MB JSON ayrıştırma. En büyük kalemler `ephemeris.json` (9×~0.52 MB) ve `terrain.json` (9×~0.43 MB). Yavaş kalırsa: önce `sites.json` + seçili site, diğerleri arka planda; ya da `terrain`/`map` yalnızca o site açılınca. "İlk yüklemeden sonra ağ isteği yok" kuralı için tümünü baştan çekmek de kabul edilebilir boyutta. Demo öncesi kendi bağlantında DevTools → Network ile doğrula.
+
 ## C:
 
 - A-> 3B arazi: `terrain.json` → 256×256 ızgara, ±5 km (10 km kenar), hücre ~39 m.
@@ -52,6 +60,9 @@ Veri formatının tamamı: [`docs/data-contract.md`](data-contract.md). Gerçek 
 - A-> Güneş/Dünya işareti için `ephemeris.json` → az/el'den yön vektörü (ENU): `x = cos(el)·sin(az)`, `y = cos(el)·cos(az)`, `z = sin(el)`.
 - A-> 10 km ızgara uzak ufku (250 km'ye kadar) içermez. Uzak dağlar gerekiyorsa `horizon.json`'daki profili bir halka/panorama olarak çizebilirsiniz.
 - A-> `Site04R`'nin arazisi Site04 DEM'inden alındı ama merkezi Site04R noktası.
+- A-> `map.json` aynı ENU ızgara mantığını kullanıyor (±3 km, satır 0 = güney). `terrain.json` ±5 km olduğundan harita, arazinin ortasındaki 6×6 km'lik alana doku olarak giydirilebilir. Eğim katmanı (`slopeDeg`) 3B'de iyi görünür.
+- A-> `tests/dataConsistency.test.ts`'te küçük değişiklik yaptım: yeni CE6 noktası (düz mare) negatif kontrolde kaldı. Aynalanmış ufuk farkı 0.049° çıktı, beklenen ise 0.20°'den büyük olmasıydı. Asıl kontroller (medyan < 0.15°, max < 0.5°) CE6'da geçiyor. Negatif kontrol artık yalnızca karşılaştırılan yönlerde ufuk farkı ≥ 1° olan sitelerde çalışıyor (`MIN_RELIEF_FOR_CONTROL_DEG`); şu an 5 sitede çalışıyor, Site01 (0.26°) ve CE6 (0.18°) bu kontrolden çıktı. `npm test`: 80/80, `tsc -b` temiz. Uygun görmezsen değiştir.
+- A-> CE6 ve Apollo11'in `terrain.json`'ı 474 m/px global DEM'den üretildi. Kutup sitelerine göre çok daha kaba; küçük tepeler görünmez.
 - D-> `src/sim/evaluate.ts`'e dokundum: isteğe bağlı `sunDiskModel` ayarı (varsayılan `'centre'`, mevcut sonuçlar değişmedi) ve sonuçta yeni `sunDiskFraction` (örnek başına 0–1) ile `model.sunDiskModel` alanları. Var olan alanların adı veya anlamı değişmedi. `src/sim/visibility.ts`'e `sunDiskFraction()` ve `sunAngularRadiusDeg()` eklendi. Ayrıca `validateSettings()` / `SettingsError`, `alignedStartUtc` ve `sampleUtc()` eklendi; motor artık geçersiz ayarı reddediyor (testler: `src/sim/evaluate.test.ts`).
 - D-> Yayın: `npm run build` çalışıyor ama `dist/index.html` dosya yollarını `/assets/...` diye mutlak yazıyor. GitHub Pages'te (`.../NASA-Hackathon-2026/`) sayfa boş açılır; orada yayınlanacaksa `vite.config.ts`'e `base: './'` (ya da `'/NASA-Hackathon-2026/'`) eklemek gerekir. Vercel'de ve `npm run preview` ile sorun yok. `loadAllData()` zaten `import.meta.env.BASE_URL` kullandığı için veri yolları da buna uyar.
 
@@ -63,4 +74,9 @@ Veri formatının tamamı: [`docs/data-contract.md`](data-contract.md). Gerçek 
 - A-> Yukarıdaki görünürlük tablosu (B bölümü) birim testleri için referans değer olarak kullanılabilir.
 - A-> Doğrulama sonuçları `docs/validation.md`'de: Horizons ile Skyfield farkı ≤ 0.00006°, ufuk yakınsaması ≤ 0.019° (tolerans 0.05°). Proje metni ve slaytlarda kullanılabilir.
 - A-> Sunum için güçlü bir hikâye: Site04'ün katalog noktası krater duvarında (%27 Güneş, %0 Dünya). Sadece 1.9 km ötedeki sırtta (Site04R) Güneş %100, Dünya %48.
-
+- A-> Birim testleri için hazır beklenen değerler: [`docs/reference/visibility.json`](reference/visibility.json) (özet: `visibility.md`). İçinde site başına yüzdeler, olay sayıları, tüm görünürlük pencereleri, `horizonAt` test vektörleri (359.95°→0° geçişi dahil) ve uç durumlar var: Site04'te Dünya hiç doğmuyor, Site07'de Güneş hiç batmıyor, pencere veri sonunda açık (`openAtEnd`). Motorunuz aynı dosyalardan bu sayıları birebir üretmeli.
+- A-> Doğuş/batış anını ardışık iki örnek arasında doğrusal ara değerle bulun (`el − horizonAt(az)` işaret değiştirdiği yer). Ara değerle hata < 20 s; örnekleri doğrudan kullanırsanız 10 dk'ya kadar kayar (`docs/validation.md` §4).
+- A-> Sunum notu: kutupta Güneş ufku saatte 0.01–0.10° hızla geçiyor; 0.05°'lik ufuk hatası doğuş/batışı 30 dk – 4 saat kaydırabilir (yeni sitelerle güncellendi; Site23 en yavaş). Bu yüzden zaman sonuçlarını dakika hassasiyetiyle "kesin" diye sunmayın.
+- A-> "Data & Methods" metni hazır: `docs/data-methods.md` (İngilizce, proje sayfasına doğrudan alınabilir; atıflar ve AI beyanı içinde). Slayt 6 taslağı: `docs/slide6-scientific-basis.md`. Repo kökünde `LICENSE` (MIT) var.
+- A-> Enerji simülasyonu ve doğuş/batış zaman çizelgesi `sites.json`'daki 9 nokta için çalışır (hepsinde `ephemeris.json` + `horizon.json` var). `map.json` hücreleri yalnızca özet içerir.
+- A-> Dış doğrulama: 7 kutup noktası için 18.6 yıllık Güneş görünürlüğümüz NASA/Mazarico ürünüyle uyumlu (7/7, sıra korelasyonu 0.96). Shackleton tabanı iki modelde de kalıcı gölge. Ayrıntı: `docs/validation.md` §5.

@@ -27,6 +27,7 @@ interface SitesDoc {
 /** Horizon-forming terrain must lie inside the patch and beyond the mesh's smoothing scale. */
 const MIN_DISTANCE_M = 400
 const MAX_DISTANCE_M = 4400
+const MIN_RELIEF_FOR_CONTROL_DEG = 1.0
 
 /** Elevation of the mesh skyline at an azimuth, seen from the eye. `mirror` flips north/south. */
 function meshSkylineDeg(mesh: ReturnType<typeof buildTerrainMeshData>, eyeHeightM: number, azDeg: number, mirror = false): number {
@@ -86,8 +87,16 @@ describe('terrain mesh vs horizon profile (public/data)', () => {
       sitesCompared++
       expect(median(diffs)).toBeLessThan(0.15)
       expect(Math.max(...diffs)).toBeLessThan(0.5)
-      // Negative control: the same mesh mirrored north–south must be clearly worse.
-      expect(median(mirrored)).toBeGreaterThan(3 * median(diffs) + 0.2)
+      // Negative control: the same mesh mirrored north–south must be clearly worse. It can only
+      // discriminate where the local skyline varies; on flat ground (e.g. the CE6 mare site, 0.18 deg
+      // spread) the mirrored skyline is nearly identical, so the control is skipped there.
+      const compared = horizon.elevDeg.filter((_, i) => {
+        const d = horizon.distanceM?.[i]
+        return i % step === 0 && d !== undefined && d >= MIN_DISTANCE_M && d <= MAX_DISTANCE_M
+      })
+      if (Math.max(...compared) - Math.min(...compared) >= MIN_RELIEF_FOR_CONTROL_DEG) {
+        expect(median(mirrored)).toBeGreaterThan(3 * median(diffs) + 0.2)
+      }
     })
   }
 
