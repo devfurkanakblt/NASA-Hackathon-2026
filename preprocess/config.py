@@ -24,7 +24,10 @@ FAR_RANGE_M = 250_000.0  # 100 km missed far massifs at Site07 (up to 1.3 deg)
 FAR_STEP_M = 40.0
 MIN_RANGE_M = 10.0  # skip DEM noise directly under the observer
 
-COORD_SOURCE = "NASA Lunar Surface Data Book, Table A2.1-1"
+COORD_SOURCE = "NASA Lunar Surface Data Book (M2M-30044, Mar 2025), Table A2.1-1"
+# Highest LOLA height on the Moon relative to R (~ +10.8 km). Used as a conservative bound for
+# terrain outside the regional DEM (see horizon.coverage_check).
+MAX_LUNAR_HEIGHT_M = 10_800.0
 
 SITES = {
     "Site01": dict(name="Connecting Ridge", lat=-89.4632, lon=-137.49),
@@ -39,6 +42,25 @@ SITES = {
                     tile="Site04", derivedFrom="Site04",
                     derivation="highest 5 m DEM pixel with slope <= 10 deg (25 m baseline) "
                                "within 2 km of Site04; offset 1.9 km"),
+    # Plan P4: further catalogue sites with a LOLA 5 m product (same table, same pipeline).
+    "Site11": dict(name="de Gerlache Rim 1", lat=-88.6834, lon=-67.9321),
+    "Site20": dict(name="Leibnitz Beta Plateau", lat=-85.4266, lon=31.74276),
+    "Site23": dict(name="Malapert Massif", lat=-85.9948, lon=-0.23578),
+    # Plan P4: contrast points outside the south polar region (educational comparison only).
+    # Terrain from the global LOLA LDEM_64 (~474 m/px): coarse near field, see preprocess/global_dem.py.
+    "CE6": dict(name="Chang'e-6 landing site (far side)", lat=-41.6385, lon=-153.9852, dem="ldem64",
+                category="contrast",
+                coordSource="LROC, 'First Look: Chang'e 6' (lroc.asu.edu/images/1374): "
+                            "41.6385 S, 206.0148 E, +-30 m",
+                notes=["contrast point on the lunar far side: the Earth never rises here",
+                       "terrain from the global 474 m/px LOLA map; nearby small hills are not resolved"]),
+    "Apollo11": dict(name="Apollo 11 landing site", lat=0.67416, lon=23.47314, dem="ldem64",
+                     category="contrast",
+                     coordSource="NASA NSSDC, Apollo Landing Site Coordinates (Lunar Module): "
+                                 "0.67416 N, 23.47314 E",
+                     notes=["contrast point near the equator on the near side: Earth stays high in the sky, "
+                            "the Sun is up about half of the time (~14.8 days day, ~14.8 days night)",
+                            "terrain from the global 474 m/px LOLA map; nearby small hills are not resolved"]),
 }
 
 PGDA = "https://pgda.gsfc.nasa.gov/data"

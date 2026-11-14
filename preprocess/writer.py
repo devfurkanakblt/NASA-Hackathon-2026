@@ -62,6 +62,13 @@ def site_entry(site_id, surface_elev_m, warnings=()):
             "demFar": "LDEM_80S_80MPP_ADJ (Barker et al. 2023)",
             "label": "Research region center - not a certified landing site",
             "warnings": list(s.get("notes", [])) + list(warnings)}
+    if s.get("dem") == "ldem64":
+        from .global_dem import NAME
+        entry["demNear"] = entry["demFar"] = NAME
+        entry["coordSource"] = s["coordSource"]
+        entry["label"] = "Contrast point outside the south polar region - educational comparison"
+    if "category" in s:
+        entry["category"] = s["category"]
     if "derivedFrom" in s:
         entry["coordSource"] = f"Derived from {s['derivedFrom']} ({C.COORD_SOURCE})"
         entry["derivedFrom"] = s["derivedFrom"]

@@ -60,11 +60,19 @@ def build_site(site_id, args):
     hw = []
     if fb:
         hw.append(f"{fb} near-field samples (<= {C.NEAR_RANGE_M:.0f} m) used the 80 m DEM")
+    n_leave, affected = Hz.coverage_check(s["lat"], s["lon"], eye, far, near.crs, elev, d=d)
+    if n_leave:
+        hw.append(f"{n_leave} of {elev.size} rays leave the 80 m DEM (latitude limit -80 deg) before "
+                  f"{args.far_range / 1000:.0f} km; terrain beyond could raise the horizon at "
+                  f"{len(affected)} azimuths (bound: {C.MAX_LUNAR_HEIGHT_M / 1000:.1f} km high terrain)")
+    print(f"  coverage: {n_leave} rays leave the DEM, {len(affected)} azimuths possibly affected")
     params = {"nearRangeM": C.NEAR_RANGE_M, "nearStepM": C.NEAR_STEP_M,
               "maxRangeM": args.far_range, "farStepM": C.FAR_STEP_M,
               "minRangeM": C.MIN_RANGE_M, "curvature": True}
     doc = W.horizon_doc(site_id, elev, dist, params, hw)
     doc["refinedAzDeg"] = refined_az
+    if affected:
+        doc["coverageLimitedAzDeg"] = affected
     W.write(out / "horizon.json", doc)
     print(f"  horizon: min {elev.min():.3f}, max {elev.max():.3f} deg")
 
