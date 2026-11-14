@@ -50,6 +50,8 @@ Veri formatının tamamı: [`docs/data-contract.md`](data-contract.md). Gerçek 
 - A-> Sunum için harita örneği: Site01 katalog merkezi Güneş %72.5 / Dünya %36.5. Merkezin ~630 m kuzeydoğusunda (doğu +200 m, kuzey +600 m) eğimi 4.7° olan bir hücre Güneş %100 / Dünya %48.9.
 - A-> Güncel referans tablo (9 nokta) `docs/reference/visibility.md` içinde.
 - A-> **İlk yükleme boyutu (ölçüldü, 9 nokta):** `loadAllData()` şu an her site için `terrain` + `horizon` + `ephemeris` çekiyor: toplam 9.1 MB ham, **2.8 MB gzip** (Vercel/GitHub Pages JSON'u gzip/brotli ile sunar). `map.json` (7 dosya, 0.40 MB gzip) ve `season.json` (9 dosya, 0.01 MB gzip) da eklenirse toplam **~3.2 MB gzip**. Kaba süre: 10 Mbit/s bağlantıda ~2.6 s, 50 Mbit/s'de ~0.5 s, artı 9 MB JSON ayrıştırma. En büyük kalemler `ephemeris.json` (9×~0.52 MB) ve `terrain.json` (9×~0.43 MB). Yavaş kalırsa: önce `sites.json` + seçili site, diğerleri arka planda; ya da `terrain`/`map` yalnızca o site açılınca. "İlk yüklemeden sonra ağ isteği yok" kuralı için tümünü baştan çekmek de kabul edilebilir boyutta. Demo öncesi kendi bağlantında DevTools → Network ile doğrula.
+- D-> `vite.config.ts`'e `base: './'` eklendi: aynı `dist/` artık Vercel'de, GitHub Pages alt yolunda (`/NASA-Hackathon-2026/`) ve internetsiz demo için herhangi bir klasöre kopyalanınca çalışıyor. Veri yolları `loadAllData()` üzerinden buna uyuyor; kendi kodunda `/data/...` gibi mutlak yol yazma.
+- D-> `loadAllData()` eksik dosyada hangi dosyanın eksik olduğunu yazan hatayla reddediyor (`src/data/load.test.ts`). Arayüzde bu hatayı yakalayıp ekranda göster (boş sayfa kalmasın).
 
 ## C:
 
