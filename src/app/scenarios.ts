@@ -68,6 +68,11 @@ export function evaluateAll(scenarios: Scenario[], settings: MissionSettings, re
   })
 }
 
+/** The scenario the map-point actions change: the chosen one (even while it loads), else the first. */
+export function targetScenarioKey(scenarios: Scenario[], activeKey: string | null): string | null {
+  return scenarios.some((s) => s.key === activeKey) ? activeKey : (scenarios[0]?.key ?? null)
+}
+
 export const isEvaluated = (o: ScenarioOutcome): o is EvaluatedOutcome => o.result !== null
 
 /** "Site04R — Shackleton Rim (ridge point)" plus the derived / contrast tag. */

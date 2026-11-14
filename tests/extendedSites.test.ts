@@ -56,6 +56,22 @@ describe('cell ids', () => {
     expect(needsYear('Site01', '2027-04-10T00:00:00Z', END)).toBe(true)
   })
 
+  it('needsYear: a mission that starts in the two months but ends after them needs the year', () => {
+    expect(needsYear('Site01', '2026-12-28T00:00:00Z', END, 7)).toBe(true)
+    expect(needsYear('Site01', '2026-12-25T00:00:00Z', END, 7)).toBe(false)
+    expect(needsYear('Site01', '2026-12-02T00:00:00Z', END, 30)).toBe(false)
+    expect(needsYear('Site01', '2026-12-03T00:00:00Z', END, 30)).toBe(true)
+  })
+
+  it('a mission crossing the two-month end evaluates once the year is loaded', () => {
+    const start = '2026-12-28T00:00:00Z'
+    const ext: ExtendedState = { years: { Site01: yearOf('Site01') }, cells: {} }
+    const r = resolveSiteData('Site01', start, END, bySite, ext, 7)
+    expect('data' in r && r.data.ephemeris.count).toBe(52561)
+    expect(resolveSiteData('Site01', start, END, bySite, { years: {}, cells: {} }, 7)).toEqual({ loading: 'Loading one-year data…' })
+    expect(sitesNeeded([{ siteId: 'Site04', startUtc: start }], END, 7).years).toEqual(['Site04'])
+  })
+
   it('sitesNeeded lists base sites once', () => {
     const need = sitesNeeded(
       [

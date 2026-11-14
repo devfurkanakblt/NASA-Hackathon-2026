@@ -40,18 +40,18 @@ const DAY_MS = 86400 * 1000
 
 /**
  * True when the scenario needs the one-year series: every map cell (its ephemeris is rebuilt
- * from the year series), and a catalogue site whose start is later than one day before the end
- * of the two-month coverage (the shortest mission could not fit in it).
+ * from the year series), and a catalogue site whose mission (`durationDays` from the start)
+ * would end after the two-month coverage.
  */
-export function needsYear(id: string, startUtc: string, coverageEndUtc: string): boolean {
+export function needsYear(id: string, startUtc: string, coverageEndUtc: string, durationDays = 1): boolean {
   if (parseCellId(id)) return true
-  return Date.parse(startUtc) > Date.parse(coverageEndUtc) - DAY_MS
+  return Date.parse(startUtc) + durationDays * DAY_MS > Date.parse(coverageEndUtc)
 }
 
 const isLoaded = <T>(v: Loadable<T> | undefined): v is T => v !== undefined && v !== 'loading' && v !== 'error'
 
 /** Data the engine should use for a scenario's site id: year series when loaded, a cell when its files are loaded. */
-export function resolveSiteData(id: string, startUtc: string, coverageEndUtc: string, bySite: Record<string, SiteData>, ext: ExtendedState): Resolved {
+export function resolveSiteData(id: string, startUtc: string, coverageEndUtc: string, bySite: Record<string, SiteData>, ext: ExtendedState, durationDays = 1): Resolved {
   const cell = parseCellId(id)
   if (cell) {
     if (!isKnownSiteId(id, bySite)) return { error: `No regional map point ${id}.` }
@@ -65,7 +65,7 @@ export function resolveSiteData(id: string, startUtc: string, coverageEndUtc: st
   const base = bySite[id]
   if (!base) return { error: `No data for site ${id}.` }
   // Inside the two months the validated float64 series is used, so the demo numbers cannot shift.
-  if (!needsYear(id, startUtc, coverageEndUtc)) return { data: base }
+  if (!needsYear(id, startUtc, coverageEndUtc, durationDays)) return { data: base }
   const year = ext.years[id]
   if (year === 'error') return { error: 'One-year data not available.' }
   if (!isLoaded(year)) return { loading: 'Loading one-year data…' }
@@ -73,13 +73,13 @@ export function resolveSiteData(id: string, startUtc: string, coverageEndUtc: st
 }
 
 /** Base site ids whose `year.bin` / `cells.bin` the scenarios need. */
-export function sitesNeeded(scenarios: { siteId: string; startUtc: string }[], coverageEndUtc: string): { years: string[]; cells: string[] } {
+export function sitesNeeded(scenarios: { siteId: string; startUtc: string }[], coverageEndUtc: string, durationDays = 1): { years: string[]; cells: string[] } {
   const years = new Set<string>()
   const cells = new Set<string>()
   for (const { siteId, startUtc } of scenarios) {
     const cell = parseCellId(siteId)
     const base = cell ? cell.siteId : siteId
-    if (needsYear(siteId, startUtc, coverageEndUtc)) years.add(base)
+    if (needsYear(siteId, startUtc, coverageEndUtc, durationDays)) years.add(base)
     if (cell) cells.add(base)
   }
   return { years: [...years], cells: [...cells] }

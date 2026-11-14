@@ -13,6 +13,8 @@ interface Props {
   selected?: { row: number; col: number }
   /** Runs the full mission at a cell ("Simulate this point"). */
   onSimulate?: (siteId: string, row: number, col: number) => void
+  /** Message while the active scenario loads its files; the button waits. */
+  busy?: string
 }
 
 const MAX_SIZE = 460
@@ -28,7 +30,7 @@ const NO_DATA: [number, number, number] = [58, 62, 72]
  * Sun / Earth / both in view or by slope. North up, east right. Values are period summaries;
  * "Simulate this point" runs the full mission at a cell (1° horizon, cells.bin).
  */
-export function SiteMap({ map, sites, selected, onSimulate }: Props) {
+export function SiteMap({ map, sites, selected, onSimulate, busy }: Props) {
   const [ref, width] = useWidth<HTMLDivElement>(MAX_SIZE)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const [layer, setLayer] = useState<MapLayer>('sunPct')
@@ -172,8 +174,14 @@ export function SiteMap({ map, sites, selected, onSimulate }: Props) {
             <dd>{fmtNum(picked.slopeDeg, '°')}</dd>
           </dl>
           {onSimulate && (
-            <button type="button" className="sitemap__simulate" disabled={isSimulated} onClick={() => onSimulate(map.siteId, picked.row, picked.col)} title="Run the full mission at this cell in the active scenario">
-              {isSimulated ? 'Simulated in the active scenario' : 'Simulate this point'}
+            <button
+              type="button"
+              className="sitemap__simulate"
+              disabled={isSimulated || !!busy}
+              onClick={() => onSimulate(map.siteId, picked.row, picked.col)}
+              title="Run the full mission at this cell in the active scenario"
+            >
+              {busy ?? (isSimulated ? 'Simulated in the active scenario' : 'Simulate this point')}
             </button>
           )}
           <p className="small muted">

@@ -18,10 +18,12 @@ interface Props {
   /** Nearest regional map cell to a coordinate. */
   snap: (latDeg: number, lonDeg: number) => { siteId: string; row: number; col: number; distanceM: number } | { error: string }
   cellId: (siteId: string, row: number, col: number) => string
+  /** The chosen scenario is still loading its files: "Use point" waits. */
+  busy?: boolean
 }
 
 /** Up to three scenarios (site + start time). The active one drives the panorama, 3D view and power chart. */
-export function ScenarioList({ sites, scenarios, outcomes, colors, activeKey, onChange, onActivate, maxStartFor, snap, cellId }: Props) {
+export function ScenarioList({ sites, scenarios, outcomes, colors, activeKey, onChange, onActivate, maxStartFor, snap, cellId, busy }: Props) {
   const [lat, setLat] = useState('')
   const [lon, setLon] = useState('')
   const [snapMsg, setSnapMsg] = useState<{ ok: boolean; text: string } | null>(null)
@@ -138,7 +140,7 @@ export function ScenarioList({ sites, scenarios, outcomes, colors, activeKey, on
         <div className="scenario__point-row">
           <input aria-label="Latitude in degrees" inputMode="decimal" placeholder="lat −89.46" value={lat} onChange={(e) => setLat(e.target.value)} />
           <input aria-label="Longitude in degrees (east positive)" inputMode="decimal" placeholder="lon −137.49" value={lon} onChange={(e) => setLon(e.target.value)} />
-          <button type="button" onClick={usePoint} title="Move the active scenario to the nearest regional map cell">
+          <button type="button" onClick={usePoint} disabled={busy} title="Move the active scenario to the nearest regional map cell">
             Use point
           </button>
         </div>

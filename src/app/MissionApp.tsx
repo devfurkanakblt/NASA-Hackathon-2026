@@ -16,7 +16,7 @@ import { SiteMap } from './charts/SiteMap.tsx'
 import { Comparison } from './Comparison.tsx'
 import { errorMessage, fmtDuration, fmtUtc } from './format.ts'
 import { ScenarioList } from './ScenarioList.tsx'
-import { defaultScenarios, evaluateAll, isEvaluated } from './scenarios.ts'
+import { defaultScenarios, evaluateAll, isEvaluated, targetScenarioKey } from './scenarios.ts'
 import type { Scenario } from './scenarios.ts'
 import { SettingsForm } from './SettingsForm.tsx'
 import { cellId, isKnownSiteId, parseCellId, resolveSiteData, sitesNeeded, snapToCell } from './extendedSites.ts'
@@ -99,10 +99,10 @@ export function MissionApp() {
   // one-year series of every scenario's site so later dates open without waiting.
   const wanted = useMemo(() => {
     if (!loaded) return { years: [] as string[], cells: [] as string[] }
-    const need = sitesNeeded(scenarios, loaded.sites.coverage.endUtc)
+    const need = sitesNeeded(scenarios, loaded.sites.coverage.endUtc, settings.durationDays)
     const bases = scenarios.map((s) => parseCellId(s.siteId)?.siteId ?? s.siteId).filter((id) => id in loaded.bySite)
     return { years: [...new Set([...need.years, ...bases])], cells: need.cells }
-  }, [loaded, scenarios])
+  }, [loaded, scenarios, settings.durationDays])
   const wantedKey = `${wanted.years.join(',')}|${wanted.cells.join(',')}`
   useEffect(() => {
     const years = wanted.years.filter((id) => ext.years[id] === undefined)
@@ -127,8 +127,9 @@ export function MissionApp() {
   }, [wantedKey]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const resolve = useCallback(
-    (id: string, startUtc: string) => (loaded ? resolveSiteData(id, startUtc, loaded.sites.coverage.endUtc, loaded.bySite, ext) : { error: 'Site data not loaded.' }),
-    [loaded, ext],
+    (id: string, startUtc: string) =>
+      loaded ? resolveSiteData(id, startUtc, loaded.sites.coverage.endUtc, loaded.bySite, ext, settings.durationDays) : { error: 'Site data not loaded.' },
+    [loaded, ext, settings.durationDays],
   )
   /** Latest start the date picker offers for a site: the year end once its one-year file is in. */
   const maxStartFor = useCallback(
@@ -153,8 +154,11 @@ export function MissionApp() {
   const activeData = active?.data ?? null
   const activeCell = activeData ? parseCellId(activeData.site.id) : null
   const activeBaseId = activeCell?.siteId ?? activeData?.site.id ?? ''
-  const activeKeyShown = active?.scenario.key ?? activeKey
-  const setActiveSite = (siteId: string) => setScenarios((list) => list.map((s) => (s.key === activeKeyShown ? { ...s, siteId } : s)))
+  // Map-point actions and the highlight stay on the chosen scenario, also while it loads.
+  const chosenKey = targetScenarioKey(scenarios, activeKey)
+  const chosenOutcome = outcomes.find((o) => o.scenario.key === chosenKey)
+  const chosenLoading = !!chosenOutcome?.loading
+  const setActiveSite = (siteId: string) => setScenarios((list) => list.map((s) => (s.key === chosenKey ? { ...s, siteId } : s)))
   const colorsOfEvaluated = evaluated.map((o) => COLORS[outcomes.indexOf(o)])
 
   const lastStep = evaluated.length ? evaluated[0].result.count - 1 : 0
@@ -245,7 +249,8 @@ export function MissionApp() {
               scenarios={scenarios}
               outcomes={outcomes}
               colors={COLORS}
-              activeKey={activeKeyShown}
+              activeKey={chosenKey}
+              busy={chosenLoading}
               maxStartFor={maxStartFor}
               snap={(lat, lon) => snapToCell(lat, lon, loaded.bySite)}
               cellId={cellId}
@@ -391,6 +396,7 @@ export function MissionApp() {
                     sites={loaded.sites.sites}
                     selected={activeCell ?? undefined}
                     onSimulate={(siteId, row, col) => setActiveSite(cellId(siteId, row, col))}
+                    busy={chosenLoading ? (chosenOutcome?.error ?? 'Loading…') : undefined}
                   />
                 ) : (
                   <p className="muted small">No regional map for this point{activeData.site.category === 'contrast' ? ' (contrast points have none)' : ''}.</p>

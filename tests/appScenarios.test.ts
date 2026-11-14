@@ -7,7 +7,7 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import { comparisonSentences, defaultScenarios, evaluateAll, siteTitle } from '../src/app/scenarios.ts'
+import { comparisonSentences, defaultScenarios, evaluateAll, siteTitle, targetScenarioKey } from '../src/app/scenarios.ts'
 import type { SiteData, SitesDoc } from '../src/data/contract.ts'
 import { J_PER_WH } from '../src/sim/energy.ts'
 import { DEFAULT_SETTINGS } from '../src/sim/evaluate.ts'
@@ -19,6 +19,7 @@ const bySite: Record<string, SiteData> = Object.fromEntries(
   sites.sites.map((site) => [site.id, { site, ephemeris: read(`${site.id}/ephemeris.json`), horizon: read(`${site.id}/horizon.json`), terrain: read(`${site.id}/terrain.json`) } as SiteData]),
 )
 
+const DEFAULT_START = '2026-11-15T00:00:00Z'
 const resolve = (id: string) => (bySite[id] ? { data: bySite[id] } : { error: `No data for site ${id}.` })
 
 describe('default comparison on the real data', () => {
@@ -72,6 +73,13 @@ describe('default comparison on the real data', () => {
     expect(out[0].data).toBeNull()
     expect(out[1].loading).toBe(false)
     expect(out[1].data).toBe(bySite.Site04)
+  })
+
+  it('map-point actions target the chosen scenario even while it is loading', () => {
+    const list = [{ key: 'a', siteId: 'Site04', startUtc: DEFAULT_START }, { key: 'b', siteId: 'Site01:r36c32', startUtc: DEFAULT_START }]
+    expect(targetScenarioKey(list, 'b')).toBe('b')
+    expect(targetScenarioKey(list, 'gone')).toBe('a')
+    expect(targetScenarioKey([], 'b')).toBeNull()
   })
 
   it('labels derived and contrast points', () => {
