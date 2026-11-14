@@ -9,6 +9,10 @@ import { useWidth } from './useWidth.ts'
 interface Props {
   map: MapDoc
   sites: SiteEntry[]
+  /** The active scenario's map point, shown as picked. */
+  selected?: { row: number; col: number }
+  /** Runs the full mission at a cell ("Simulate this point"). */
+  onSimulate?: (siteId: string, row: number, col: number) => void
 }
 
 const MAX_SIZE = 460
@@ -22,17 +26,21 @@ const NO_DATA: [number, number, number] = [58, 62, 72]
 /**
  * Regional map (`map.json`): ±3 km around the site, one cell per 100 m (or 200 m), coloured by
  * Sun / Earth / both in view or by slope. North up, east right. Values are period summaries;
- * the cells have no time series, so a cell cannot be simulated as a scenario.
+ * "Simulate this point" runs the full mission at a cell (1° horizon, cells.bin).
  */
-export function SiteMap({ map, sites }: Props) {
+export function SiteMap({ map, sites, selected, onSimulate }: Props) {
   const [ref, width] = useWidth<HTMLDivElement>(MAX_SIZE)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const [layer, setLayer] = useState<MapLayer>('sunPct')
   const [hover, setHover] = useState<MapCell | null>(null)
-  // The pick belongs to one map; another site's map starts at its centre again.
-  const [pick, setPick] = useState<{ map: MapDoc; cell: MapCell } | null>(null)
-  const picked = pick && pick.map === map ? pick.cell : centreCell(map)
-  const setPicked = (next: MapCell | ((c: MapCell) => MapCell)) => setPick({ map, cell: typeof next === 'function' ? next(picked) : next })
+  // The pick belongs to one map and one selected point; another map, or another simulated
+  // point, starts from that point (or the site centre) again.
+  const selKey = selected ? `${selected.row},${selected.col}` : ''
+  const [pick, setPick] = useState<{ map: MapDoc; sel: string; cell: MapCell } | null>(null)
+  const start = selected && selected.row < map.grid.ny && selected.col < map.grid.nx ? cellAt(map, selected.row, selected.col) : centreCell(map)
+  const picked = pick && pick.map === map && pick.sel === selKey ? pick.cell : start
+  const setPicked = (next: MapCell | ((c: MapCell) => MapCell)) => setPick({ map, sel: selKey, cell: typeof next === 'function' ? next(picked) : next })
+  const isSimulated = !!selected && selected.row === picked.row && selected.col === picked.col
 
   const { nx, ny, spacingM, halfSizeM } = map.grid
   const size = Math.min(MAX_SIZE, width)
@@ -163,9 +171,14 @@ export function SiteMap({ map, sites }: Props) {
             <dt>Slope</dt>
             <dd>{fmtNum(picked.slopeDeg, '°')}</dd>
           </dl>
+          {onSimulate && (
+            <button type="button" className="sitemap__simulate" disabled={isSimulated} onClick={() => onSimulate(map.siteId, picked.row, picked.col)} title="Run the full mission at this cell in the active scenario">
+              {isSimulated ? 'Simulated in the active scenario' : 'Simulate this point'}
+            </button>
+          )}
           <p className="small muted">
-            Summary value for {periodLabel} (UTC), not a time series. The mission simulation runs only at the listed sites. Cells every {spacingM} m; terrain horizon computed for each
-            cell from the LOLA DEMs.
+            Summary value for {periodLabel} (UTC). “Simulate this point” runs the full mission at the cell with its 1° terrain horizon. Cells every {spacingM} m; terrain horizon computed for
+            each cell from the LOLA DEMs.
           </p>
         </div>
       </div>

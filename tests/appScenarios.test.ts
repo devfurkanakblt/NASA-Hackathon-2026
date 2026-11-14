@@ -19,9 +19,11 @@ const bySite: Record<string, SiteData> = Object.fromEntries(
   sites.sites.map((site) => [site.id, { site, ephemeris: read(`${site.id}/ephemeris.json`), horizon: read(`${site.id}/horizon.json`), terrain: read(`${site.id}/terrain.json`) } as SiteData]),
 )
 
+const resolve = (id: string) => (bySite[id] ? { data: bySite[id] } : { error: `No data for site ${id}.` })
+
 describe('default comparison on the real data', () => {
   const scenarios = defaultScenarios(sites.sites.map((s) => s.id))
-  const outcomes = evaluateAll(scenarios, DEFAULT_SETTINGS, bySite)
+  const outcomes = evaluateAll(scenarios, DEFAULT_SETTINGS, resolve)
 
   it('is Site04, Site04R and Site04R three days later', () => {
     expect(scenarios.map((s) => [s.siteId, s.startUtc])).toEqual([
@@ -54,10 +56,22 @@ describe('default comparison on the real data', () => {
   })
 
   it('keeps an error with its own scenario', () => {
-    const late = evaluateAll([{ key: 'x', siteId: 'Site04R', startUtc: '2026-12-30T00:00:00Z' }, scenarios[0]], DEFAULT_SETTINGS, bySite)
+    const late = evaluateAll([{ key: 'x', siteId: 'Site04R', startUtc: '2026-12-30T00:00:00Z' }, scenarios[0]], DEFAULT_SETTINGS, resolve)
     expect(late[0].result).toBeNull()
     expect(late[0].error).toMatch(/computed period/)
     expect(late[1].result).not.toBeNull()
+  })
+
+  it('shows a loading scenario as not evaluated, with its message', () => {
+    const out = evaluateAll([{ key: 'y', siteId: 'Site07', startUtc: '2027-04-10T00:00:00Z' }, scenarios[0]], DEFAULT_SETTINGS, (id, startUtc) =>
+      startUtc.startsWith('2027') ? { loading: 'Loading one-year data…' } : resolve(id),
+    )
+    expect(out[0].result).toBeNull()
+    expect(out[0].error).toBe('Loading one-year data…')
+    expect(out[0].loading).toBe(true)
+    expect(out[0].data).toBeNull()
+    expect(out[1].loading).toBe(false)
+    expect(out[1].data).toBe(bySite.Site04)
   })
 
   it('labels derived and contrast points', () => {

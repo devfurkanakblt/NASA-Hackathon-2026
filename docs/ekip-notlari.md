@@ -14,6 +14,7 @@ Veri formatının tamamı: [`docs/data-contract.md`](data-contract.md). Gerçek 
 - D-> Sunum taslağı `docs/presentation-notes.md`'de; doğrulama bölümündeki sayıları `docs/validation.md`'den aldım ("80 m DEM 250 km'ye kadar", "100 km tarama Site07/Site04R'de 1.3°'ye kadar uzak dağı kaçırırdı"). Yanlış yorumladığım bir şey varsa düzelt ya da haber ver.
 - B-> `map.json` ve `season.json` artık arayüzde: "Around the site (±3 km)" ısı haritası (Sun / Earth / Both / Slope) ve "Through the year" aylık grafiği. Site04 haritasında Site04R ~1.9 km ötede işaretli (`tests/mapSeason.test.ts`; Site01 merkezi %72.5/%36.5 ve +200 m D / +600 m K hücresi %100/%48.9 test ediliyor).
 - B-> `map.json` → `warnings` ekranda olduğu gibi gösteriliyor: "204367922 near-field ray samples (<= 7000 m) used the 80 m DEM". Bu sayı kullanıcıya bir şey anlatmıyor; oran (%) ya da düz bir cümle olarak yazabilir misin? Alan adı aynı kalırsa arayüz değişmeden alır.
+- D-> 15 Kas: Yeni komut `python -m preprocess.extended` (`--only year|cells|warning|reference`, `--check`). Cache'ten `year.bin` (9 site), `cells.bin` (7 harita sitesi), `extended.json` ve `docs/reference/cells.json` üretti; harita uyarısı artık oran ("2.9 % of terrain samples within 7 km of each cell fell outside the 5 m DEM…"), `regional_map.py` da yeni metni yazıyor. Site23'te bu uyarı yoktu, dokunulmadı. 1° hücre ufku ↔ `map.json` farkı ≤ 0.15 puan (`docs/validation.md` §7).
 - B-> `slopeDeg` (ve diğer harita alanları) `null` gelirse arayüz hücreyi gri, değeri "no data" gösteriyor; o yüzden `null` yazmakta sakınca yok.
 
 ## B:
@@ -65,6 +66,8 @@ Veri formatının tamamı: [`docs/data-contract.md`](data-contract.md). Gerçek 
   - Varsayılan ekran slayt 5'in senaryosu: A = Site04, B = Site04R, C = Site04R +72 sa (15 Kas 2026, 7 gün). Ekrandaki sayılar `docs/presentation-notes.md` ile aynı; bunu `tests/appScenarios.test.ts` kontrol ediyor.
   - **Yapılmadı, sende:** `map.json` ısı haritası, `season.json` mevsim grafiği, paylaşılabilir bağlantı, dar ekranda (telefon) ayrıntılı rötuş. Ayrıca 3B'nin gerçek GPU'lu tarayıcıda görünümünü kontrol et (headless testte WebGL yoktu).
 
+- D-> 15 Kas: Arayüzde tarih artık 1 Kas 2027'ye kadar (o sitenin `year.bin`'i yüklenince), haritada "Simulate this point", senaryo listesinde "Lat / Lon (±3 km of a site)" + "Use point". Hücre id'si `Site01:r36c32`, paylaşım bağlantısında da böyle. `evaluateAll` artık `bySite` değil bir çözücü (`resolveSiteData`) alıyor; sonuçta `loading` ve `data` alanları var. `decodeShare` ikinci parametre olarak fonksiyon alıyor.
+
 ## C:
 
 - A-> 3B arazi: `terrain.json` → 256×256 ızgara, ±5 km (10 km kenar), hücre ~39 m.
@@ -81,7 +84,11 @@ Veri formatının tamamı: [`docs/data-contract.md`](data-contract.md). Gerçek 
 - D-> Yayın: `npm run build` çalışıyor ama `dist/index.html` dosya yollarını `/assets/...` diye mutlak yazıyor. GitHub Pages'te (`.../NASA-Hackathon-2026/`) sayfa boş açılır; orada yayınlanacaksa `vite.config.ts`'e `base: './'` (ya da `'/NASA-Hackathon-2026/'`) eklemek gerekir. Vercel'de ve `npm run preview` ile sorun yok. `loadAllData()` zaten `import.meta.env.BASE_URL` kullandığı için veri yolları da buna uyar.
 - A-> `preprocess/crosscheck_moontrek.py`'ye küçük ekleme: mozaik 87.5°G'nin kuzeyinde veri döndürmüyor (−3.4e38 nodata, hata vermeden), bu yüzden o sitelerin atlanması için enlem kontrolü koydum (`COVERAGE_LAT_DEG`). Site11 rapora eklendi (düz arazide RMS 1.92 m); Site20/23, CE6, Apollo11 "kapsam dışı" olarak yazılıyor. Site11'deki 160 m'lik en büyük fark Moon Trek mozaiğindeki ~5 hücrelik bir sivri tepe; bizim arazimiz orada düzgün (`OUTLIER_NOTES`).
 
+- D-> 15 Kas: `HorizonDoc.distanceM` artık isteğe bağlı (harita hücrelerinde yok). Hücre senaryosu aktifken 3B kutusu sahne yerine "The 3D view shows the catalogue point; the selected map point is … of it." notunu gösteriyor.
+
 ## D:
+
+- D-> 15 Kas: Yeni `src/data/extended.ts` (yükleyiciler), `src/sim/cell.ts` (hücre efemerisi), `src/app/extendedSites.ts`. `tests/noNetwork.test.ts` artık `data/extended.ts`'teki fetch'e de izin veriyor (tasarım 1. yaklaşım).
 
 - A-> Simülasyon artık gerçek seriyi okuyabilir: `ephemeris.json` → `sun`/`earth` için `azDeg`, `elDeg`, `distanceM`; 8785 örnek, 600 s adım.
 - A-> Birimler SI: mesafe m, süre s, güç W, enerji J (arayüz Wh gösterebilir).

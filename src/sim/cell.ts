@@ -79,6 +79,11 @@ export function cellSiteData(base: SiteData, year: EphemerisDoc, cells: CellHori
   }
   const index = row * nx + col
   const s = base.site
+  const { spacingM, halfSizeM } = map.grid
+  const east = -halfSizeM + col * spacingM
+  const north = -halfSizeM + row * spacingM
+  const m = (v: number) => `${Math.abs(Math.round(v))} m`
+  const where = east === 0 && north === 0 ? 'site centre' : `${m(east)} ${east >= 0 ? 'east' : 'west'}, ${m(north)} ${north >= 0 ? 'north' : 'south'} of the site centre`
   const cell: Observer = { latDeg: map.latDeg[index], lonDeg: map.lonDeg[index], eyeM: cells.eyeM[index] }
   return {
     site: {
@@ -89,7 +94,9 @@ export function cellSiteData(base: SiteData, year: EphemerisDoc, cells: CellHori
       lonDeg: cell.lonDeg,
       surfaceElevationM: map.surfaceElevationM[index],
       label: CELL_LABEL,
+      coordSource: `Regional map of ${s.id} (map.json cell centre)`,
       derivedFrom: s.id,
+      derivation: `regional map cell row ${row}, col ${col} (${where}); 1° terrain horizon`,
       warnings: [],
     },
     horizon: cellHorizon(cells, index),
