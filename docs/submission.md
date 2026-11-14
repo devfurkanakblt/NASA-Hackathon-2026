@@ -52,7 +52,7 @@ hardware and see which conditions hold, with sources and model limits on screen.
 stored data within 0.00005°; halving the horizon ray steps changes the horizon by at most 0.019°;
 rise/set times from 10-minute data agree with a 1-minute series within 0.33 min; our terrain grids
 agree with NASA Moon Trek's LOLA 5 m DEM within 1.3–2.4 m RMS on gentle ground. The TypeScript
-engine reproduces the Python reference values exactly; 101 automated tests run on every change.
+engine reproduces the Python reference values exactly; 118 automated tests run on every change.
 
 **Limits.** Sites are research region centres, not certified landing sites; hardware values are
 example assumptions. Not modelled: eclipses, temperature, dust, battery ageing, ground-station
@@ -60,7 +60,7 @@ schedules and link budgets. Near the pole a 0.05° horizon error equals about 30
 rise/set time.
 
 **Tools.** Python (NumPy, Rasterio, PyProj, Skyfield, Requests), TypeScript, React, three.js /
-React Three Fiber, [ECharts — keep only if the final UI uses it], Vite, Vitest. Static hosting on [Vercel / GitHub Pages]; the same
+React Three Fiber, inline SVG charts, Vite, Vitest. Static hosting on [Vercel / GitHub Pages]; the same
 build runs offline.
 
 **Next steps.** More curated sites (Site11 de Gerlache Rim, Site20 Leibnitz β plateau, Site23
