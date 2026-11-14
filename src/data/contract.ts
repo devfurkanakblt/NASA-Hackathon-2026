@@ -67,6 +67,8 @@ export interface SiteData {
   ephemeris: EphemerisDoc
   horizon: HorizonDoc
   terrain: TerrainDoc
+  /** Coarse regional terrain around the patch (`terrain-far.json`), when it has been generated. */
+  terrainFar?: TerrainDoc
 }
 
 export interface LoadedData {

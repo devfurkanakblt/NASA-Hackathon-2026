@@ -258,6 +258,7 @@ export function Scene3DDemo() {
         ) : data && sceneTerrain && result && now && paths ? (
           <MissionScene3D
             terrain={sceneTerrain}
+            farTerrain={data.terrainFar}
             horizon={data.horizon}
             sun={now.sun}
             earth={now.earth}

@@ -23,12 +23,14 @@ import { Lander } from './parts/Lander.tsx'
 import { DirectionArrow, SkyBody, SkyFollow, SkyTrack } from './parts/SkyBodies.tsx'
 import { ReferenceSphere, Terrain } from './parts/Terrain.tsx'
 import './scene3d.css'
-import { buildTerrainMeshData } from './terrainGeometry.ts'
+import { buildTerrainMeshData, nestFarMesh } from './terrainGeometry.ts'
 import type { BodyPath, BodyState, BodyStatus, CameraMode, HorizonProfile, LookTarget, PanelState, TerrainGrid } from './types.ts'
 
 export interface MissionScene3DProps {
   /** Local elevation grid of the selected site (`terrain.json`). */
   terrain: TerrainGrid
+  /** Coarse regional grid around it (`terrain-far.json`), drawn in the overview out to its edge. */
+  farTerrain?: TerrainGrid
   /** Terrain horizon of the selected site (`horizon.json`). */
   horizon: HorizonProfile
   /** Sun / Earth at the current time step; `visible` comes from the simulation engine. */
@@ -91,6 +93,7 @@ function useLabel() {
 
 export default function SceneCanvas({
   terrain,
+  farTerrain,
   horizon,
   sun,
   earth,
@@ -111,6 +114,10 @@ export default function SceneCanvas({
 
   const meshData = useMemo(() => buildTerrainMeshData(terrain, observerHeightM), [terrain, observerHeightM])
   const half = meshData.halfExtentM
+  const farMesh = useMemo(
+    () => (farTerrain ? nestFarMesh(buildTerrainMeshData(farTerrain, observerHeightM), meshData) : null),
+    [farTerrain, observerHeightM, meshData],
+  )
   const overviewRadius = half * 0.9
   const curtainRadius = half * 2.2
   // The sky sits far beyond the terrain patch and travels with the camera (see SkyFollow).
@@ -166,8 +173,9 @@ export default function SceneCanvas({
         />
 
         <Terrain data={meshData} />
+        {!lander && farMesh && <Terrain data={farMesh} />}
         {!lander && surfaceElevationM !== undefined && (
-          <ReferenceSphere data={meshData} siteElevationM={surfaceElevationM} outerRadiusM={half * (SKY_RADIUS - 5)} />
+          <ReferenceSphere data={farMesh ?? meshData} siteElevationM={surfaceElevationM} outerRadiusM={half * (SKY_RADIUS - 5)} />
         )}
         {cameraMode === 'overview' && <Lander panelNormal={normal} panelLit={lit} panelAreaM2={panel.areaM2} northLabelAnchor={northLabel.anchor} />}
 
@@ -288,7 +296,9 @@ export default function SceneCanvas({
       <p className="scene3d__note">
         {lander
           ? 'Drag to look, scroll to zoom. '
-          : 'Lander not to scale; arrows point from it to the Sun and Earth. Beyond the terrain patch only the smooth reference sphere is drawn. '}
+          : farMesh
+            ? 'Lander not to scale; arrows point from it to the Sun and Earth. Around the detailed 10 km patch the region is drawn from a coarse LOLA grid. '
+            : 'Lander not to scale; arrows point from it to the Sun and Earth. Beyond the terrain patch only the smooth reference sphere is drawn. '}
         Sun and Earth are drawn at their true direction and apparent size; the labels give their status at the lander. 3D shading is
         illustrative — visibility and power come from the terrain-horizon profile.
       </p>

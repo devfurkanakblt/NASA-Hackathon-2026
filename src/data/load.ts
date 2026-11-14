@@ -14,12 +14,14 @@ export async function loadAllData(baseUrl = `${import.meta.env.BASE_URL}data`): 
   const sites = await getJson<SitesDoc>(`${baseUrl}/sites.json`)
   const entries = await Promise.all(
     sites.sites.map(async (site) => {
-      const [terrain, horizon, ephemeris] = await Promise.all([
+      const [terrain, horizon, ephemeris, terrainFar] = await Promise.all([
         getJson<TerrainDoc>(`${baseUrl}/${site.id}/terrain.json`),
         getJson<HorizonDoc>(`${baseUrl}/${site.id}/horizon.json`),
         getJson<EphemerisDoc>(`${baseUrl}/${site.id}/ephemeris.json`),
+        // optional: the 3D overview falls back to a smooth sphere without it
+        getJson<TerrainDoc>(`${baseUrl}/${site.id}/terrain-far.json`).catch(() => undefined),
       ])
-      return [site.id, { site, terrain, horizon, ephemeris }] as const
+      return [site.id, { site, terrain, horizon, ephemeris, terrainFar }] as const
     }),
   )
   return { sites, bySite: Object.fromEntries(entries) }

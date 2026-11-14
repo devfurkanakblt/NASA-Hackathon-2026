@@ -2,7 +2,7 @@ import { Line } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
 import { useMemo, useRef } from 'react'
 import type { ReactNode } from 'react'
-import { Color } from 'three'
+import { AdditiveBlending, Color } from 'three'
 import type { Group } from 'three'
 import { DEG2RAD } from '../coords.ts'
 import { STATUS_COLOR } from '../palette.ts'
@@ -38,12 +38,18 @@ export function SkyFollow({ children }: { children: ReactNode }) {
   return <group ref={group}>{children}</group>
 }
 
-// Earth is drawn as a plain sphere lit from the Sun's direction, which gives its real phase.
+// Earth is a sphere lit from the Sun's direction, which gives its real phase. Oceans, land,
+// cloud and the thin blue limb are procedural — an illustrative surface, not an image of Earth.
 const EARTH_VERTEX = /* glsl */ `
   varying vec3 vWorldNormal;
+  varying vec3 vWorldPosition;
+  varying vec3 vLocal;
   void main() {
+    vLocal = normalize(position);
     vWorldNormal = normalize(mat3(modelMatrix) * normal);
-    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    vec4 world = modelMatrix * vec4(position, 1.0);
+    vWorldPosition = world.xyz;
+    gl_Position = projectionMatrix * viewMatrix * world;
   }
 `
 const EARTH_FRAGMENT = /* glsl */ `
@@ -51,12 +57,54 @@ const EARTH_FRAGMENT = /* glsl */ `
   uniform vec3 uSunDirection;
   uniform float uOpacity;
   varying vec3 vWorldNormal;
+  varying vec3 vWorldPosition;
+  varying vec3 vLocal;
+
+  float hash(vec3 p) { return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453); }
+  float noise(vec3 p) {
+    vec3 i = floor(p);
+    vec3 f = fract(p);
+    f = f * f * (3.0 - 2.0 * f);
+    return mix(mix(mix(hash(i), hash(i + vec3(1, 0, 0)), f.x), mix(hash(i + vec3(0, 1, 0)), hash(i + vec3(1, 1, 0)), f.x), f.y),
+               mix(mix(hash(i + vec3(0, 0, 1)), hash(i + vec3(1, 0, 1)), f.x), mix(hash(i + vec3(0, 1, 1)), hash(i + vec3(1, 1, 1)), f.x), f.y), f.z);
+  }
+  float fbm(vec3 p) { return 0.55 * noise(p) + 0.3 * noise(p * 2.1) + 0.15 * noise(p * 4.3); }
+
   void main() {
-    float lit = smoothstep(-0.04, 0.10, dot(normalize(vWorldNormal), uSunDirection));
-    gl_FragColor = vec4(uColor * (0.07 + 0.93 * lit), uOpacity);
+    vec3 n = normalize(vWorldNormal);
+    vec3 view = normalize(cameraPosition - vWorldPosition);
+    float day = smoothstep(-0.06, 0.14, dot(n, uSunDirection));
+    float land = smoothstep(0.52, 0.6, fbm(vLocal * 2.4 + 3.1));
+    float cloud = smoothstep(0.5, 0.72, fbm(vLocal * 4.0 + vec3(0.0, 7.3, 1.9)));
+    vec3 surface = mix(uColor * 0.75, vec3(0.30, 0.42, 0.24), land);
+    surface = mix(surface, vec3(0.95), cloud * 0.85);
+    float rim = pow(1.0 - max(dot(n, view), 0.0), 2.5);
+    vec3 color = surface * (0.03 + 0.97 * day) + vec3(0.35, 0.6, 1.0) * rim * (0.15 + 0.85 * day);
+    gl_FragColor = vec4(color, uOpacity);
     #include <colorspace_fragment>
   }
 `
+
+// Soft glare around the Sun's disc. The disc itself keeps its true size; the glare only helps find it.
+const GLOW_VERTEX = /* glsl */ `
+  varying vec2 vUv;
+  void main() {
+    vUv = uv;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`
+const GLOW_FRAGMENT = /* glsl */ `
+  uniform float uOpacity;
+  varying vec2 vUv;
+  void main() {
+    float d = distance(vUv, vec2(0.5)) * 2.0;
+    float glow = pow(max(1.0 - d, 0.0), 2.6);
+    gl_FragColor = vec4(vec3(1.0, 0.9, 0.68) * glow * uOpacity, 1.0);
+    #include <colorspace_fragment>
+  }
+`
+/** Glare radius as a multiple of the Sun's disc radius. */
+const GLOW_SCALE = 9
 
 export interface SkyBodyProps {
   kind: 'sun' | 'earth'
@@ -91,14 +139,31 @@ export function SkyBody({ kind, color, body, status, radius, angularDiameterDeg,
   }, [radius, reticleRadius])
   const earthUniforms = useMemo(() => ({ uColor: { value: new Color() }, uSunDirection: { value: [0, 1, 0] as Vec3 }, uOpacity: { value: 1 } }), [])
 
+  const glowUniforms = useMemo(() => ({ uOpacity: { value: 1 } }), [])
+
   const visible = status === 'visible'
   const through = !visible && xray
   const opacity = through ? 0.6 : 1
+  const discRadius = radius * Math.tan((angularDiameterDeg / 2) * DEG2RAD)
 
   return (
     <group rotation={aimRotation(body)}>
+      {kind === 'sun' && (
+        <mesh position={[0, 0, -radius * 1.01]} renderOrder={-1}>
+          <circleGeometry args={[discRadius * GLOW_SCALE, 48]} />
+          <shaderMaterial
+            vertexShader={GLOW_VERTEX}
+            fragmentShader={GLOW_FRAGMENT}
+            uniforms={glowUniforms}
+            uniforms-uOpacity-value={through ? 0.35 : 0.9}
+            transparent
+            blending={AdditiveBlending}
+            depthWrite={false}
+          />
+        </mesh>
+      )}
       <mesh position={[0, 0, -radius]} renderOrder={through ? 9 : 0}>
-        <sphereGeometry args={[radius * Math.tan((angularDiameterDeg / 2) * DEG2RAD), 48, 24]} />
+        <sphereGeometry args={[discRadius, 64, 32]} />
         {kind === 'sun' ? (
           <meshBasicMaterial key={through ? 'through' : 'solid'} color="#fff3d2" toneMapped={false} transparent={through} opacity={opacity} depthTest={!through} />
         ) : (
@@ -163,32 +228,17 @@ export function DirectionArrow({
   length: number
   labelAnchor: AnchorRef
 }) {
-  const shaft = useMemo<Vec3[]>(
-    () => [
-      [0, 0, 0],
-      [0, 0, -length],
-    ],
-    [length],
-  )
   const visible = status === 'visible'
   const head = length * 0.16
   return (
     <group rotation={aimRotation(body)}>
-      <Line
-        points={shaft}
-        color={color}
-        lineWidth={visible ? 2.5 : 1.5}
-        dashed={!visible}
-        dashSize={length * 0.06}
-        gapSize={length * 0.04}
-        transparent
-        opacity={visible ? 0.95 : 0.6}
-        depthTest={false}
-        renderOrder={8}
-      />
+      <mesh position={[0, 0, -length / 2]} rotation-x={-Math.PI / 2} renderOrder={8}>
+        <cylinderGeometry args={[head * 0.09, head * 0.09, length, 12]} />
+        <meshBasicMaterial color={color} transparent opacity={visible ? 0.95 : 0.4} depthTest={false} />
+      </mesh>
       <mesh position={[0, 0, -length - head / 2]} rotation-x={-Math.PI / 2} renderOrder={9}>
         <coneGeometry args={[head * 0.32, head, 16]} />
-        <meshBasicMaterial color={color} transparent opacity={visible ? 1 : 0.5} depthTest={false} />
+        <meshBasicMaterial color={color} transparent opacity={visible ? 1 : 0.45} depthTest={false} />
       </mesh>
       <object3D ref={labelAnchor} position={[0, head * 1.1, -length - head]} />
     </group>

@@ -23,8 +23,11 @@ export interface LabelBinding {
 export function LabelProjector({ bindings }: { bindings: LabelBinding[] }) {
   const p = useMemo(() => new Vector3(), [])
 
+  const placed = useMemo<{ x: number; y: number; w: number; h: number }[]>(() => [], [])
+
   useFrame(({ camera, size }) => {
     camera.updateMatrixWorld()
+    placed.length = 0
     for (const { anchor, element } of bindings) {
       const el = element.current
       if (!el) continue
@@ -42,7 +45,15 @@ export function LabelProjector({ bindings }: { bindings: LabelBinding[] }) {
       const halfW = el.offsetWidth / 2 + EDGE_MARGIN_PX
       const halfH = el.offsetHeight / 2 + EDGE_MARGIN_PX
       const x = Math.min(Math.max(((p.x + 1) / 2) * size.width, halfW), Math.max(halfW, size.width - halfW))
-      const y = Math.min(Math.max(((1 - p.y) / 2) * size.height, halfH), Math.max(halfH, size.height - halfH))
+      let y = Math.min(Math.max(((1 - p.y) / 2) * size.height, halfH), Math.max(halfH, size.height - halfH))
+      // Two anchors can land on the same spot (Sun and Earth in nearly the same direction):
+      // move the later label down until it clears the ones already placed.
+      for (let attempt = 0; attempt < 6; attempt++) {
+        const hit = placed.find((r) => Math.abs(r.x - x) < (r.w + el.offsetWidth) / 2 + 4 && Math.abs(r.y - y) < (r.h + el.offsetHeight) / 2 + 2)
+        if (!hit) break
+        y = hit.y + (hit.h + el.offsetHeight) / 2 + 3
+      }
+      placed.push({ x, y, w: el.offsetWidth, h: el.offsetHeight })
       el.style.visibility = 'visible'
       el.style.transform = `translate(-50%, -50%) translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`
     }

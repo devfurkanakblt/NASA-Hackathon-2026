@@ -77,6 +77,44 @@ export function buildTerrainMeshData(grid: TerrainGrid, observerHeightM = OBSERV
 /** Radius of the lunar reference sphere that LOLA heights are measured from. */
 export const MOON_RADIUS_M = 1_737_400
 
+/**
+ * Fits a coarse regional mesh around the detailed patch: wherever a regional vertex lies inside
+ * the patch footprint it is lowered to just below the patch surface, so the detailed terrain is
+ * always the one on top there and the two meshes meet without a hole.
+ */
+export function nestFarMesh(far: TerrainMeshData, near: TerrainMeshData, clearanceM = 25): TerrainMeshData {
+  const m = Math.round(Math.sqrt(near.positions.length / 3))
+  const x0 = near.positions[0]
+  const z0 = near.positions[2]
+  const dx = near.positions[3] - x0
+  const dz = near.positions[m * 3 + 2] - z0
+  const edge = Math.abs(x0)
+  const nearY = (i: number, j: number) => near.positions[(j * m + i) * 3 + 1]
+
+  const positions = far.positions.slice()
+  let minY = Infinity
+  let maxY = -Infinity
+  for (let v = 0; v < positions.length; v += 3) {
+    const x = positions[v]
+    const z = positions[v + 2]
+    if (Math.abs(x) <= edge && Math.abs(z) <= edge) {
+      const fi = Math.min(Math.max((x - x0) / dx, 0), m - 1)
+      const fj = Math.min(Math.max((z - z0) / dz, 0), m - 1)
+      const i0 = Math.floor(fi)
+      const j0 = Math.floor(fj)
+      const i1 = Math.min(i0 + 1, m - 1)
+      const j1 = Math.min(j0 + 1, m - 1)
+      const ti = fi - i0
+      const tj = fj - j0
+      const surface = (nearY(i0, j0) * (1 - ti) + nearY(i1, j0) * ti) * (1 - tj) + (nearY(i0, j1) * (1 - ti) + nearY(i1, j1) * ti) * tj
+      positions[v + 1] = Math.min(positions[v + 1], surface - clearanceM)
+    }
+    if (positions[v + 1] < minY) minY = positions[v + 1]
+    if (positions[v + 1] > maxY) maxY = positions[v + 1]
+  }
+  return { ...far, positions, minY, maxY }
+}
+
 /** Scene height of the reference sphere at horizontal distance `r` from the site. */
 export function referenceSphereY(r: number, siteElevationM: number): number {
   return -siteElevationM - (MOON_RADIUS_M - Math.sqrt(MOON_RADIUS_M * MOON_RADIUS_M - r * r))
