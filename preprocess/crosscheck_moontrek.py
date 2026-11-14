@@ -34,6 +34,13 @@ from preprocess import terrain as T
 from preprocess.dem import Dem, to_xy
 
 PRODUCT = "LRO_LOLA_DEM_SPole875_5mp_v04"
+COVERAGE_LAT_DEG = -87.5  # the mosaic covers 87.5 S to the pole; north of it the service returns nodata
+# Inspected by hand (grid neighbourhood printed for both products); kept here so a regenerated report keeps it.
+OUTLIER_NOTES = {
+    "Site11": "the 160 m max is a ~5-cell spike (~200 m wide) in the Moon Trek mosaic 2.7 km from the site at "
+              "azimuth 164 deg; `terrain.json` is smooth there, only 10 of 65 536 cells differ by more than 20 m, "
+              "and the horizon at that azimuth is formed 40-140 km away, so it is not affected.",
+}
 SERVICE = f"https://trek.nasa.gov/moon/trekarcgis/rest/services/{PRODUCT}/ImageServer"
 # From the service metadata: Stereographic_South_Pole, central meridian 0, true scale at the pole.
 MOONTREK_CRS = f"+proj=stere +lat_0=-90 +lon_0=0 +k=1 +x_0=0 +y_0=0 +R={C.MOON_RADIUS_M} +units=m +no_defs"
@@ -141,7 +148,7 @@ def lookup_line(rows):
             f"coordinates ({len(checked)} of {len(rows)} sites checked); largest difference {max(checked):.2f} m.")
 
 
-def report(rows):
+def report(rows, skipped=()):
     lines = [
         "# Terrain cross-check against NASA Moon Trek",
         "",
@@ -192,16 +199,26 @@ def report(rows):
         lookup_line(rows),
         "",
     ]
+    explained = [f"- {sid}: {OUTLIER_NOTES[sid]}" for sid in OUTLIER_NOTES if any(r["site"] == sid for r in rows)]
+    if explained:
+        lines += ["Largest single differences, inspected:", *explained, ""]
+    if skipped:
+        lines += [f"Not covered by this mosaic (north of {abs(COVERAGE_LAT_DEG)} S, where it holds no data): "
+                  + ", ".join(skipped) + ". Their terrain also comes from LOLA products (5 m site DEMs; global "
+                  "LDEM_64 for the contrast points) but has no Moon Trek check here.", ""]
     return "\n".join(lines)
 
 
 def main(site_ids):
     entries = {e["id"]: e for e in json.loads((C.OUT_DIR / "sites.json").read_text(encoding="utf-8"))["sites"]}
-    rows = []
+    rows, skipped = [], []
     for site_id in site_ids or list(C.SITES):
+        if C.SITES[site_id]["lat"] > COVERAGE_LAT_DEG:
+            skipped.append(site_id)  # outside the mosaic: the crop is all nodata, not an error
+            continue
         print(f"[{site_id}]")
         rows.append(check_site(site_id, entries[site_id]))
-    text = report(rows)
+    text = report(rows, skipped)
     print(text)
     if not site_ids:
         REPORT.write_text(text, encoding="utf-8")
