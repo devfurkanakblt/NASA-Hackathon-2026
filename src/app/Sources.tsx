@@ -4,7 +4,7 @@ import type { ScenarioResult } from '../sim/evaluate.ts'
 /** Where every number comes from, and what the model does not cover. */
 export function Sources({ data, result }: { data: SiteData; result: ScenarioResult | null }) {
   const { site, horizon, ephemeris } = data
-  const warnings = [...site.warnings, ...(horizon.warnings ?? [])]
+  const warnings = [...new Set([...site.warnings, ...(horizon.warnings ?? []), ...(data.visualWarnings ?? [])])]
   return (
     <div className="sources">
       <div className="sources__site">
@@ -49,7 +49,7 @@ export function Sources({ data, result }: { data: SiteData; result: ScenarioResu
             <li key={n}>{n}</li>
           ))}
           <li>Hardware values are example assumptions. Sites are research region centres, not certified landing sites.</li>
-          <li>Near the pole the Sun and Earth cross the horizon slowly: a 0.05° horizon error is about 30–140 min of rise/set time.</li>
+          <li>Near the pole the Sun and Earth cross the horizon slowly: a 0.05° horizon error can shift rise/set estimates by roughly 30 min to 4 h, depending on the crossing.</li>
           <li>The 3D terrain is for orientation only; visibility always comes from the horizon profile.</li>
         </ul>
         <h3>NASA data</h3>

@@ -1,11 +1,14 @@
 import { Component, Suspense, lazy } from 'react'
 import type { ReactNode } from 'react'
-import type { MissionScene3DProps } from './SceneCanvas.tsx'
+import type { MissionScene3DProps as RequiredSceneProps } from './SceneCanvas.tsx'
+import type { TerrainGrid } from './types.ts'
 import './scene3d.css'
 import { isWebGLAvailable } from './webgl.ts'
 
 // three.js and the scene are a separate chunk: the rest of the app loads and works without them.
 const SceneCanvas = lazy(() => import('./SceneCanvas.tsx'))
+
+export type MissionScene3DProps = Omit<RequiredSceneProps, 'terrain'> & { terrain?: TerrainGrid }
 
 function SceneFallback({ reason, onRetry }: { reason: string; onRetry?: () => void }) {
   return (
@@ -22,7 +25,7 @@ function SceneFallback({ reason, onRetry }: { reason: string; onRetry?: () => vo
   )
 }
 
-class SceneErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
+class SceneErrorBoundary extends Component<{ children: ReactNode; resetKey: TerrainGrid }, { error: Error | null }> {
   state: { error: Error | null } = { error: null }
 
   static getDerivedStateFromError(error: Error) {
@@ -31,6 +34,10 @@ class SceneErrorBoundary extends Component<{ children: ReactNode }, { error: Err
 
   componentDidCatch(error: Error) {
     console.error('[scene3d] 3D view failed:', error)
+  }
+
+  componentDidUpdate(previous: { resetKey: TerrainGrid }) {
+    if (this.state.error && previous.resetKey !== this.props.resetKey) this.setState({ error: null })
   }
 
   render() {
@@ -47,13 +54,16 @@ class SceneErrorBoundary extends Component<{ children: ReactNode }, { error: Err
  * or the scene throws, it shows a notice in its own box and the rest of the app carries on.
  */
 export function MissionScene3D(props: MissionScene3DProps) {
+  if (!props.terrain) {
+    return <SceneFallback reason="The local visual terrain is unavailable. Scientific horizon and ephemeris data remain usable." />
+  }
   if (!isWebGLAvailable()) {
     return <SceneFallback reason="This browser or device cannot create a WebGL context." />
   }
   return (
-    <SceneErrorBoundary>
+    <SceneErrorBoundary resetKey={props.terrain}>
       <Suspense fallback={<div className="scene3d scene3d--loading">Loading 3D view…</div>}>
-        <SceneCanvas {...props} />
+        <SceneCanvas {...props} terrain={props.terrain} />
       </Suspense>
     </SceneErrorBoundary>
   )

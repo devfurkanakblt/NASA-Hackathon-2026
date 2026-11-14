@@ -3,8 +3,8 @@ import { useMemo } from 'react'
 import type { RefObject } from 'react'
 import { Vector3 } from 'three'
 import type { Object3D } from 'three'
-
-const EDGE_MARGIN_PX = 4
+import { placeLabel } from '../labelLayout.ts'
+import type { LabelBox } from '../labelLayout.ts'
 
 export type AnchorRef = RefObject<Object3D | null>
 
@@ -23,8 +23,11 @@ export interface LabelBinding {
 export function LabelProjector({ bindings }: { bindings: LabelBinding[] }) {
   const p = useMemo(() => new Vector3(), [])
 
+  const placed = useMemo<LabelBox[]>(() => [], [])
+
   useFrame(({ camera, size }) => {
     camera.updateMatrixWorld()
+    placed.length = 0
     for (const { anchor, element } of bindings) {
       const el = element.current
       if (!el) continue
@@ -39,12 +42,15 @@ export function LabelProjector({ bindings }: { bindings: LabelBinding[] }) {
         continue
       }
       // Keep the whole label inside the view when its anchor is close to an edge.
-      const halfW = el.offsetWidth / 2 + EDGE_MARGIN_PX
-      const halfH = el.offsetHeight / 2 + EDGE_MARGIN_PX
-      const x = Math.min(Math.max(((p.x + 1) / 2) * size.width, halfW), Math.max(halfW, size.width - halfW))
-      const y = Math.min(Math.max(((1 - p.y) / 2) * size.height, halfH), Math.max(halfH, size.height - halfH))
+      el.style.maxWidth = `${Math.max(1, size.width - 8)}px`
+      el.style.boxSizing = 'border-box'
+      el.style.overflow = 'hidden'
+      el.style.textOverflow = 'ellipsis'
+      const box = placeLabel({ x: ((p.x + 1) / 2) * size.width, y: ((1 - p.y) / 2) * size.height,
+        w: el.offsetWidth, h: el.offsetHeight }, size.width, size.height, placed)
+      placed.push(box)
       el.style.visibility = 'visible'
-      el.style.transform = `translate(-50%, -50%) translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`
+      el.style.transform = `translate(-50%, -50%) translate(${box.x.toFixed(1)}px, ${box.y.toFixed(1)}px)`
     }
   })
 

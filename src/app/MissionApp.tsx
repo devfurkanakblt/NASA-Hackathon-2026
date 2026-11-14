@@ -3,6 +3,7 @@ import type { LoadedData } from '../data/contract.ts'
 import { loadAllData } from '../data/load.ts'
 import { MissionScene3D } from '../scene3d/index.ts'
 import type { BodyState, PanelState } from '../scene3d/index.ts'
+import { earthOrientationAt, earthSunDirectionAt } from '../scene3d/appearance.ts'
 import { J_PER_WH } from '../sim/energy.ts'
 import { DEFAULT_SETTINGS, validateSettings } from '../sim/evaluate.ts'
 import type { MissionSettings } from '../sim/evaluate.ts'
@@ -46,6 +47,7 @@ export function MissionApp() {
   const [step, setStep] = useState(0)
   const [playing, setPlaying] = useState(false)
   const [show3d, setShow3d] = useState(true)
+  const diagnostics = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('diagnostics') === '1'
   // Result of the last "Copy link", for the link it copied; a changed comparison clears it.
   const [copyResult, setCopyResult] = useState<{ hash: string; ok: boolean } | null>(null)
 
@@ -121,7 +123,9 @@ export function MissionApp() {
     const kk = Math.min(k, active.result.count - 1)
     const sun: BodyState = { azDeg: tracks.sunPath.azDeg[kk], elDeg: tracks.sunPath.elDeg[kk], distanceM: tracks.sunDist[kk], visible: active.result.sunVisible[kk] }
     const earth: BodyState = { azDeg: tracks.earthPath.azDeg[kk], elDeg: tracks.earthPath.elDeg[kk], distanceM: tracks.earthDist[kk], visible: active.result.earthVisible[kk] }
-    return { sun, earth, kk, tS: kk * active.result.stepS }
+    const tS = kk * active.result.stepS
+    const utc = new Date(Date.parse(active.result.alignedStartUtc) + tS * 1000).toISOString()
+    return { sun, earth, kk, tS, utc }
   }, [active, tracks, k])
 
   const panel = useMemo<PanelState>(
@@ -294,11 +298,16 @@ export function MissionApp() {
                   <div className="scene-box">
                     <MissionScene3D
                       terrain={activeData.terrain}
+                      farTerrain={activeData.terrainFar}
                       horizon={activeData.horizon}
                       sun={now.sun}
                       earth={now.earth}
                       sunPath={tracks.sunPath}
                       earthPath={tracks.earthPath}
+                      earthOrientation={earthOrientationAt(activeData.earthOrientation, now.utc)}
+                      earthSunDirection={earthSunDirectionAt(activeData.earthOrientation, now.utc)}
+                      panelPowerW={active.result.generationW[now.kk]}
+                      diagnostics={diagnostics}
                       panel={panel}
                       observerHeightM={activeData.site.observerHeightM}
                       surfaceElevationM={activeData.site.surfaceElevationM}

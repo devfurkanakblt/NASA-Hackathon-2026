@@ -109,8 +109,8 @@ export function Lander({ panelNormal, panelLit, panelAreaM2, northLabelAnchor }:
         <boxGeometry args={[widthM, heightM, 0.04]} />
         <meshStandardMaterial
           color={panelLit ? '#2f6fed' : '#1c2738'}
-          emissive={panelLit ? '#1c4fc0' : '#000000'}
-          emissiveIntensity={panelLit ? 0.9 : 0}
+          emissive="#000000"
+          emissiveIntensity={0}
           roughness={0.35}
           metalness={0.2}
         />
