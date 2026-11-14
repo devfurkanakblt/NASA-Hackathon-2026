@@ -26,4 +26,38 @@ Every 10-minute sample over 2026-11-01 to 2027-01-01 is compared.
 | Site07 | 0.0191 | none | 0.00005 | 1.3395 | 123.8 (0.902), 135 (1.008), 202.5 (0.308), 225 (1.339), 247.5 (0.111), 258.8 (0.734) |
 | Site04R | 0.0065 | none | 0.00005 | 1.2765 | 45 (0.175), 135 (0.175), 146.2 (0.316), 157.5 (1.032), 180 (0.257), 191.2 (1.276), 202.5 (0.502), 225 (0.070), 236.2 (0.236) |
 
+## 3. Data transfer: JSON vs a fresh Horizons request
+
+12 random epochs per site (fixed seed) plus the first and last sample are requested again from Horizons as a discrete time list (TLIST) with the same observer settings.
+
+| Site | Body | Epochs | max |dAz|*cos(el) [deg] | max |dEl| [deg] | max rel. distance diff | Pass |
+|---|---|---|---|---|---|---|
+| Site01 | sun | 14 | 0.000046 | 0.000042 | 3.3e-09 | yes |
+| Site01 | earth | 14 | 0.000043 | 0.000049 | 1.2e-06 | yes |
+| Site04 | sun | 14 | 0.000047 | 0.000049 | 3.4e-09 | yes |
+| Site04 | earth | 14 | 0.000050 | 0.000050 | 1.2e-06 | yes |
+| Site07 | sun | 14 | 0.000048 | 0.000047 | 2.9e-09 | yes |
+| Site07 | earth | 14 | 0.000043 | 0.000045 | 9.7e-07 | yes |
+| Site04R | sun | 14 | 0.000050 | 0.000049 | 3.3e-09 | yes |
+| Site04R | earth | 14 | 0.000045 | 0.000033 | 1.1e-06 | yes |
+
+The files store angles with 4 decimals (<= 0.00005 deg rounding) and distances to the nearest km (<= 500 m), which bounds the expected difference.
+
+## 4. Rise/set timing: 10-minute series vs 1-minute reference
+
+A terrain rise/set is a sign change of `el - horizonAt(az)`. The instant is estimated by linear interpolation between the two 10-minute samples and compared with the crossing in a 1-minute Horizons series around the same event (up to 4 events per site and body, spread over the period). The last column converts the 0.05 deg horizon tolerance into time using the observed rate at the crossing.
+
+| Site | Body | Events in period | Tested | max |dt| [min] | mean |dt| [min] | Rate at crossing [deg/h] | 0.05 deg horizon error = [min] |
+|---|---|---|---|---|---|---|---|
+| Site01 | sun | 4 | 4 | 0.05 | 0.03 | 0.02-0.04 | 70-138 |
+| Site01 | earth | 5 | 4 | 0.04 | 0.02 | 0.06-0.06 | 46-52 |
+| Site04 | sun | 4 | 4 | 0.33 | 0.22 | 0.07-0.10 | 29-45 |
+| Site04 | earth | 0 | - | - | - | - | - |
+| Site07 | sun | 0 | - | - | - | - | - |
+| Site07 | earth | 5 | 4 | 0.04 | 0.02 | 0.05-0.07 | 42-56 |
+| Site04R | sun | 0 | - | - | - | - | - |
+| Site04R | earth | 5 | 4 | 0.03 | 0.02 | 0.06-0.07 | 44-50 |
+
+Using samples without interpolation (visible if `el > horizonAt(az)` at the sample) shifts an event by up to one step (10 min). Near the pole the Sun and Earth cross the horizon slowly, so a small angle error becomes a large time error (last column).
+
 Pixel size and these numerical checks are not a statement of the DEM's absolute accuracy.
