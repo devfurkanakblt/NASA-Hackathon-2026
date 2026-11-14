@@ -63,12 +63,67 @@ export interface TerrainDoc {
   zM: number[]
 }
 
+/** Summary fields shared by the year, the main period and each month of `season.json`. */
+export interface SeasonSummary {
+  samples: number
+  sunPct: number
+  earthPct: number
+  bothPct: number
+  sunDiskFractionMean: number
+  longestNoSunS: number
+  longestNoEarthS: number
+  /** Sun elevation above the local horizontal plane (no terrain). */
+  sunElMaxDeg: number
+  sunElMinDeg: number
+  earthElMaxDeg: number
+}
+
+/** One-year monthly summary (`{site}/season.json`). */
+export interface SeasonDoc {
+  version: number
+  siteId: string
+  source: string
+  coverage: { startUtc: string; endUtc: string; stepS: number; count: number }
+  year: SeasonSummary
+  mainPeriod: SeasonSummary & { startUtc: string; endUtc: string }
+  /** Calendar months (UTC); `month` is "2026-11". */
+  months: (SeasonSummary & { month: string; startIndex: number; endIndex: number })[]
+}
+
+/**
+ * Regional ±3 km summary grid around the site (`{site}/map.json`). Row-major, row 0 = south,
+ * column 0 = west; cell centre east = -halfSizeM + col*spacingM, north = -halfSizeM + row*spacingM.
+ * Values are summaries for `coverage`; there is no time series per cell.
+ */
+export interface MapDoc {
+  version: number
+  siteId: string
+  grid: { nx: number; ny: number; spacingM: number; halfSizeM: number }
+  coverage: { startUtc: string; endUtc: string; stepS: number; count: number }
+  latDeg: number[]
+  lonDeg: number[]
+  surfaceElevationM: number[]
+  sunPct: number[]
+  earthPct: number[]
+  bothPct: number[]
+  sunDiskFractionMean: number[]
+  longestNoSunS: number[]
+  longestNoEarthS: number[]
+  slopeDeg: number[]
+  method?: Record<string, string | number>
+  warnings?: string[]
+}
+
 /** Everything the app knows about one site. */
 export interface SiteData {
   site: SiteEntry
   ephemeris: EphemerisDoc
   horizon: HorizonDoc
   terrain: TerrainDoc
+  /** One-year monthly summary; optional so an older data set still opens. */
+  season?: SeasonDoc
+  /** Regional grid; contrast points have none. */
+  map?: MapDoc
 }
 
 export interface LoadedData {

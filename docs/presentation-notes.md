@@ -18,7 +18,7 @@ efficiency, 200 W base load + 100 W while Earth is in view, 6 h accepted Earth o
 | 4 | Energy evidence | Same site, change the hardware or date → battery result changes (Site04: +72 h start → unmet 1.0 → 15.4 kWh). | Battery / power chart screenshot |
 | 5 | Comparison | Site04 vs. Site04R vs. Site04R +72 h with the same hardware; plain conditions, no score. | Comparison screen screenshot + table below |
 | 6 | Scientific basis | NASA data, validation numbers, model limits (sections below). | Small table of checks |
-| 7 | Impact & access | Live app, source (MIT), offline build, team, next steps (shareable links, thermal / relay models). | Links + QR code, team names |
+| 7 | Impact & access | Live app, source (MIT), offline build, team, next steps (simulation for any map cell, full-year series, thermal / relay models). | Links + QR code, team names |
 
 ## Story: the catalogue point vs. the ridge 1.9 km away (slides 3–5)
 
@@ -86,7 +86,7 @@ Talking points:
   RMS 1.3–2.4 m on gentle ground (< 10°), 16–18 m on Shackleton's steep wall (> 25°).
 - **Engine:** the TypeScript engine reproduces the Python pipeline's reference values (visibility
   percentages, every window, horizon test vectors, mean Sun-disk fraction) exactly on all nine
-  sites; 122 automated tests.
+  sites; 132 automated tests.
 
 ## Model limits (say them out loud)
 

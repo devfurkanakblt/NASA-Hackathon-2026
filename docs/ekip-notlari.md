@@ -12,6 +12,9 @@ Veri formatının tamamı: [`docs/data-contract.md`](data-contract.md). Gerçek 
 - C-> `.gitignore`'a web uygulaması satırları (`node_modules`, `dist`) ve `.venv/` eklendi; senin satırlarına dokunulmadı.
 - D-> `tests/simRealData.test.ts` artık beklenen değerleri doğrudan `docs/reference/visibility.json`'dan okuyor (yüzdeler, "ikisi birden", pencereler, olay sayıları, `neverVisible`/`alwaysVisible`, `horizonAtCases`, `spotChecks`, `sunDiskFractionMean`). Veriyi yeniden üretirsen `python -m preprocess.reference`'ı da çalıştır; test ayrıca referanstaki site listesinin `sites.json` ile aynı olmasını istiyor, yeni site eklersen referansı da güncelle.
 - D-> Sunum taslağı `docs/presentation-notes.md`'de; doğrulama bölümündeki sayıları `docs/validation.md`'den aldım ("80 m DEM 250 km'ye kadar", "100 km tarama Site07/Site04R'de 1.3°'ye kadar uzak dağı kaçırırdı"). Yanlış yorumladığım bir şey varsa düzelt ya da haber ver.
+- B-> `map.json` ve `season.json` artık arayüzde: "Around the site (±3 km)" ısı haritası (Sun / Earth / Both / Slope) ve "Through the year" aylık grafiği. Site04 haritasında Site04R ~1.9 km ötede işaretli (`tests/mapSeason.test.ts`; Site01 merkezi %72.5/%36.5 ve +200 m D / +600 m K hücresi %100/%48.9 test ediliyor).
+- B-> `map.json` → `warnings` ekranda olduğu gibi gösteriliyor: "204367922 near-field ray samples (<= 7000 m) used the 80 m DEM". Bu sayı kullanıcıya bir şey anlatmıyor; oran (%) ya da düz bir cümle olarak yazabilir misin? Alan adı aynı kalırsa arayüz değişmeden alır.
+- B-> `slopeDeg` (ve diğer harita alanları) `null` gelirse arayüz hücreyi gri, değeri "no data" gösteriyor; o yüzden `null` yazmakta sakınca yok.
 
 ## B:
 
@@ -76,6 +79,9 @@ Veri formatının tamamı: [`docs/data-contract.md`](data-contract.md). Gerçek 
 - A-> CE6 ve Apollo11'in `terrain.json`'ı 474 m/px global DEM'den üretildi. Kutup sitelerine göre çok daha kaba; küçük tepeler görünmez.
 - D-> `src/sim/evaluate.ts`'e dokundum: isteğe bağlı `sunDiskModel` ayarı (varsayılan `'centre'`, mevcut sonuçlar değişmedi) ve sonuçta yeni `sunDiskFraction` (örnek başına 0–1) ile `model.sunDiskModel` alanları. Var olan alanların adı veya anlamı değişmedi. `src/sim/visibility.ts`'e `sunDiskFraction()` ve `sunAngularRadiusDeg()` eklendi. Ayrıca `validateSettings()` / `SettingsError`, `alignedStartUtc` ve `sampleUtc()` eklendi; motor artık geçersiz ayarı reddediyor (testler: `src/sim/evaluate.test.ts`).
 - D-> Yayın: `npm run build` çalışıyor ama `dist/index.html` dosya yollarını `/assets/...` diye mutlak yazıyor. GitHub Pages'te (`.../NASA-Hackathon-2026/`) sayfa boş açılır; orada yayınlanacaksa `vite.config.ts`'e `base: './'` (ya da `'/NASA-Hackathon-2026/'`) eklemek gerekir. Vercel'de ve `npm run preview` ile sorun yok. `loadAllData()` zaten `import.meta.env.BASE_URL` kullandığı için veri yolları da buna uyar.
+- B-> `src/data/contract.ts` → `SiteData`'ya isteğe bağlı `season` ve `map` eklendi; `src/data/load.ts` bunları da çekiyor (eksikse hata vermiyor, karşıtlık noktalarında `map.json` istenmiyor). Senin `feat/3d-regional` dalın da aynı iki dosyada `terrainFar` ekliyor: merge'de çakışma çıkacak, ikisini birlikte tut (aynı "isteğe bağlı dosya" kalıbı: `optional(getJson(...))`).
+- B-> Telefonda (400 px) 3B'nin üstteki düğmeleri ("Terrain overview / View from lander / Show terrain effect") sahnenin üst kısmını kapatıyor ve satır taşıyor. Dar ekranda küçültür ya da sahnenin dışına alır mısın?
+- B-> Haritayı 3B araziye doku olarak giydirirsen renkler 2B haritayla aynı olsun diye `src/app/mapGrid.ts` → `rampFor(layer)` + `rampColor(ramp, t)` kullanabilirsin (Güneş/Dünya % mavi, eğim turuncu, 0–100 % / 0–30°).
 
 ## D:
 
@@ -91,3 +97,7 @@ Veri formatının tamamı: [`docs/data-contract.md`](data-contract.md). Gerçek 
 - A-> "Data & Methods" metni hazır: `docs/data-methods.md` (İngilizce, proje sayfasına doğrudan alınabilir; atıflar ve AI beyanı içinde). Slayt 6 taslağı: `docs/slide6-scientific-basis.md`. Repo kökünde `LICENSE` (MIT) var.
 - A-> Enerji simülasyonu ve doğuş/batış zaman çizelgesi `sites.json`'daki 9 nokta için çalışır (hepsinde `ephemeris.json` + `horizon.json` var). `map.json` hücreleri yalnızca özet içerir.
 - A-> Dış doğrulama: 7 kutup noktası için 18.6 yıllık Güneş görünürlüğümüz NASA/Mazarico ürünüyle uyumlu (7/7, sıra korelasyonu 0.96). Shackleton tabanı iki modelde de kalıcı gölge. Ayrıntı: `docs/validation.md` §5.
+- B-> `docs/submission.md` ("What it does" sonuna harita / yıl grafiği / paylaşım bağlantısı cümlesi, "Next steps" güncellendi, test sayısı 132) ve `docs/presentation-notes.md` (test sayısı, slayt 7 "next steps") değiştirildi. Metin senin; uygun görmezsen düzelt.
+- B-> İlk yükleme artık `season.json` (9) + `map.json` (7) da çekiyor; A'nın ölçümüne göre toplam ~3.2 MB gzip. İkisi isteğe bağlı: eksikse uygulama açılır, panelde "No regional map…" / "No one-year summary…" yazar. `src/data/load.test.ts` buna göre güncellendi (10 istek, eksik isteğe bağlı dosya testi).
+- B-> Paylaşılabilir bağlantı: karşılaştırma URL'nin `#` kısmında (`#s=Site04@2026-11-15T00:00,Site04R@...&a=B&set=durationDays:10`), yalnızca varsayılandan farklı ayarlar yazılıyor (`src/app/share.ts`, testler `share.test.ts`). `#` kısmı sunucuya gitmez; `tests/noNetwork.test.ts` hâlâ geçiyor. Bağlantıdaki ayar geçersizse form hatayı gösteriyor, motor çalışmıyor (mevcut `validateSettings` akışı).
+
