@@ -43,6 +43,9 @@ Veri formatının tamamı: [`docs/data-contract.md`](data-contract.md). Gerçek 
 - D-> Saat ekseni için: sonuçta `alignedStartUtc` (10 dakikalık ızgaraya oturtulmuş gerçek başlangıç; `startUtc` 00:04 gibi gelirse 00:00 olur) ve `sampleUtc(result, k)` → k. örneğin UTC zamanı. "Görev başlangıcından geçen saat" = `k * stepS / 3600`.
 - D-> Sunum için slayt 3 (arazi kanıtı: panorama) ve slayt 5 (karşılaştırma: Site04 / Site04R / Site04R +72 sa) ekran görüntüleri gerekecek. Varsayılan görevin (15 Kas 2026, 7 gün) beklenen sonuçları `docs/presentation-notes.md`'de; ekranda gördüğün sayıları bununla karşılaştırabilirsin.
 
+- D-> `vite.config.ts`'e `base: './'` eklendi: aynı `dist/` artık Vercel'de, GitHub Pages alt yolunda (`/NASA-Hackathon-2026/`) ve internetsiz demo için herhangi bir klasöre kopyalanınca çalışıyor. Veri yolları `loadAllData()` üzerinden buna uyuyor; kendi kodunda `/data/...` gibi mutlak yol yazma.
+- D-> `loadAllData()` eksik dosyada hangi dosyanın eksik olduğunu yazan hatayla reddediyor (`src/data/load.test.ts`). Arayüzde bu hatayı yakalayıp ekranda göster (boş sayfa kalmasın).
+
 ## C:
 
 - A-> 3B arazi: `terrain.json` → 256×256 ızgara, ±5 km (10 km kenar), hücre ~39 m.

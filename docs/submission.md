@@ -52,7 +52,7 @@ hardware and see which conditions hold, with sources and model limits on screen.
 stored data within 0.00005°; halving the horizon ray steps changes the horizon by at most 0.019°;
 rise/set times from 10-minute data agree with a 1-minute series within 0.33 min; our terrain grids
 agree with NASA Moon Trek's LOLA 5 m DEM within 1.3–2.4 m RMS on gentle ground. The TypeScript
-engine reproduces the Python reference values exactly; 98 automated tests run on every change.
+engine reproduces the Python reference values exactly; 101 automated tests run on every change.
 
 **Limits.** Sites are research region centres, not certified landing sites; hardware values are
 example assumptions. Not modelled: eclipses, temperature, dust, battery ageing, ground-station
