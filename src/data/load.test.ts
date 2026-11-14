@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { loadAllData } from './load.ts'
 
 const files: Record<string, unknown> = {
-  'data/sites.json': { sites: [{ id: 'A' }, { id: 'B' }] },
+  'data/sites.json': { sites: [{ id: 'A' }, { id: 'B', category: 'contrast' }] },
   'data/A/terrain.json': {},
   'data/A/horizon.json': {},
   'data/A/ephemeris.json': {},
@@ -34,7 +34,17 @@ describe('loadAllData', () => {
     const calls = stubFetch({ ...files, 'data/B/horizon.json': {} })
     const data = await loadAllData('data')
     expect(Object.keys(data.bySite)).toEqual(['A', 'B'])
-    expect(calls).toHaveLength(7)
+    // 1 sites.json + 3 required files each + season.json each + map.json for A only (B is a contrast point)
+    expect(calls).toHaveLength(10)
+    expect(calls).not.toContain('data/B/map.json')
+  })
+
+  it('opens without the optional season.json and map.json', async () => {
+    stubFetch({ ...files, 'data/B/horizon.json': {}, 'data/A/season.json': { months: [] } })
+    const data = await loadAllData('data')
+    expect(data.bySite.A.season).toEqual({ months: [] })
+    expect(data.bySite.A.map).toBeUndefined()
+    expect(data.bySite.B.season).toBeUndefined()
   })
 
   it('rejects with the name of a missing file', async () => {

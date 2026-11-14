@@ -10,12 +10,15 @@ import { nextTransition } from '../sim/visibility.ts'
 import type { VisibilityWindow } from '../sim/visibility.ts'
 import { LineChart } from './charts/LineChart.tsx'
 import { Panorama } from './charts/Panorama.tsx'
+import { SeasonChart } from './charts/SeasonChart.tsx'
+import { SiteMap } from './charts/SiteMap.tsx'
 import { Comparison } from './Comparison.tsx'
 import { errorMessage, fmtDuration, fmtUtc } from './format.ts'
 import { ScenarioList } from './ScenarioList.tsx'
 import { defaultScenarios, evaluateAll, isEvaluated } from './scenarios.ts'
 import type { Scenario } from './scenarios.ts'
 import { SettingsForm } from './SettingsForm.tsx'
+import { decodeShare, encodeShare } from './share.ts'
 import { Sources } from './Sources.tsx'
 import { Timelines } from './Timelines.tsx'
 import './app.css'
@@ -43,22 +46,44 @@ export function MissionApp() {
   const [step, setStep] = useState(0)
   const [playing, setPlaying] = useState(false)
   const [show3d, setShow3d] = useState(true)
+  // Result of the last "Copy link", for the link it copied; a changed comparison clears it.
+  const [copyResult, setCopyResult] = useState<{ hash: string; ok: boolean } | null>(null)
 
   useEffect(() => {
     let cancelled = false
     loadAllData()
       .then((data) => {
         if (cancelled) return
-        const initial = defaultScenarios(data.sites.sites.map((s) => s.id))
+        const siteIds = data.sites.sites.map((s) => s.id)
+        // A shared link (#s=...) opens the comparison it describes; otherwise the demo default.
+        const shared = decodeShare(window.location.hash, siteIds)
+        const initial = shared?.scenarios ?? defaultScenarios(siteIds)
+        if (shared) setSettings(shared.settings)
         setLoaded(data)
         setScenarios(initial)
-        setActiveKey(initial[0]?.key ?? null)
+        setActiveKey(initial[shared?.active ?? 0]?.key ?? null)
       })
       .catch((e) => !cancelled && setLoadError(errorMessage(e)))
     return () => {
       cancelled = true
     }
   }, [])
+
+  // Keep the address bar in step with the comparison, so the link can be copied at any time.
+  const shareHash = loaded && scenarios.length ? encodeShare({ scenarios, active: Math.max(0, scenarios.findIndex((s) => s.key === activeKey)), settings }) : null
+  useEffect(() => {
+    if (shareHash && window.location.hash !== shareHash) window.history.replaceState(null, '', shareHash)
+  }, [shareHash])
+  const copied = copyResult && copyResult.hash === shareHash ? (copyResult.ok ? 'done' : 'failed') : 'idle'
+  const copyLink = () => {
+    const hash = shareHash ?? ''
+    const done = (ok: boolean) => setCopyResult({ hash, ok })
+    if (!navigator.clipboard) return done(false)
+    navigator.clipboard.writeText(window.location.href).then(
+      () => done(true),
+      () => done(false),
+    )
+  }
 
   const issues = useMemo(() => validateSettings(settings), [settings])
   const outcomes = useMemo(() => (loaded && issues.length === 0 ? evaluateAll(scenarios, settings, loaded.bySite) : []), [loaded, scenarios, settings, issues])
@@ -175,9 +200,19 @@ export function MissionApp() {
 
         <main className="app__main">
           <section className="card">
-            <h2>
-              <span className="step">4</span> Compare
-            </h2>
+            <div className="card__head">
+              <h2>
+                <span className="step">4</span> Compare
+              </h2>
+              <button type="button" onClick={copyLink} title="Copy a link that opens this comparison (sites, dates and hardware)">
+                {copied === 'done' ? 'Link copied' : 'Copy link'}
+              </button>
+            </div>
+            {copied === 'failed' && (
+              <p className="small muted">
+                Copying is blocked in this browser; copy the address bar instead, it already holds this comparison.
+              </p>
+            )}
             {issues.length > 0 ? <p className="bad">Fix the mission hardware values to see results.</p> : <Comparison outcomes={outcomes} settings={settings} bySite={loaded.bySite} colors={COLORS} />}
           </section>
 
@@ -269,6 +304,26 @@ export function MissionApp() {
                       surfaceElevationM={activeData.site.surfaceElevationM}
                     />
                   </div>
+                )}
+              </section>
+
+              <section className="card">
+                <h2>
+                  Around the site (±{activeData.map ? activeData.map.grid.halfSizeM / 1000 : 3} km) — {activeData.site.id}
+                </h2>
+                {activeData.map ? (
+                  <SiteMap map={activeData.map} sites={loaded.sites.sites} />
+                ) : (
+                  <p className="muted small">No regional map for this point{activeData.site.category === 'contrast' ? ' (contrast points have none)' : ''}.</p>
+                )}
+              </section>
+
+              <section className="card">
+                <h2>Through the year — {activeData.site.id}</h2>
+                {activeData.season ? (
+                  <SeasonChart season={activeData.season} missionStartUtc={active.result.alignedStartUtc} />
+                ) : (
+                  <p className="muted small">No one-year summary for this site.</p>
                 )}
               </section>
 

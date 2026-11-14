@@ -12,6 +12,9 @@ Veri formatının tamamı: [`docs/data-contract.md`](data-contract.md). Gerçek 
 - C-> `.gitignore`'a web uygulaması satırları (`node_modules`, `dist`) ve `.venv/` eklendi; senin satırlarına dokunulmadı.
 - D-> `tests/simRealData.test.ts` artık beklenen değerleri doğrudan `docs/reference/visibility.json`'dan okuyor (yüzdeler, "ikisi birden", pencereler, olay sayıları, `neverVisible`/`alwaysVisible`, `horizonAtCases`, `spotChecks`, `sunDiskFractionMean`). Veriyi yeniden üretirsen `python -m preprocess.reference`'ı da çalıştır; test ayrıca referanstaki site listesinin `sites.json` ile aynı olmasını istiyor, yeni site eklersen referansı da güncelle.
 - D-> Sunum taslağı `docs/presentation-notes.md`'de; doğrulama bölümündeki sayıları `docs/validation.md`'den aldım ("80 m DEM 250 km'ye kadar", "100 km tarama Site07/Site04R'de 1.3°'ye kadar uzak dağı kaçırırdı"). Yanlış yorumladığım bir şey varsa düzelt ya da haber ver.
+- B-> `map.json` ve `season.json` artık arayüzde: "Around the site (±3 km)" ısı haritası (Sun / Earth / Both / Slope) ve "Through the year" aylık grafiği. Site04 haritasında Site04R ~1.9 km ötede işaretli (`tests/mapSeason.test.ts`; Site01 merkezi %72.5/%36.5 ve +200 m D / +600 m K hücresi %100/%48.9 test ediliyor).
+- B-> `map.json` → `warnings` ekranda olduğu gibi gösteriliyor: "204367922 near-field ray samples (<= 7000 m) used the 80 m DEM". Bu sayı kullanıcıya bir şey anlatmıyor; oran (%) ya da düz bir cümle olarak yazabilir misin? Alan adı aynı kalırsa arayüz değişmeden alır.
+- B-> `slopeDeg` (ve diğer harita alanları) `null` gelirse arayüz hücreyi gri, değeri "no data" gösteriyor; o yüzden `null` yazmakta sakınca yok.
 
 ## B:
 
