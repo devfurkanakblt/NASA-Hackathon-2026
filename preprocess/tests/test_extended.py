@@ -31,3 +31,25 @@ def test_year_matches_two_month_ephemeris(sid):
         # ephemeris.json rounds distanceM to 1 km (writer._r(..., -3)); float32 adds <= 16 m (Earth), 4 km (Sun)
         tol = 1e-4 if f != "distanceM" else 2e4 if b == "sun" else 600.0
         assert np.max(np.abs(d)) <= tol, (b, f, float(np.max(np.abs(d))))
+
+
+MAP_SITES = ["Site01", "Site04", "Site04R", "Site07", "Site11", "Site20", "Site23"]
+
+
+def test_cells_shape_and_decimation():
+    hz = np.load(C.RAW_DIR / "map_Site01.npz")["horizons"]
+    c = np.fromfile(C.OUT_DIR / "Site01" / "cells.bin", "<i2").reshape(-1, 360)
+    assert c.shape == (3721, 360)
+    assert np.max(np.abs(c / 100 - hz[:, ::2])) <= 0.005
+
+
+def test_cells_header_eye():
+    h = load("Site01", "extended.json")["cells"]
+    assert h["n"] == 3721 and len(h["eyeM"]) == 3721 and h["azStepDeg"] == 1
+
+
+@pytest.mark.parametrize("sid", MAP_SITES)
+def test_one_degree_cells_match_map(sid):
+    from preprocess import extended
+    d = extended.check(sid)
+    assert max(d["sunPct"], d["earthPct"], d["bothPct"]) <= 0.2
