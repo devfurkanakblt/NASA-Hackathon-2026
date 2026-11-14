@@ -47,6 +47,8 @@ Time series do **not** carry a time array: `t[i] = startUtc + i * stepS`.
 }
 ```
 
+Optional fields for derived evaluation points (e.g. `Site04R`): `derivedFrom` (catalogue site id) and `derivation` (the reproducible rule, see `preprocess/ridge.py`). `warnings` may hold site notes (e.g. the Site04 catalogue coordinate lies on a ~32° crater wall) — show them in the UI.
+
 `surfaceElevationM` is the DEM height at the site. Observer eye = `surfaceElevationM + observerHeightM`.
 
 ## `{siteId}/ephemeris.json`

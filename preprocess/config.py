@@ -28,20 +28,34 @@ COORD_SOURCE = "NASA Lunar Surface Data Book, Table A2.1-1"
 
 SITES = {
     "Site01": dict(name="Connecting Ridge", lat=-89.4632, lon=-137.49),
-    "Site04": dict(name="Shackleton Rim", lat=-89.7668, lon=-171.87),
+    "Site04": dict(name="Shackleton Rim", lat=-89.7668, lon=-171.87,
+                   notes=["catalogue coordinate lies on the ~32 deg inner wall of Shackleton, "
+                          "not on the rim crest; see Site04R for the nearby ridge point"]),
     "Site07": dict(name="Peak Near Shackleton", lat=-88.811, lon=123.6901),
+    # Derived evaluation point: the Site04 catalogue coordinate lies on the ~32 deg inner wall
+    # of Shackleton. Rule (preprocess/ridge.py): highest 5 m pixel with slope <= 10 deg
+    # (25 m baseline) within 2 km of Site04. Stable for radius 2-3 km and slope 10-15 deg.
+    "Site04R": dict(name="Shackleton Rim (ridge point)", lat=-89.780403, lon=-156.196951,
+                    tile="Site04", derivedFrom="Site04",
+                    derivation="highest 5 m DEM pixel with slope <= 10 deg (25 m baseline) "
+                               "within 2 km of Site04; offset 1.9 km"),
 }
 
 PGDA = "https://pgda.gsfc.nasa.gov/data"
 REGIONAL_DEM_URL = f"{PGDA}/LOLA_20mpp/LDEM_80S_80MPP_ADJ.TIF"
 
 
+def tile_of(site_id: str) -> str:
+    return SITES.get(site_id, {}).get("tile", site_id)
+
+
 def local_dem_url(site_id: str) -> str:
-    return f"{PGDA}/LOLA_5mpp/{site_id}/{site_id}_final_adj_5mpp_surf.tif"
+    t = tile_of(site_id)
+    return f"{PGDA}/LOLA_5mpp/{t}/{t}_final_adj_5mpp_surf.tif"
 
 
 def local_dem_path(site_id: str) -> Path:
-    return RAW_DIR / "dem" / f"{site_id}_final_adj_5mpp_surf.tif"
+    return RAW_DIR / "dem" / f"{tile_of(site_id)}_final_adj_5mpp_surf.tif"
 
 
 REGIONAL_DEM_PATH = RAW_DIR / "dem" / "LDEM_80S_80MPP_ADJ.TIF"

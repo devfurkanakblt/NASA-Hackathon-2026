@@ -55,13 +55,18 @@ def terrain_doc(site_id, z, size_m):
 
 def site_entry(site_id, surface_elev_m, warnings=()):
     s = C.SITES[site_id]
-    return {"id": site_id, "name": s["name"], "latDeg": s["lat"], "lonDeg": s["lon"],
+    entry = {"id": site_id, "name": s["name"], "latDeg": s["lat"], "lonDeg": s["lon"],
             "surfaceElevationM": round(float(surface_elev_m), 2),
             "observerHeightM": C.OBSERVER_HEIGHT_M, "coordSource": C.COORD_SOURCE,
-            "demNear": f"LOLA 5 m/px {site_id} (Barker et al. 2021)",
+            "demNear": f"LOLA 5 m/px {C.tile_of(site_id)} (Barker et al. 2021)",
             "demFar": "LDEM_80S_80MPP_ADJ (Barker et al. 2023)",
             "label": "Research region center - not a certified landing site",
-            "warnings": list(warnings)}
+            "warnings": list(s.get("notes", [])) + list(warnings)}
+    if "derivedFrom" in s:
+        entry["coordSource"] = f"Derived from {s['derivedFrom']} ({C.COORD_SOURCE})"
+        entry["derivedFrom"] = s["derivedFrom"]
+        entry["derivation"] = s["derivation"]
+    return entry
 
 
 def sites_doc(entries):
