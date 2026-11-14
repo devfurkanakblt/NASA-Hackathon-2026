@@ -1,0 +1,9 @@
+# Kişi A kişisel plan dosyaları (repoya girmesin)
+A_kaba_plan.md
+A_detayli_plan.md
+
+# Ham NASA verisi (yüzlerce MB) ve Horizons önbelleği
+data_raw/
+*.log
+__pycache__/
+.pytest_cache/
