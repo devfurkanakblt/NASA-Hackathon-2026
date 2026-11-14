@@ -7,7 +7,8 @@ Format and units: [`docs/data-contract.md`](../docs/data-contract.md).
 pip install -r preprocess/requirements.txt
 python -m preprocess.download          # LOLA DEMs -> data_raw/dem (~300 MB, not committed)
 python -m preprocess.build_all         # ephemeris + horizon + terrain + sites.json
-python -m preprocess.validate          # -> docs/validation.md
+python -m preprocess.validate          # -> docs/validation.md (Skyfield, horizon, Horizons re-query, rise/set timing)
+python -m preprocess.reference         # -> docs/reference/visibility.{json,md} (expected values for the web app's tests)
 python -m pytest preprocess/tests      # unit tests
 python -m preprocess.make_sample       # synthetic sample in public/data/_sample
 ```
