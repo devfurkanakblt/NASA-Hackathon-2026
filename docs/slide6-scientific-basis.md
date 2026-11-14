@@ -17,7 +17,10 @@
 | Rise/set timing vs 1-min reference | ≤ 2.4 min (most sites ≤ 20 s) |
 | Sun visibility vs NASA/Mazarico 18.6-yr product | 7/7 sites agree, rank corr. 0.96 |
 | Shackleton crater floor | permanent shadow in both |
-| Terrain vs NASA Moon Trek LOLA 5 m DEM | RMS 1.3–2.4 m on gentle ground |
+| Terrain vs NASA Moon Trek LOLA 5 m DEM (5 sites inside the mosaic) | RMS 1.3–2.4 m on gentle ground |
+
+**Optional visuals** (`docs/figures/`): `site04-map.png` (catalogue point on the wall vs the lit ridge 1.9 km away)
+for slides 3–5; `season-polar-sites.png` (Nov–Dec is the sunny season; year averages are lower) for slide 6 or Q&A.
 
 **Bottom strip — Limits (small font)**
 One observer height (2 m) · partial Sun disk approximated · DEM accuracy not claimed ·
