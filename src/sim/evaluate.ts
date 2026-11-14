@@ -1,7 +1,7 @@
 import type { SiteData } from '../data/contract.ts'
 import { J_PER_WH, SOLAR_CONSTANT_W_M2, clearSkyPanelPowerW, simulateBattery } from './energy.ts'
 import type { PanelSettings } from './energy.ts'
-import { intersectWindows, longestGapS, marginSeries, stepFractions, totalDurationS, windowsFromMargins } from './visibility.ts'
+import { intersectWindows, longestGapS, marginSeries, stepFractions, sunDiskFraction, totalDurationS, windowsFromMargins } from './visibility.ts'
 import type { VisibilityWindow } from './visibility.ts'
 
 /** Mission and hardware settings shared by every scenario being compared. */
@@ -21,7 +21,15 @@ export interface MissionSettings extends PanelSettings {
   commLoadW: number
   /** Longest Earth-view outage the mission accepts. */
   maxEarthOutageH: number
+  /**
+   * How terrain blocking scales panel output. `centre` (default): all or nothing on the Sun's
+   * centre. `partial`: by the share of the solar disk above the horizon (contract's linear
+   * approximation). Visibility windows always use the centre.
+   */
+  sunDiskModel?: SunDiskModel
 }
+
+export type SunDiskModel = 'centre' | 'partial'
 
 /** "Example mission hardware" defaults from the plan — assumptions, not a real lander. */
 export const DEFAULT_SETTINGS: MissionSettings = {
@@ -40,9 +48,52 @@ export const DEFAULT_SETTINGS: MissionSettings = {
   baseLoadW: 200,
   commLoadW: 100,
   maxEarthOutageH: 6,
+  sunDiskModel: 'centre',
 }
 
 export const MAX_SCENARIOS = 3
+export const MIN_DURATION_DAYS = 1
+export const MAX_DURATION_DAYS = 30
+
+/** Thrown when settings are outside their physical or planned range. */
+export class SettingsError extends RangeError {
+  readonly issues: string[]
+  constructor(issues: string[]) {
+    super(issues.join(' '))
+    this.issues = issues
+  }
+}
+
+/**
+ * Problems with the settings, as plain English sentences for the UI; empty when the settings
+ * can be simulated. The engine refuses settings with problems instead of silently clamping.
+ */
+export function validateSettings(s: MissionSettings): string[] {
+  const issues: string[] = []
+  const finite = (v: number) => Number.isFinite(v)
+  const between = (v: number, lo: number, hi: number) => finite(v) && v >= lo && v <= hi
+  if (!between(s.durationDays, MIN_DURATION_DAYS, MAX_DURATION_DAYS)) issues.push(`Mission duration must be ${MIN_DURATION_DAYS}–${MAX_DURATION_DAYS} days.`)
+  if (!(finite(s.panelAreaM2) && s.panelAreaM2 >= 0)) issues.push('Panel area must be zero or more.')
+  if (!between(s.panelEfficiency, 0, 1)) issues.push('Panel efficiency must be 0–100 %.')
+  if (!between(s.systemFactor, 0, 1)) issues.push('System factor must be 0–100 %.')
+  if (s.panelMode !== 'tracking' && s.panelMode !== 'fixed') issues.push('Panel mode must be tracking or fixed.')
+  if (s.panelMode === 'fixed' && !(finite(s.fixedNormalAzDeg) && between(s.fixedNormalElDeg, -90, 90))) issues.push('Fixed panel direction needs an azimuth and an elevation of −90° to 90°.')
+  if (!(finite(s.batteryCapacityWh) && s.batteryCapacityWh > 0)) issues.push('Battery capacity must be more than zero.')
+  if (!between(s.initialSocFraction, 0, 1)) issues.push('Initial charge must be 0–100 %.')
+  if (!between(s.reserveFraction, 0, 1)) issues.push('Battery reserve must be 0–100 %.')
+  if (!(finite(s.chargeEfficiency) && s.chargeEfficiency > 0 && s.chargeEfficiency <= 1)) issues.push('Charge efficiency must be above 0 and at most 100 %.')
+  if (!(finite(s.dischargeEfficiency) && s.dischargeEfficiency > 0 && s.dischargeEfficiency <= 1)) issues.push('Discharge efficiency must be above 0 and at most 100 %.')
+  if (!(finite(s.baseLoadW) && s.baseLoadW >= 0)) issues.push('Base load must be zero or more.')
+  if (!(finite(s.commLoadW) && s.commLoadW >= 0)) issues.push('Communication load must be zero or more.')
+  if (!(finite(s.maxEarthOutageH) && s.maxEarthOutageH >= 0)) issues.push('Accepted Earth outage must be zero or more.')
+  if (s.sunDiskModel !== undefined && s.sunDiskModel !== 'centre' && s.sunDiskModel !== 'partial') issues.push('Sun disk model must be centre or partial.')
+  return issues
+}
+
+/** UTC instant of sample `k` of a scenario (ISO-8601, `Z`). */
+export function sampleUtc(result: Pick<ScenarioResult, 'alignedStartUtc' | 'stepS'>, k: number): string {
+  return new Date(Date.parse(result.alignedStartUtc) + k * result.stepS * 1000).toISOString().replace('.000Z', 'Z')
+}
 
 export interface ScenarioCandidate {
   siteId: string
@@ -74,6 +125,11 @@ export interface ScenarioSummary {
 export interface ScenarioResult extends ScenarioCandidate {
   /** Index of the mission's first sample in the site's ephemeris; positions are read from there. */
   startIndex: number
+  /**
+   * UTC of that first sample. Equals `startUtc` when the requested start lies on the 10-minute
+   * grid; otherwise the nearest sample is used and this says which one.
+   */
+  alignedStartUtc: string
   stepS: number
   /** Samples in the mission, including the last instant (steps + 1). */
   count: number
@@ -91,18 +147,29 @@ export interface ScenarioResult extends ScenarioCandidate {
   socJ: Float64Array
   batteryCapacityJ: number
   summary: ScenarioSummary
+  /** Per sample: share of the solar disk above the terrain horizon (contract approximation), 0–1. */
+  sunDiskFraction: Float64Array
   model: {
     ephemerisSource: string
     solarConstantWm2: number
+    sunDiskModel: SunDiskModel
     notes: string[]
   }
 }
 
-const MODEL_NOTES = [
-  'Sun and Earth count as visible when their centre is above the terrain horizon; partial discs are not modelled.',
-  'Eclipses and temperature effects are not modelled.',
-  'Earth view is line of sight only: no ground-station, antenna or link-budget claim.',
-]
+const MODEL_NOTES: Record<SunDiskModel, string[]> = {
+  centre: [
+    'Sun and Earth count as visible when their centre is above the terrain horizon; partial discs are not modelled.',
+    'Eclipses and temperature effects are not modelled.',
+    'Earth view is line of sight only: no ground-station, antenna or link-budget claim.',
+  ],
+  partial: [
+    'Sun and Earth count as visible when their centre is above the terrain horizon.',
+    'Panel output is scaled by the share of the solar disk above the horizon (linear approximation, no limb darkening).',
+    'Eclipses and temperature effects are not modelled.',
+    'Earth view is line of sight only: no ground-station, antenna or link-budget claim.',
+  ],
+}
 
 /** Thrown when a mission does not fit inside the pre-computed data. */
 export class CoverageError extends RangeError {}
@@ -112,6 +179,8 @@ export class CoverageError extends RangeError {}
  * what the panel produces and how the battery fares. Pure: same inputs, same result.
  */
 export function evaluateScenario(data: SiteData, startUtc: string, settings: MissionSettings): ScenarioResult {
+  const issues = validateSettings(settings)
+  if (issues.length > 0) throw new SettingsError(issues)
   const { ephemeris, horizon } = data
   const stepS = ephemeris.stepS
   const offsetS = (Date.parse(startUtc) - Date.parse(ephemeris.startUtc)) / 1000
@@ -131,30 +200,34 @@ export function evaluateScenario(data: SiteData, startUtc: string, settings: Mis
   const bothWindows = intersectWindows(sunWindows, earthWindows)
   const sunShare = stepFractions(sunMargin)
   const earthShare = stepFractions(earthMargin)
+  const diskModel: SunDiskModel = settings.sunDiskModel ?? 'centre'
 
   // Instantaneous values at every sample (for the 3D view and the charts).
   const clearW = new Float64Array(count)
   const generationW = new Float64Array(count)
   const loadW = new Float64Array(count)
+  const diskFraction = new Float64Array(count)
   const sunVisible: boolean[] = []
   const earthVisible: boolean[] = []
   for (let k = 0; k < count; k++) {
     const i = startIndex + k
     sunVisible.push(sunMargin[k] > 0)
     earthVisible.push(earthMargin[k] > 0)
+    diskFraction[k] = sunDiskFraction(sunMargin[k], ephemeris.sun.distanceM[i])
     clearW[k] = clearSkyPanelPowerW(settings, ephemeris.sun.azDeg[i], ephemeris.sun.elDeg[i], ephemeris.sun.distanceM[i])
-    generationW[k] = sunVisible[k] ? clearW[k] : 0
+    generationW[k] = diskModel === 'partial' ? clearW[k] * diskFraction[k] : sunVisible[k] ? clearW[k] : 0
     loadW[k] = settings.baseLoadW + (earthVisible[k] ? settings.commLoadW : 0)
   }
 
-  // Energy per step: mean clear-sky power times the part of the step the Sun was up;
-  // the communication load runs for the part of the step Earth was up.
+  // Energy per step. `centre`: mean clear-sky power times the part of the step the Sun's
+  // centre was up. `partial`: trapezoid of the disk-weighted power at the two samples.
+  // The communication load runs for the part of the step Earth was up.
   const generationJ = new Float64Array(steps)
   const demandJ = new Float64Array(steps)
   let energyGeneratedJ = 0
   let energyDemandJ = 0
   for (let k = 0; k < steps; k++) {
-    generationJ[k] = 0.5 * (clearW[k] + clearW[k + 1]) * sunShare[k] * stepS
+    generationJ[k] = diskModel === 'partial' ? 0.5 * (generationW[k] + generationW[k + 1]) * stepS : 0.5 * (clearW[k] + clearW[k + 1]) * sunShare[k] * stepS
     demandJ[k] = (settings.baseLoadW + settings.commLoadW * earthShare[k]) * stepS
     energyGeneratedJ += generationJ[k]
     energyDemandJ += demandJ[k]
@@ -175,6 +248,7 @@ export function evaluateScenario(data: SiteData, startUtc: string, settings: Mis
     siteId: data.site.id,
     startUtc,
     startIndex,
+    alignedStartUtc: new Date(Date.parse(ephemeris.startUtc) + startIndex * stepS * 1000).toISOString().replace('.000Z', 'Z'),
     stepS,
     count,
     durationS,
@@ -187,6 +261,7 @@ export function evaluateScenario(data: SiteData, startUtc: string, settings: Mis
     loadW,
     socJ: battery.socJ,
     batteryCapacityJ,
+    sunDiskFraction: diskFraction,
     summary: {
       sunVisibleFraction: totalDurationS(sunWindows) / durationS,
       earthVisibleFraction: totalDurationS(earthWindows) / durationS,
@@ -203,7 +278,7 @@ export function evaluateScenario(data: SiteData, startUtc: string, settings: Mis
       keepsBatteryReserve: battery.firstReserveViolationIndex === null,
       earthOutageWithinLimit: longestEarthOutageS <= settings.maxEarthOutageH * 3600,
     },
-    model: { ephemerisSource: ephemeris.source, solarConstantWm2: SOLAR_CONSTANT_W_M2, notes: MODEL_NOTES },
+    model: { ephemerisSource: ephemeris.source, solarConstantWm2: SOLAR_CONSTANT_W_M2, sunDiskModel: diskModel, notes: MODEL_NOTES[diskModel] },
   }
 }
 
