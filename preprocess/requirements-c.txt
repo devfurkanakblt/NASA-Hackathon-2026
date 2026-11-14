@@ -1,0 +1,3 @@
+# Optional C preprocessing tools. Runtime uses the checked-in static assets.
+-r requirements.txt
+Pillow>=12,<14

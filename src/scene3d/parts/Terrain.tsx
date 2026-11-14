@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from 'react'
 import { BufferAttribute, BufferGeometry, DoubleSide } from 'three'
-import { buildPatchSkirt, buildReferenceSphereRing } from '../terrainGeometry.ts'
+import { buildPatchSkirt, buildReferenceSphereAroundMesh } from '../terrainGeometry.ts'
 import type { TerrainMeshData } from '../terrainGeometry.ts'
 
 /** Brightness of the lowest ground relative to the highest (elevation tint). */
@@ -11,11 +11,11 @@ const LOW_GROUND_TINT = 0.5
  * Vertices are tinted by elevation (low = darker) so the relief stays readable
  * when the Sun is down and only the fill light is left.
  */
-export function Terrain({ data }: { data: TerrainMeshData }) {
+export function Terrain({ data, reliefTint = false }: { data: TerrainMeshData; reliefTint?: boolean }) {
   const geometry = useMemo(() => {
     const g = new BufferGeometry()
     g.setAttribute('position', new BufferAttribute(data.positions, 3))
-    g.setIndex(new BufferAttribute(data.indices, 1))
+    g.setIndex(new BufferAttribute(data.indices.subarray(0, data.seamIndexStart ?? data.indices.length), 1))
 
     const count = data.positions.length / 3
     const colors = new Float32Array(count * 3)
@@ -33,10 +33,24 @@ export function Terrain({ data }: { data: TerrainMeshData }) {
 
   useEffect(() => () => geometry.dispose(), [geometry])
 
+  const seam = useMemo(() => {
+    if (data.seamIndexStart === undefined || data.seamIndexStart === data.indices.length) return null
+    const g = new BufferGeometry()
+    g.setAttribute('position', new BufferAttribute(data.positions, 3))
+    g.setIndex(new BufferAttribute(data.indices.subarray(data.seamIndexStart), 1))
+    g.computeBoundingSphere()
+    return g
+  }, [data])
+  useEffect(() => () => seam?.dispose(), [seam])
+
   return (
-    <mesh geometry={geometry}>
-      <meshStandardMaterial color="#a8a39b" vertexColors roughness={1} metalness={0} />
-    </mesh>
+    <>
+      <mesh geometry={geometry} castShadow receiveShadow>
+        <meshStandardMaterial color="#888888" vertexColors={reliefTint} roughness={1} metalness={0} />
+      </mesh>
+      {/* Display-only LOD join; it must not cast invented ridge shadows. */}
+      {seam && <mesh geometry={seam}><meshBasicMaterial color="#474541" side={DoubleSide} /></mesh>}
+    </>
   )
 }
 
@@ -56,9 +70,8 @@ export function ReferenceSphere({ data, siteElevationM, outerRadiusM }: { data: 
       return g
     }
     // The hole in the sphere follows the outermost mesh vertices, so the cut faces meet it exactly.
-    const edge = Math.abs(data.positions[0])
     return {
-      sphere: toGeometry(buildReferenceSphereRing(edge, siteElevationM, outerRadiusM)),
+      sphere: toGeometry(buildReferenceSphereAroundMesh(data, siteElevationM, outerRadiusM)),
       skirt: toGeometry(buildPatchSkirt(data, siteElevationM)),
     }
   }, [data, siteElevationM, outerRadiusM])
@@ -73,7 +86,7 @@ export function ReferenceSphere({ data, siteElevationM, outerRadiusM }: { data: 
 
   return (
     <>
-      <mesh geometry={sphere}>
+      <mesh geometry={sphere} receiveShadow>
         <meshStandardMaterial color="#5d5b59" roughness={1} metalness={0} />
       </mesh>
       <mesh geometry={skirt}>
