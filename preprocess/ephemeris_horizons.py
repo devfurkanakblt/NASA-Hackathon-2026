@@ -86,7 +86,8 @@ def parse(result: str):
     rows = []
     for line in body.strip().splitlines():
         f = [x.strip() for x in line.split(",")]
-        t = datetime.strptime(f[0], "%Y-%b-%d %H:%M").replace(tzinfo=timezone.utc)
+        fmt = "%Y-%b-%d %H:%M:%S.%f" if f[0].count(":") == 2 else "%Y-%b-%d %H:%M"
+        t = datetime.strptime(f[0], fmt).replace(tzinfo=timezone.utc)
         rows.append((t.isoformat().replace("+00:00", "Z"), float(f[i_az]), float(f[i_el]),
                      float(f[i_dl]) * 1.495978707e11))
     return header, rows
@@ -94,6 +95,18 @@ def parse(result: str):
 
 def query(body, lat, lon, alt_m, start_utc=C.START_UTC, stop_utc=C.STOP_UTC, step_s=C.STEP_S):
     return parse(fetch(build_params(body, lat, lon, alt_m, start_utc, stop_utc, step_s)))
+
+
+def query_times(body, lat, lon, alt_m, utc_list):
+    """Discrete-time query (Horizons TLIST, JD UT) - independent of the series request."""
+    p = build_params(body, lat, lon, alt_m, C.START_UTC, C.STOP_UTC, C.STEP_S)
+    for k in ("START_TIME", "STOP_TIME", "STEP_SIZE"):
+        p.pop(k)
+    jd = [datetime.fromisoformat(u.replace("Z", "+00:00")).timestamp() / 86400 + 2440587.5 for u in utc_list]
+    p["TLIST"] = " ".join(f"'{x:.9f}'" for x in jd)
+    p["TLIST_TYPE"] = "'JD'"
+    p["TIME_DIGITS"] = "'SECONDS'"
+    return parse(fetch(p))
 
 
 if __name__ == "__main__":

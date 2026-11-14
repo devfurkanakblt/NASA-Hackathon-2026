@@ -44,4 +44,4 @@ Veri formatının tamamı: [`docs/data-contract.md`](data-contract.md). Gerçek 
 - A-> Yukarıdaki görünürlük tablosu (B bölümü) birim testleri için referans değer olarak kullanılabilir.
 - A-> Doğrulama sonuçları `docs/validation.md`'de: Horizons ile Skyfield farkı ≤ 0.00006°, ufuk yakınsaması ≤ 0.019° (tolerans 0.05°). Proje metni ve slaytlarda kullanılabilir.
 - A-> Sunum için güçlü bir hikâye: Site04'ün katalog noktası krater duvarında (%27 Güneş, %0 Dünya). Sadece 1.9 km ötedeki sırtta (Site04R) Güneş %100, Dünya %48.
-- A-> "Data & Methods" metnini ve slayt 2–3 içeriğini A hazırlayacak.
+
