@@ -70,3 +70,42 @@
   flex: 1;
   min-height: 0;
 }
+
+.demo__bar--time {
+  padding-top: 4px;
+}
+
+.demo__group {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.demo__bar input[type='date'] {
+  padding: 4px 6px;
+  border: 1px solid #3a465c;
+  border-radius: 5px;
+  background: #1a2130;
+  color: inherit;
+  font: inherit;
+  color-scheme: dark;
+}
+
+.demo__summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px 18px;
+  padding: 6px 12px;
+  background: #121722;
+  border-bottom: 1px solid #263044;
+  color: #c6cedb;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.demo__ok {
+  color: #7fd6a0;
+}
+
+.demo__bad {
+  color: #ff9f8a;
+}
