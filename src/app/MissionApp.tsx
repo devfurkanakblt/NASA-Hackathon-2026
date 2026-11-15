@@ -476,8 +476,10 @@ export function MissionApp() {
     onDuration={durationDays => { setPlaying(false); setStep(0); setSettings(previous => ({ ...previous, durationDays })) }}
     onCopy={() => { if (chosenScenario && scenarios.length < 3) { const copy = { ...chosenScenario, key: newKey() }; setScenarios([...scenarios, copy]); setActiveKey(copy.key); setPlaying(false); setStep(0) } }} />
 
+  // Choosing places is a single screen: the globe fills the viewport and the page does not scroll.
+  const picking = view === 'simulation' && simulationStage === 'pick' && !flight
   return (
-    <div className="app">
+    <div className={picking ? 'app app--pick' : 'app'}>
       {header}
       {covered && <div key={transitionId} className="mission-blackout" aria-hidden="true" />}
       <Tour steps={tourSteps} open={tourOpen} onClose={() => setTourOpen(false)} />
@@ -486,17 +488,8 @@ export function MissionApp() {
           <main className="app__main">
             <section className="card moon-picker" data-mode={flight ? 'flight' : simulationStage} aria-hidden={simulationStage !== 'pick' && !flight || undefined} inert={simulationStage !== 'pick' && !flight || undefined} data-tour="places">
               <div className="card__head"><div><h2>Choose places on the Moon</h2>
-                <p className="card__tagline">Click a place name on the globe to add it. You can compare up to three places.</p></div></div>
-              <div className="moon-picker__globe"><Suspense fallback={<p role="status">Loading the Moon&hellip;</p>}>
-                <MoonGlobe active={simulationStage === 'pick' || !!flight} flight={flight ?? undefined} onComplete={() => { if (flight) { setActiveKey(flight.targetKey); setFlight(null) } }} sites={loaded.sites.sites} selected={(flight ? scenarios : picked).flatMap((s, i) => {
-                  const site = shownBySite[s.siteId]?.site ?? loaded.sites.sites.find(site => site.id === s.siteId)
-                  return site ? [{ key: s.key, site, letter: String.fromCharCode(65 + i), color: COLORS[i] }] : []
-                })} onSelect={(site: SiteEntry) => updateLocations(picked.some(s => s.siteId === site.id)
-                  ? picked.filter(s => s.siteId !== site.id)
-                  : picked.length < 3 ? [...picked, { key: newKey(), siteId: site.id, startUtc: scenarios[0]?.startUtc ?? loaded.sites.coverage.startUtc }] : picked)} />
-              </Suspense></div>
-              {flight && <p className="sim__flight-label" role="status">{flight.from.name} <span aria-hidden="true">&rarr;</span> {flight.to.name}</p>}
-              <div className="moon-picker__selection" aria-live="polite">
+                <p className="card__tagline">Click a place name on the globe to add it. You can compare up to three places.</p></div>
+                <div className="moon-picker__selection" aria-live="polite">
                 {picked.length === 0 && <p className="muted">No place chosen yet. Click a name on the globe.</p>}
                 {picked.map((s, i) => <div key={s.key} className="moon-choice" style={{ '--place-color': COLORS[i] } as CSSProperties}>
                   <span className="moon-choice__letter">{String.fromCharCode(65 + i)}</span>
@@ -504,10 +497,22 @@ export function MissionApp() {
                   <button type="button" aria-label={`Remove ${placeTitle(s.siteId, loaded.bySite)}`} onClick={() => updateLocations(picked.filter(p => p.key !== s.key))}>&times;</button>
                 </div>)}
               </div>
-              <div className="moon-picker__actions"><button type="button" className="primary" disabled={picked.length < 2} onClick={() => { setScenarios(picked); setActiveKey(picked[0].key); setPlaying(false); setStep(0); go('results') }}>Compare selected points</button><span className="muted small">{picked.length} / 3 locations</span>
+              </div>
+              <div className="moon-picker__globe"><Suspense fallback={<p role="status">Loading the Moon&hellip;</p>}>
+                <MoonGlobe active={simulationStage === 'pick' || !!flight} flight={flight ?? undefined} onComplete={() => { if (flight) { setActiveKey(flight.targetKey); setFlight(null) } }} sites={loaded.sites.sites} selected={(flight ? scenarios : picked).flatMap((s, i) => {
+                  const site = shownBySite[s.siteId]?.site ?? loaded.sites.sites.find(site => site.id === s.siteId)
+                  return site ? [{ key: s.key, site, letter: String.fromCharCode(65 + i), color: COLORS[i] }] : []
+                })} onSelect={(site: SiteEntry) => updateLocations(picked.some(s => s.siteId === site.id)
+                  ? picked.filter(s => s.siteId !== site.id)
+                  : picked.length < 3 ? [...picked, { key: newKey(), siteId: site.id, startUtc: scenarios[0]?.startUtc ?? loaded.sites.coverage.startUtc }] : picked)} />
+              </Suspense>
+              {/* Actions float in the globe's lower-right corner once a place is chosen: no scrolling down. */}
+              {picked.length > 0 && !flight && <div className="moon-picker__actions" role="group" aria-label="Selected places actions"><button type="button" className="primary" disabled={picked.length < 2} onClick={() => { setScenarios(picked); setActiveKey(picked[0].key); setPlaying(false); setStep(0); go('results') }}>Compare selected points</button><span className="muted small">{picked.length} / 3 locations</span>
                 <button type="button" className="primary" disabled={!picked.length || covered || !selectionReady} onClick={() => darken(() => {
                   setScenarios(picked); setActiveKey(picked[0].key); setStep(0); setSimulationStarted(true); setSimulationStage('watch')
-                })}>{picked.length > 0 && !selectionReady ? 'Preparing terrain…' : 'Show in simulation'} <span aria-hidden="true">&nearr;</span></button></div>
+                })}>{picked.length > 0 && !selectionReady ? 'Preparing terrain…' : 'Show in simulation'} <span aria-hidden="true">↗</span></button></div>}
+              </div>
+              {flight && <p className="sim__flight-label" role="status">{flight.from.name} <span aria-hidden="true">&rarr;</span> {flight.to.name}</p>}
             </section>
             {simulationStarted && <section className="card sim" hidden={simulationStage === 'pick'} inert={simulationStage === 'pick' || undefined}>
               <div className="sim__route">
