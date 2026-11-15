@@ -92,8 +92,6 @@ export function MissionApp() {
   const [activeKey, setActiveKey] = useState<string | null>(null)
   const [step, setStep] = useState(0)
   const [playing, setPlaying] = useState(false)
-  const globeImages = useMemo(() => Object.fromEntries(Object.entries(loaded?.bySite ?? {}).flatMap(([id, d]) => d.terrain?.imagery ? [[id, d.terrain.imagery]] : [])), [loaded])
-  const globeMaps = useMemo(() => Object.values(loaded?.bySite ?? {}).flatMap(d => d.map ? [d.map] : []), [loaded])
   const [view, setView] = useState<View>(viewFromLocation)
   const [simulationStage, setSimulationStage] = useState<'pick' | 'watch'>('pick')
   const [simulationStarted, setSimulationStarted] = useState(false)
@@ -487,7 +485,7 @@ export function MissionApp() {
               <div className="card__head"><div><h2>Choose places on the Moon</h2>
                 <p className="card__tagline">Click a place name on the globe to add it. You can compare up to three places.</p></div></div>
               <div className="moon-picker__globe"><Suspense fallback={<p role="status">Loading the Moon&hellip;</p>}>
-                <MoonGlobe maps={globeMaps} images={globeImages} active={simulationStage === 'pick' || !!flight} flight={flight ?? undefined} onComplete={() => { if (flight) { setActiveKey(flight.targetKey); setFlight(null) } }} sites={loaded.sites.sites} selected={(flight ? scenarios : picked).flatMap((s, i) => {
+                <MoonGlobe active={simulationStage === 'pick' || !!flight} flight={flight ?? undefined} onComplete={() => { if (flight) { setActiveKey(flight.targetKey); setFlight(null) } }} sites={loaded.sites.sites} selected={(flight ? scenarios : picked).flatMap((s, i) => {
                   const site = shownBySite[s.siteId]?.site ?? loaded.sites.sites.find(site => site.id === s.siteId)
                   return site ? [{ key: s.key, site, letter: String.fromCharCode(65 + i), color: COLORS[i] }] : []
                 })} onSelect={(site: SiteEntry) => updateLocations(picked.some(s => s.siteId === site.id)

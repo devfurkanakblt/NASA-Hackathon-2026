@@ -2073,10 +2073,9 @@
 .app button.moon-pin { display: flex; align-items: center; gap: 7px; white-space: nowrap; background: #0c111aeb; border: 1px solid currentColor; border-radius: 4px; padding: 7px 10px; font-size: 11px; min-height: 34px; }
 .app button.moon-pin[aria-pressed='true'] { background: #1a2032; }
 .moon-pin__dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
-.moon-label { transform: translate(var(--pin-x), var(--pin-y)); }
+.moon-label { transform: translate(calc(var(--pin-x) + var(--pin-shift-x, 0px)), calc(var(--pin-y) + var(--pin-shift-y, 0px))); }
 .moon-leader { position: absolute; left: 50%; top: 50%; overflow: visible; pointer-events: none; }
 .moon-leader line { stroke: currentColor; stroke-width: 1; opacity: .45; }
-.moon-leader--mobile { display: none; }
 .app button.moon-pin { white-space: normal; width: 175px; text-align: left; }
 .app button.moon-pin:focus-visible { outline: 2px solid var(--sun); outline-offset: 4px; }
 .moon-picker__selection { display: flex; flex-wrap: wrap; gap: 12px; min-height: 74px; align-items: center; padding-block: 16px; }
@@ -2101,9 +2100,7 @@
   .app button.moon-pin:hover:not(:disabled) { background: #242c3d; border-color: currentColor; }
 }
 @media (max-width: 640px) {
-  .moon-leader--desktop { display: none; }
-  .moon-leader--mobile { display: block; }
-  .moon-label { transform: translate(var(--pin-mobile-x), var(--pin-mobile-y)); }
+  .moon-label { transform: translate(calc(var(--pin-mobile-x) + var(--pin-shift-x, 0px)), calc(var(--pin-mobile-y) + var(--pin-shift-y, 0px))); }
   .app button.moon-pin { width: 145px; font-size: 10px; }
   .moon-globe { height: 510px; }
   .moon-globe__hint { bottom: 36px; font-size: 10px; }
