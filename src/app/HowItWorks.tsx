@@ -25,10 +25,23 @@ export function HowItWorks({ onSimulation, onResults }: Props) {
       const travel = root.offsetHeight - stage.offsetHeight
       const progress = enabled ? Math.max(0, Math.min(2, -root.getBoundingClientRect().top / Math.max(1, travel) * 2)) : 0
       const active = Math.round(progress)
-      const distance = cards[0].offsetWidth + 24
+      // A stack: the current card in front, its neighbours smaller, fainter and behind it,
+      // peeking out on either side. Everything follows the scroll position continuously.
+      const spread = cards[0].offsetWidth * 0.42
+      // On a phone only a sliver of each neighbour shows, so dim it further.
+      const dim = window.innerWidth < 700 ? 0.72 : 0.55
       cards.forEach((card, index) => {
-        card.style.transform = enabled ? `translateX(${(index - progress) * distance}px)` : ''
-        // Off-screen actions cannot receive focus or appear in the accessibility tree.
+        const offset = index - progress
+        const away = Math.abs(offset)
+        const near = Math.min(away, 1)
+        const far = Math.max(0, Math.min(away - 1, 1))
+        card.style.transform = enabled ? `translateX(${offset * spread}px) scale(${1 - 0.14 * near - 0.08 * far})` : ''
+        // Cards stay opaque so the front one always covers the ones behind; neighbours fade by
+        // dimming, and only a card two steps away fades out.
+        card.style.opacity = enabled ? String(1 - far) : ''
+        card.style.zIndex = enabled ? String(1000 - Math.round(away * 100) * 2 + (offset < 0 ? 1 : 0)) : ''
+        card.style.filter = enabled && near > 0.02 ? `brightness(${1 - dim * near}) saturate(${1 - 0.6 * near})` : ''
+        // Cards behind the current one cannot receive focus or appear in the accessibility tree.
         card.inert = enabled && index !== active
       })
       steps.forEach((step, index) => {

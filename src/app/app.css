@@ -1877,12 +1877,12 @@
 .how__card .link, .how__hint { margin-top: auto; }
 .how__hint { color: var(--muted); font-size: 12px; }
 .how__progress { display: none; }
-.how--scroll { height: 300svh; }
+.how--scroll { height: 200svh; } /* half a screen of scrolling per card */
 .how--scroll .how__stage { position: sticky; top: 0; height: 100svh; padding: 0; }
 .how--scroll h2 { position: absolute; top: 36px; inset-inline: 24px; z-index: 1; }
 .how--scroll .how__viewport { position: absolute; inset: 0; overflow: clip; display: grid; place-items: center; }
 .how--scroll .how__cards { display: grid; width: 100%; gap: 0; }
-.how--scroll .how__card { grid-area: 1 / 1; width: min(600px, calc(100% - 48px)); will-change: transform; }
+.how--scroll .how__card { grid-area: 1 / 1; width: min(600px, calc(100% - 48px)); will-change: transform, opacity; transform-origin: center; box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45); }
 .how--scroll .how__progress { position: absolute; bottom: 32px; inset-inline: 0; display: flex; justify-content: center; gap: 10px; list-style: none; margin: 0; padding: 0; }
 .how__progress li { width: 40px; height: 3px; background: var(--line); }
 .how__progress li[aria-current='step'] { background: var(--sun); }
