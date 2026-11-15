@@ -54,13 +54,6 @@ SITES = {
                             "41.6385 S, 206.0148 E, +-30 m",
                 notes=["contrast point on the lunar far side: the Earth never rises here",
                        "terrain from the global 474 m/px LOLA map; nearby small hills are not resolved"]),
-    "Apollo11": dict(name="Apollo 11 landing site", lat=0.67416, lon=23.47314, dem="ldem64",
-                     category="contrast",
-                     coordSource="NASA NSSDC, Apollo Landing Site Coordinates (Lunar Module): "
-                                 "0.67416 N, 23.47314 E",
-                     notes=["contrast point near the equator on the near side: Earth stays high in the sky, "
-                            "the Sun is up about half of the time (~14.8 days day, ~14.8 days night)",
-                            "terrain from the global 474 m/px LOLA map; nearby small hills are not resolved"]),
 }
 
 from .mission_catalogue import MISSION_SITES

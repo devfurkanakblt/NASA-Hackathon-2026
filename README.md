@@ -49,11 +49,12 @@ NASA data ──► Python preprocessing (offline) ──► public/data/*.json 
 
 ### Sites
 
-The catalogue contains **32 points**. The original nine are listed below. The 23 additions cover
-Apollo 12/14–17, IM-1/IM-2, Blue Ghost 1, Chandrayaan-3, SLIM, Chang'e-3/4/5, Peregrine's
-historical target-region centre, and one published research candidate for each of NASA's nine
-October 2024 Artemis III candidate regions. Research representatives are not approved landing
-sites; Peregrine did not land on the Moon. Coordinate status, primary sources and DEM resolution
+The catalogue contains **25 points**, all in the southern hemisphere. The original polar sites and
+the Chang'e-6 contrast point are listed below. The 17 additions cover Apollo 12/14/16, IM-1/IM-2,
+Chandrayaan-3, SLIM, Chang'e-4, and one published research candidate for each of NASA's nine
+October 2024 Artemis III candidate regions. Northern landing sites (Apollo 11/15/17, Blue Ghost 1,
+Chang'e-3/5, Peregrine) are not included. Research representatives are not approved landing
+sites. Coordinate status, primary sources and DEM resolution
 travel with each point. Details: [mission catalogue](preprocess/mission_catalogue.py),
 [independent validation and DEM coverage](docs/validation-missions.md).
 
@@ -67,10 +68,9 @@ travel with each point. Details: [mission catalogue](preprocess/mission_catalogu
 | Site20 | Leibnitz Beta Plateau | −85.4266° | 31.74276° | |
 | Site23 | Malapert Massif | −85.9948° | −0.23578° | |
 | CE6 | Chang'e-6 landing site | −41.6385° | −153.9852° | contrast point (far side, Earth never rises); global 474 m/px DEM |
-| Apollo11 | Apollo 11 landing site | 0.67416° | 23.47314° | contrast point (near-side equator); global 474 m/px DEM |
 
 Coordinates: NASA Lunar Surface Data Book (M2M-30044, 2025), Table A2.1-1; contrast points from
-LROC (Chang'e-6) and NASA NSSDC (Apollo 11). Missions of 1–30 days can start anywhere from
+LROC (Chang'e-6) and NASA NSSDC (Apollo). Missions of 1–30 days can start anywhere from
 1 Nov 2026 to 1 Nov 2027 UTC (10-minute steps; a site's one-year series loads when a mission runs past
 1 Jan 2027; the entire mission must fit the available series). Each original polar site also has a regional map (`map.json`: Sun / Earth visibility
 and slope on a ±3 km grid) whose points can be simulated as missions, and a one-year monthly summary

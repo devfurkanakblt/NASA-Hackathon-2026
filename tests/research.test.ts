@@ -33,7 +33,7 @@ describe('PSR distances (NASA Moon Trek layer)', () => {
     expect(metrics.Site04.psrEdgeKm!).toBeLessThan(2)
     expect(metrics.Site04.psrName).toBe('Shackleton Crater')
     expect(metrics.Site04R.psrEdgeKm!).toBeLessThan(5)
-    expect(metrics.Apollo11.psrEdgeKm).toBeNull()
+    expect(metrics.Apollo12.psrEdgeKm).toBeNull()
     expect(metrics.CE6.psrEdgeKm).toBeNull()
   })
 })
@@ -50,8 +50,8 @@ describe('research types on the default mission (15 Nov 2026, 7 days)', () => {
     expect(type('ice').assess(metrics.Site04).fit).toBe('strong')
     expect(type('comms').assess(metrics.Site04).fit).toBe('no')
     expect(type('radio').assess(metrics.CE6).fit).toBe('strong')
-    expect(type('radio').assess(metrics.Apollo11).fit).toBe('no')
-    expect(type('comms').assess(metrics.Apollo11).fit).toBe('strong')
+    expect(type('radio').assess(metrics.Apollo12).fit).toBe('no')
+    expect(type('comms').assess(metrics.Apollo12).fit).toBe('strong')
   })
 
   it('uses the 6.5-day stay threshold quoted by NASA', () => {

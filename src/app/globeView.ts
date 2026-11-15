@@ -1,5 +1,5 @@
 /** Southern-hemisphere globe: what is drawn and where the overview camera may go. */
-/** Northernmost latitude drawn: the southern hemisphere plus a margin that keeps Apollo 11 (0.67° N) on the surface. */
+/** Northernmost latitude drawn: the southern hemisphere plus a small margin so points near the equator (Apollo 12, 3.0° S) sit well inside the rim. */
 export const GLOBE_NORTH_EDGE_DEG = 3
 /** Northernmost latitude the camera may look down from while viewing the whole globe. */
 export const GLOBE_CAMERA_MAX_LAT_DEG = -35
@@ -40,7 +40,7 @@ export const LABEL_FRAME_PAD = { side: 8, top: 8, bottom: 64 }
 
 /**
  * Extra shift (px) that keeps a label box inside the globe frame. Places near the rim of the
- * southern view (Apollo 11, Chang'e-6) would otherwise push their label off the edge.
+ * southern view (Apollo 12, Chang'e-6) would otherwise push their label off the edge.
  * anchor: the pin on screen; pin: the label's usual offset from it; label/frame: sizes.
  */
 export function keepLabelInFrame(anchor: { x: number; y: number }, pin: { x: number; y: number },

@@ -65,7 +65,7 @@ def test_rejects_bad_grids(z, spacing):
 
 
 def test_contrast_points_do_not_get_fabricated_fine_detail(tmp_path):
-    assert d.build_site({"id": "Apollo11", "category": "contrast"}, tmp_path, tmp_path) is None
+    assert d.build_site({"id": "Apollo12", "category": "contrast"}, tmp_path, tmp_path) is None
     assert list(tmp_path.iterdir()) == []
 
 

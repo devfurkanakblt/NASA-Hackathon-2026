@@ -8,7 +8,7 @@ visibility always comes from `horizon.json`.
 Source: `LRO_LOLA_DEM_SPole75_30mp_v04` (LOLA 30 m/px south-pole DEM, 75 S to the pole), served
 by NASA Moon Trek (https://trek.nasa.gov/moon/), one of the NASA resources listed for the
 challenge. A crop is requested resampled to 250 m pixels (bilinear), then gridded with the same
-code as `terrain.json` (`terrain.build`). Outside the polar product, the CE6 and Apollo11
+code as `terrain.json` (`terrain.build`). Outside the polar product, the CE6 and Apollo 12
 contrast points use A's PDS LDEM_64 global reader instead (about 474 m native pixels).
 
 Output: `public/data/{site}/terrain-far.json` — same shape and frame as `terrain.json`
