@@ -1,4 +1,4 @@
-import type { LoadedData } from './contract.ts'
+import type { LoadedData, Psr } from './contract.ts'
 import { validateTerrainNormal } from './terrainNormal.ts'
 import { validateLunarImagery } from './lunarImagery.ts'
 import { validateEarthOrientation, validateEphemeris, validateHorizon, validateMap, validateSeason, validateSites, validateTerrain } from './validate.ts'
@@ -40,6 +40,18 @@ async function optionalVisual<T>(url: string, parse: (value: unknown) => T, warn
   }
 }
 
+/** `psr-south.json`: NASA Moon Trek PSR list; malformed entries reject the whole optional file. */
+function validatePsrs(value: unknown): Psr[] {
+  const list = (value as { psrs?: unknown })?.psrs
+  if (!Array.isArray(list) || list.length === 0) throw new Error('psr-south.json: no PSR list')
+  for (const p of list as Psr[]) {
+    if (typeof p.id !== 'string' || !(p.areaKm2 > 0) || !(p.latDeg >= -90 && p.latDeg <= 0) || !(p.lonDeg >= -180 && p.lonDeg <= 180)) {
+      throw new Error('psr-south.json: malformed PSR entry')
+    }
+  }
+  return list as Psr[]
+}
+
 /** Loads the catalogue's sites once; user interaction makes no further NASA requests. */
 export async function loadAllData(baseUrl = `${import.meta.env.BASE_URL}data`): Promise<LoadedData> {
   const base = baseUrl.replace(/\/+$/, '')
@@ -77,5 +89,7 @@ export async function loadAllData(baseUrl = `${import.meta.env.BASE_URL}data`): 
     const displayFar = terrainFar && farImagery ? { ...terrainFar, imagery: { manifest: farImagery, textureUrl: `${root}/${farImagery.file}?v=${farImagery.sha256}` } } : terrainFar
     return [site.id, { site, ephemeris, horizon, terrain: displayTerrain, terrainFar: displayFar, earthOrientation, visualWarnings, season, map }] as const
   }))
-  return { sites, bySite: Object.fromEntries(entries) }
+  const psrWarnings: string[] = []
+  const psrs = await optionalVisual(`${base}/psr-south.json`, validatePsrs, psrWarnings)
+  return { sites, bySite: Object.fromEntries(entries), psrs }
 }

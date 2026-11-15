@@ -161,7 +161,7 @@ describe('map and independent annual season merge regressions', () => {
     expect(data.map).toBeUndefined()
     expect(data.season).toEqual(season)
     expect(fetch.mock.calls.map(([url]) => String(url))).not.toContain('/data/Apollo11/map.json')
-    expect(fetch).toHaveBeenCalledTimes(8)
+    expect(fetch).toHaveBeenCalledTimes(9) // + psr-south.json, once per catalogue load
   })
 
   it.each(['map', 'season'])('warns on an optional %s network failure without losing science', async (kind) => {
@@ -225,7 +225,7 @@ describe('catalogue-driven loading and optional visuals', () => {
     expect(data.earthOrientation).toEqual(f.orientation)
     expect(data.terrainFar).toBeUndefined() // expected optional 404, without a warning
     expect(data.visualWarnings).toEqual([])
-    expect(fetch).toHaveBeenCalledTimes(10)
+    expect(fetch).toHaveBeenCalledTimes(11) // + psr-south.json, once per catalogue load
   })
 
   it('keeps science usable when only the local visual terrain is HTTP 404', async () => {
@@ -335,8 +335,9 @@ describe('required scientific data is rejected clearly', () => {
     const loaded = await loadAllData('data')
     expect(Object.keys(loaded.bySite)).toEqual(['Site01'])
     const urls = fetch.mock.calls.map(([url]) => String(url))
-    expect(urls).toHaveLength(10)
-    expect(new Set(urls).size).toBe(10)
+    expect(urls).toHaveLength(11) // + psr-south.json, once per catalogue load
+    expect(urls.filter((u) => u.endsWith('psr-south.json'))).toHaveLength(1)
+    expect(new Set(urls).size).toBe(11)
     expect(urls.every(url => url.startsWith('data/'))).toBe(true)
   })
 

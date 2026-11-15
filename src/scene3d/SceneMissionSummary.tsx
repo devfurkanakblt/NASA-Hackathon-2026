@@ -6,7 +6,7 @@ export function SceneMissionSummary({ result, settings }: { result: ScenarioResu
   const s = result.summary
   return <section className="scene-summary" aria-label="Mission at a glance">
     <h3>Can this mission work here?</h3>
-    <p className="scene-mission__hint">Power and direct Earth visibility for your selected place and date. Research suitability is not assessed yet.</p>
+    <p className="scene-mission__hint">Power and direct Earth visibility for your selected place and date. Research types and better places for each are on the Results page (Research tab).</p>
     <div className="scene-mission__facts">
       <div><strong className={s.keepsBatteryReserve ? 'ok' : 'bad'}>{s.keepsBatteryReserve ? 'Battery reserve protected' : 'Battery reserve runs low'}</strong>
         <p>{s.keepsBatteryReserve ? `Lowest charge: ${fmtPct(s.minSocFraction)}.` : `Reserve first crossed after ${fmtDuration(s.firstReserveViolationS ?? 0)}.`}</p></div>
