@@ -112,7 +112,7 @@ export function Comparison({ outcomes, settings, bySite, colors }: Props) {
             {isEvaluated(o) ? (
               <>
                 <Answer question="Power?" verdict={powerVerdict(o.result, settings)} />
-                <Answer question="Talk to Earth?" verdict={earthVerdict(o.result, settings)} />
+                <Answer question="See Earth?" verdict={earthVerdict(o.result, settings)} />
                 <div className="meters">
                   <Meter label="Sunlight" fraction={o.result.summary.sunVisibleFraction} kind="sun" />
                   <Meter label="Earth in view" fraction={o.result.summary.earthVisibleFraction} kind="earth" />

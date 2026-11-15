@@ -112,16 +112,19 @@ NASA data ──► Python preprocessing (offline) ──► public/data/*.json 
 
 ### Sites
 
-The catalogue contains **25 points**, all in the southern hemisphere. The original polar sites and
-the Chang'e-6 contrast point are listed below. The 17 additions cover Apollo 12/14/16, IM-1/IM-2,
-Chandrayaan-3, SLIM, Chang'e-4, and one published research candidate for each of NASA's nine
-October 2024 Artemis III candidate regions. Northern landing sites (Apollo 11/15/17, Blue Ghost 1,
-Chang'e-3/5, Peregrine) are left out of the catalogue on purpose: the tool is about the south pole, where the Sun
-and Earth skim the horizon and where Artemis III and current landers aim. They are still one click
+The catalogue contains **26 points**, all in the southern hemisphere. The original polar sites and
+the Chang'e-6 contrast point are listed below. The 18 additions cover Apollo 12/14/16, IM-1/IM-2,
+Chandrayaan-3, SLIM, Chang'e-4, one published research candidate for each of NASA's nine
+October 2024 Artemis III candidate regions, and one **future CLPS target**: VIPER's Mons Mouton
+mission area (85.42088° S, 31.6218° E, Heldmann et al., NASA NTRS 20260005586), planned for
+Blue Origin's Blue Moon MK1 under CLPS task order CS-7 in late 2027 (`coordinateStatus:
+"planned-target"`, not a landing). Griffin-1 and Chang'e-7 have no published coordinate yet and are
+not listed. Northern landing sites (Apollo 11/15/17, Blue Ghost 1,
+Chang'e-3/5, Peregrine) are left out on purpose: the tool is about the south pole, where the Sun and
+Earth skim the horizon and where Artemis III and current landers aim. They are still one click
 away: the coordinate forms offer **Past landings** presets (Apollo 11/15/17, Chang'e-3/5, Blue
 Ghost M1) that run on the global LOLA terrain like any typed coordinate, and the globe shows the
-whole Moon. Griffin-1 and Chang'e-7 are not included because no landing coordinates have been
-published for them yet. Apollo 12 (3.0° S) takes Apollo 11's place as the near-side equatorial
+whole Moon. Apollo 12 (3.0° S) takes Apollo 11's place as the near-side equatorial
 contrast point (Earth always up, two-week day and night). Research representatives are not approved landing
 sites. Coordinate status, primary sources and DEM resolution
 travel with each point. Details: [mission catalogue](preprocess/mission_catalogue.py),
@@ -146,13 +149,14 @@ so it crosses the horizon and Earth rises and sets. The "Skyline" tab explains t
 numbers for the current mission. Details: [Data & Methods](docs/data-methods.md#libration).
 
 Coordinates: NASA Lunar Surface Data Book (M2M-30044, 2025), Table A2.1-1; contrast points from
-LROC (Chang'e-6) and NASA NSSDC (Apollo). Missions of 1–90 days can start anywhere from
+LROC (Chang'e-6) and NASA NSSDC (Apollo). Missions of one day or more can start anywhere from
 1 Nov 2026 to 1 Nov 2027 UTC (10-minute steps; a site's one-year series loads when a mission runs past
-1 Jan 2027; the entire mission must fit the available series). Each original polar site also has a regional map (`map.json`: Sun / Earth visibility
+1 Jan 2027; the entire mission must fit the available series; an imported package brings its own
+period, up to 1830 days). Each original polar site also has a regional map (`map.json`: Sun / Earth visibility
 and slope on a ±3 km grid) whose points can be simulated as missions, and a one-year monthly summary
 (`season.json`); see the [data contract](docs/data-contract.md).
 
-The 30-day and three-place caps are removed throughout evaluation, controls and shared links.
+There is no mission-length or place-count cap in evaluation, controls or shared links.
 The entire mission must still fit its actual source series; this does not generate additional dates.
 Scenario labels continue after Z (AA, AB, …). The first six colours retain the team's palette.
 

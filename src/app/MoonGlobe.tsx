@@ -12,6 +12,7 @@ import type { Mesh } from 'three'
 import { separateGlobeLabel, labelOffset } from './globeView.ts'
 import type { LabelBox } from './globeView.ts'
 import { createMoonRoute, moonLatLon, moonPosition, sampleMoonRoute } from './moonFlight.ts'
+import { PlaceInfo } from './PlaceInfo.tsx'
 import type { CSSProperties } from 'react'
 import type { SiteEntry } from '../data/contract.ts'
 
@@ -175,7 +176,7 @@ export default function MoonGlobe({ sites, selected, onSelect, onPickPoint, flig
             <button type="button" className="moon-pin" style={{ color }}
               onClick={() => onSelect?.(site)} disabled={!!flight} title={picks.length ? 'Remove this place from the comparison' : 'Add this place to the comparison'} aria-pressed={picks.length > 0}>
               <span className="moon-pin__dot" />{picks.map(p => p.letter).join(' / ')}{picks.length ? ' · ' : ''}{site.name}
-            </button></div>
+            </button>{!flight && <PlaceInfo site={site} />}</div>
           </Html>
         </group>
       })}

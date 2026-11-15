@@ -159,17 +159,27 @@ export function markPareto(list: SearchCandidate[]): void {
   for (const c of feasible) c.pareto = !feasible.some((o) => o !== c && dominates(o.metrics!, c.metrics!))
 }
 
-function metricValue(m: CandidateMetrics, metric: SearchMetric): number {
+export function metricValue(m: CandidateMetrics, metric: SearchMetric): number {
   return metric === 'minSoc' ? m.minSocFraction : metric === 'bothVisible' ? m.bothVisibleFraction : m.longestEarthOutageS
 }
 
-/** Sort by the chosen metric (better first), then earlier start, then site id: deterministic. */
+/** Fixed order of the other visible metrics, used only to break ties of the chosen one. */
+const TIE_ORDER: SearchMetric[] = ['earthOutage', 'minSoc', 'bothVisible']
+
+/**
+ * Sort by the chosen metric (better first); ties by the other visible metrics in a fixed order
+ * (shorter Earth outage, higher lowest charge, more Sun+Earth time), then earlier start, then site
+ * id: deterministic, and an alphabetical name never decides between options that differ.
+ */
 export function compareCandidates(metric: SearchMetric) {
-  const sign = METRICS[metric].better === 'higher' ? -1 : 1
+  const order = [metric, ...TIE_ORDER.filter((m) => m !== metric)]
   return (a: SearchCandidate, b: SearchCandidate): number => {
     if (a.metrics && b.metrics) {
-      const d = sign * (metricValue(a.metrics, metric) - metricValue(b.metrics, metric))
-      if (d !== 0) return d
+      for (const m of order) {
+        const sign = METRICS[m].better === 'higher' ? -1 : 1
+        const d = sign * (metricValue(a.metrics, m) - metricValue(b.metrics, m))
+        if (d !== 0) return d
+      }
     } else if (a.metrics || b.metrics) {
       return a.metrics ? -1 : 1
     }
@@ -316,7 +326,8 @@ function finish(kind: SearchResult['kind'], all: SearchCandidate[], state: RunSt
   }
 }
 
-const FAILURE_TEXT: Record<FailureCode, string> = {
+/** Plain names of the failure codes, for the UI. */
+export const FAILURE_TEXT: Record<FailureCode, string> = {
   data: 'data missing or invalid',
   coverage: 'mission outside the computed period',
   research: 'research objective not supported',

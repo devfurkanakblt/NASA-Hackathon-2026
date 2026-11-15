@@ -26,13 +26,15 @@ interface Props {
   onRemove?: (key: string) => void
   /** Name shown for a scenario in the switcher (place, plus date when the place repeats). */
   titleOf?: (scenario: Scenario) => string
+  /** Adds a copy of the chosen scenario at this start; the chosen one is kept as it is. */
+  onCompareAt?: (startUtc: string) => void
 }
 
 /** Days a copied scenario is moved forward, so the new date differs from the original. */
 const COPY_SHIFT_DAYS = 7
 
 /** A short editor for the same scenario state used by Results and shared links. */
-export function SceneMissionControls({ sites, scenarios, chosenKey, durationDays, endUtc, onChoose, onPatch, onDuration, onCoordinate, onCopy, onRemove, titleOf }: Props) {
+export function SceneMissionControls({ sites, scenarios, chosenKey, durationDays, endUtc, onChoose, onPatch, onDuration, onCoordinate, onCopy, onRemove, titleOf, onCompareAt }: Props) {
   const [latitude, setLatitude] = useState('')
   const [longitude, setLongitude] = useState('')
   const [coordinateMessage, setCoordinateMessage] = useState('')
@@ -78,7 +80,7 @@ export function SceneMissionControls({ sites, scenarios, chosenKey, durationDays
       <div className="scene-mission__fields">
         <label><span>Location</span>
           <select aria-label="Simulation location" value={chosen.siteId} onChange={e => onPatch({ siteId: e.target.value })}>
-            {!isCatalogue && <option value={chosen.siteId}>{chosen.siteId.startsWith('pt:') ? 'Your coordinate' : 'Selected regional map point'}</option>}
+            {!isCatalogue && <option value={chosen.siteId}>{chosen.siteId.startsWith('pt:') ? 'Your coordinate' : /:r\d+c\d+$/.test(chosen.siteId) ? 'Selected regional map point' : 'Imported data package'}</option>}
             <optgroup label="South-pole research points">
               {sites.sites.filter(s => s.category !== 'contrast').map(s => <option key={s.id} value={s.id}>{s.name}{s.derivedFrom ? ' · derived point' : ''} ({s.id})</option>)}
             </optgroup>
@@ -101,6 +103,12 @@ export function SceneMissionControls({ sites, scenarios, chosenKey, durationDays
         {[-1, 1, 5].map(days => <button key={days} type="button" disabled={!canShift(days)} onClick={() => onPatch({ startUtc: shiftUtc(chosen.startUtc, days * 24) })}>{days > 0 ? '+' : '−'}{Math.abs(days)} {Math.abs(days) === 1 ? 'day' : 'days'}</button>)}
         <span className="scene-mission__hint">Changes apply to the selected scenario only. Duration is shared by all scenarios.</span>
       </div>
+      {onCompareAt && <div className="scene-mission__shifts" role="group" aria-label="Compare the same place at another date">
+        <span>Keep this start and compare</span>
+        <button type="button" disabled={!canShift(5)} title={canShift(5) ? 'Adds a copy of this scenario 120 hours later; this one stays as it is.' : 'Five days later the mission would end after the available data.'}
+          onClick={() => onCompareAt(shiftUtc(chosen.startUtc, 120))}>Compare +5 days</button>
+        {!canShift(5) && <span className="scene-mission__hint">Not available: five days later the mission would end after the data ({latest ? toInputUtc(latest).replace('T', ' ') : 'no valid start'} UTC is the last start).</span>}
+      </div>}
     </div>
   )
 }
