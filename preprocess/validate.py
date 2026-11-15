@@ -1,6 +1,7 @@
 """Acceptance tests -> docs/validation.md
 
 1. Ephemeris cross-check: JSON (Horizons) vs independent Skyfield/DE421, full series.
+1b. The same check for the one-year series (year.bin, 2026-11-01 to 2027-11-01).
 2. Horizon convergence: 32 azimuths, ray steps halved, |delta| <= 0.05 deg.
    Range sensitivity: 32 azimuths, 100 km vs the used range (250 km).
 3. Data transfer: JSON values vs a fresh, independent Horizons request (TLIST) at
@@ -9,6 +10,7 @@
    vs a 1-minute Horizons reference series around the same events.
 
 Usage: python -m preprocess.validate [--sites Site01 ...] [--skip-range] [--skip-horizon]
+       python -m preprocess.validate --only-year   (offline: rewrites only section 1b in place)
 """
 import argparse
 import json
@@ -75,6 +77,78 @@ def ephemeris_section(args):
             md.append(f"| {sid} | {body} | {src} | {n} | {daz:.5f} | {dele:.5f} | {'yes' if ok else 'NO'} |")
             print(sid, body, f"{daz:.5f} {dele:.5f}")
     return md + [""]
+
+
+# ---------------------------------------------------------------- 1b. one-year series
+YEAR_FIELDS = [(b, f) for b in ("sun", "earth") for f in ("azDeg", "elDeg", "distanceM")]
+YEAR_HEADING = "## 1b. One-year series (year.bin): JPL Horizons vs Skyfield"
+
+
+def check_year(site_id):
+    """year.bin (Horizons, float32) vs an independent Skyfield/DE421 series, every sample.
+
+    Also reports the error over 2027 alone, the part not covered by section 1.
+    """
+    from . import ephemeris_skyfield as SF
+    hdr = load(site_id, "extended.json")["year"]
+    y = np.fromfile(C.OUT_DIR / site_id / hdr["file"], dtype="<f4").astype(np.float64)
+    y = y.reshape(len(YEAR_FIELDS), hdr["count"])
+    t0 = datetime.fromisoformat(hdr["startUtc"].replace("Z", "+00:00"))
+    stop = (t0 + timedelta(seconds=(hdr["count"] - 1) * hdr["stepS"])).isoformat().replace("+00:00", "Z")
+    later = int((datetime(2027, 1, 1, tzinfo=t0.tzinfo) - t0).total_seconds() // hdr["stepS"])
+    s = C.SITES[site_id]
+    rows = []
+    for body in ("sun", "earth"):
+        sf = SF.query(body, s["lat"], s["lon"], load_eye(site_id), hdr["startUtc"], stop, hdr["stepS"])
+        assert len(sf) == hdr["count"], (site_id, body, len(sf), hdr["count"])
+        az_sf = np.array([r[1] for r in sf])
+        el_sf = np.array([r[2] for r in sf])
+        az = y[YEAR_FIELDS.index((body, "azDeg"))]
+        el = y[YEAR_FIELDS.index((body, "elDeg"))]
+        daz = np.abs((az - az_sf + 180) % 360 - 180) * np.cos(np.radians(el))
+        dele = np.abs(el - el_sf)
+        rows.append((body, len(az), float(daz.max()), float(dele.max()),
+                     float(max(daz[later:].max(), dele[later:].max()))))
+    return hdr, rows
+
+
+def year_section(args):
+    md = [YEAR_HEADING, "",
+          "Every 10-minute sample of `year.bin` (2026-11-01 to 2027-11-01) is compared with an independent "
+          "Skyfield/DE421 series for the same observer. Section 1 covers only the first two months; the last "
+          "column is the largest angle error over 2027 alone. Before float32 storage the two sources differ by "
+          "about 0.00001 deg (Site01, checked on the float64 Horizons rows); float32 rounding adds up to about "
+          "0.00002 deg. Section 1 shows larger values because `ephemeris.json` stores angles rounded to "
+          "0.0001 deg.", "",
+          "| Site | Body | Samples | max |dAz|*cos(el) [deg] | max |dEl| [deg] | max over 2027 [deg] | Pass |",
+          "|---|---|---|---|---|---|---|"]
+    for sid in args.sites:
+        if not (C.OUT_DIR / sid / "extended.json").exists():
+            md.append(f"| {sid} | - | no year.bin | - | - | - | - |")
+            continue
+        _, rows = check_year(sid)
+        for body, n, daz, dele, d27 in rows:
+            ok = daz <= TOL_EPHEM and dele <= TOL_EPHEM
+            md.append(f"| {sid} | {body} | {n} | {daz:.5f} | {dele:.5f} | {d27:.5f} | {'yes' if ok else 'NO'} |")
+            print("year", sid, body, f"{daz:.5f} {dele:.5f} {d27:.5f}")
+    md += ["", "Terrain visibility over the year uses this series with the same `horizon.json` as the "
+           "two-month data, so sections 2 and 4 (horizon and timing tolerances) apply unchanged; "
+           "`season.json` monthly percentages are reproduced from `year.bin` by `tests/extended.test.ts`."]
+    return md + [""]
+
+
+def splice_year_section(md_year):
+    """Replace section 1b in docs/validation.md (or insert it before section 2)."""
+    out = C.ROOT / "docs" / "validation.md"
+    lines = out.read_text(encoding="utf-8").split("\n")
+    if YEAR_HEADING in lines:
+        a = lines.index(YEAR_HEADING)
+        b = next(i for i in range(a + 1, len(lines)) if lines[i].startswith("## "))
+    else:
+        a = b = next(i for i, l in enumerate(lines) if l.startswith("## 2."))
+    lines[a:b] = md_year
+    out.write_text("\n".join(lines), encoding="utf-8")
+    print(f"updated {out.relative_to(C.ROOT)} (section 1b)")
 
 
 # ---------------------------------------------------------------- 2. horizon
@@ -246,13 +320,18 @@ def main():
     ap.add_argument("--skip-range", action="store_true")
     ap.add_argument("--skip-ephemeris", action="store_true")
     ap.add_argument("--skip-horizon", action="store_true")
+    ap.add_argument("--only-year", action="store_true",
+                    help="offline: recompute only section 1b and splice it into docs/validation.md")
     args = ap.parse_args()
+    if args.only_year:
+        splice_year_section(year_section(args))
+        return
 
     md = ["# Validation report", "",
           "Generated by `python -m preprocess.validate`. Tolerances: ephemeris "
           f"{TOL_EPHEM} deg, horizon {TOL_HORIZON} deg.", ""]
     if not args.skip_ephemeris:
-        md += ephemeris_section(args)
+        md += ephemeris_section(args) + year_section(args)
     if not args.skip_horizon:
         md += horizon_section(args)
     md += transfer_section(args) + timing_section(args)

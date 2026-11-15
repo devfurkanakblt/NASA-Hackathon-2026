@@ -19,7 +19,12 @@ Branch: `feat/plan-a-expansion`. Ayrıntılı sayılar: `docs/validation.md` §5
 | P4 karşıtlık | **CE6 (uzak yüz) ve Apollo11 ikisi de** eklendi | Global LDEM_64'ten yalnızca gereken satırlar HTTP range ile okunuyor (`preprocess/global_dem.py`). CE6 yüzey yüksekliği −5254.8 m, LROC'un değeri −5256 m. Bu noktalar için harita üretilmedi (474 m/px DEM). |
 | P5 metinler | `LICENSE`, `docs/data-methods.md`, `docs/slide6-scientific-basis.md` | AI beyanı ve atıflar `data-methods.md` içinde. |
 
-Açık sorulara verilen geçici cevaplar (ekip değiştirebilir): (1) yıllık seri yerine aylık özet; ilk yükleme etkilenmez. (2) Harita hücreleri yalnızca özet; tam simülasyon `sites.json` noktalarında. (3) İki karşıtlık noktası da eklendi. (4) Cevaplandı: son teslim **yerel saatle 15 Kas 23.59** (TR).
+| P2 devamı: 1 yıllık seri (15 Kas) | `preprocess/extended.py` → `{site}/year.bin` (9 site) | İlk yüklemeye girmiyor; görev 2 ayı aşınca o sitenin dosyası indiriliyor. Tarih seçici 1 Kas 2027'ye kadar. Skyfield ile tüm yıl karşılaştırıldı: ≤ 0.00003° (validation §1b). |
+| P1 devamı: hücre simülasyonu (15 Kas) | `preprocess/extended.py` → `{site}/cells.bin` (7 harita sitesi) | Haritadaki her hücre ve ±3 km içindeki serbest enlem/boylam tam senaryo olarak simüle ediliyor (1° ufuk, efemeris hücreye döndürülüyor, `src/sim/cell.ts`). `map.json` ile fark ≤ 0.15 puan (validation §7). |
+
+Açık soruların cevapları: (1) İlk yüklemede aylık özet (`season.json`); tam yıllık seri `year.bin` olarak ayrı ve yalnızca gerektiğinde yükleniyor. (2) Harita renkleri 2 aylık özet; ama tıklanan hücre (veya ±3 km içinde girilen koordinat) artık tam simülasyon alıyor (zaman serisi + enerji), 1° ufukla. (3) İki karşıtlık noktası da eklendi. (4) Son teslim **yerel saatle 15 Kas 23.59** (TR).
+
+Açık kalan, isteğe bağlı iş: §5'teki C maddesi (`map.json` katmanlarını 3B araziye doku olarak giydirmek) yapılmadı; not `docs/ekip-notlari.md` → C bölümünde.
 
 ---
 
