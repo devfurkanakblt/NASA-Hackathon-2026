@@ -11,7 +11,7 @@ For a chosen site and start date it answers:
 - When is there a line of sight to Earth, and how long is the longest outage?
 - Would another site or another date do better with the **same hardware**?
 
-Up to three scenarios are compared side by side. Results are stated as plain conditions
+Multiple scenarios are compared side by side; there is no fixed scenario-count cap. Results are stated as plain conditions
 ("keeps the battery reserve", "Earth outage within the limit"), never as a hidden-weight score.
 
 > The sites are research region centres, **not certified landing sites**. The hardware values are
@@ -85,6 +85,19 @@ LROC (Chang'e-6) and NASA NSSDC (Apollo). Missions of 1–90 days can start anyw
 1 Jan 2027; the entire mission must fit the available series). Each original polar site also has a regional map (`map.json`: Sun / Earth visibility
 and slope on a ±3 km grid) whose points can be simulated as missions, and a one-year monthly summary
 (`season.json`); see the [data contract](docs/data-contract.md).
+
+The 30-day and three-place caps are removed throughout evaluation, controls and shared links.
+The entire mission must still fit its actual source series; this does not generate additional dates.
+Scenario labels continue after Z (AA, AB, …). The first six colours retain the team's palette.
+
+**Whole-Moon view.** The picker draws both hemispheres on the shared, hash-checked global
+LOLA tiles (~1.9 km/px). A refined display mesh follows close-up navigation without inventing
+extra relief or exaggerating heights. LROC WAC and south-polar photographs are projected per
+fragment on the same surface, avoiding polar UV streaks and floating photograph layers.
+Points without a local display package also get an ENU 3D map/terrain/lander view from this
+coarse global DEM; its vertical datum is aligned to the selected observer's ground. This is a
+view adapter only: the point's scientific horizon, ephemeris and energy results are unchanged.
+Archive photograph illumination is explicitly separate from selected-time Sun shading.
 
 For longer studies the repository includes a **2026–2029 Connecting Ridge package**.
 `python -m preprocess.custom_point` generates other coordinates/periods with an explicit terrain

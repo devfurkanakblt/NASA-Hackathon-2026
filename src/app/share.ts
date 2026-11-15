@@ -5,10 +5,10 @@
  * Only settings that differ from the defaults are written. The fragment never reaches a server,
  * so sharing a link sends nothing anywhere; anything unreadable in it is ignored.
  */
-import { DEFAULT_SETTINGS, MAX_SCENARIOS } from '../sim/evaluate.ts'
+import { DEFAULT_SETTINGS } from '../sim/evaluate.ts'
 import type { MissionSettings } from '../sim/evaluate.ts'
 import { fromInputUtc, toInputUtc } from './format.ts'
-import { LETTERS, newKey } from './scenarios.ts'
+import { scenarioLabel, scenarioIndex, newKey } from './scenarios.ts'
 import type { Scenario } from './scenarios.ts'
 
 export interface SharedState {
@@ -24,7 +24,7 @@ const TEXT_VALUES: Partial<Record<Key, readonly string[]>> = { panelMode: ['trac
 
 export function encodeShare({ scenarios, active, settings }: SharedState): string {
   const parts = [`s=${scenarios.map((s) => `${encodeURIComponent(s.siteId).replaceAll('%3A', ':')}@${toInputUtc(s.startUtc)}`).join(',')}`]
-  if (active > 0) parts.push(`a=${LETTERS[active]}`)
+  if (active > 0) parts.push(`a=${scenarioLabel(active)}`)
   const changed = KEYS.filter((key) => settings[key] !== undefined && settings[key] !== DEFAULT_SETTINGS[key])
   if (changed.length) parts.push(`set=${changed.map((key) => `${key}:${encodeURIComponent(String(settings[key]))}`).join(',')}`)
   return `#${parts.join('&')}`
@@ -44,7 +44,7 @@ export function decodeShare(hash: string, isKnownSite: (id: string) => boolean):
     if (at <= 0) continue
     const siteId = safeDecode(item.slice(0, at))
     const startUtc = fromInputUtc(safeDecode(item.slice(at + 1)))
-    if (siteId && isKnownSite(siteId) && startUtc && scenarios.length < MAX_SCENARIOS) scenarios.push({ key: newKey(), siteId, startUtc })
+    if (siteId && isKnownSite(siteId) && startUtc) scenarios.push({ key: newKey(), siteId, startUtc })
   }
   if (scenarios.length === 0) return null
 
@@ -60,7 +60,7 @@ export function decodeShare(hash: string, isKnownSite: (id: string) => boolean):
       if (allowed.includes(raw)) writable[key] = raw
     } else if (raw.trim() !== '' && Number.isFinite(Number(raw))) writable[key] = Number(raw)
   }
-  const letter = LETTERS.indexOf((params.get('a') ?? 'A') as (typeof LETTERS)[number])
+  const letter = scenarioIndex(params.get('a') ?? 'A')
   return { scenarios, active: Math.min(Math.max(0, letter), scenarios.length - 1), settings }
 }
 

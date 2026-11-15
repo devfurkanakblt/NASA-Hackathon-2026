@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type { LoadedData } from '../../data/contract.ts'
 import { loadAllData } from '../../data/load.ts'
 import { J_PER_WH } from '../../sim/energy.ts'
-import { DEFAULT_SETTINGS, MAX_DURATION_DAYS, MIN_DURATION_DAYS, evaluateScenario } from '../../sim/evaluate.ts'
+import { DEFAULT_SETTINGS, MIN_DURATION_DAYS, evaluateScenario } from '../../sim/evaluate.ts'
 import type { MissionSettings, ScenarioResult } from '../../sim/evaluate.ts'
 import { nextTransition } from '../../sim/visibility.ts'
 import type { VisibilityWindow } from '../../sim/visibility.ts'
@@ -172,10 +172,9 @@ export function Scene3DDemo() {
           <input
             type="number"
             min={1}
-            max={MAX_DURATION_DAYS}
             value={settings.durationDays}
             onChange={(e) => {
-              patchSettings({ durationDays: Math.min(MAX_DURATION_DAYS, Math.max(MIN_DURATION_DAYS, Math.round(Number(e.target.value) || 1))) })
+              patchSettings({ durationDays: Math.max(MIN_DURATION_DAYS, Math.round(Number(e.target.value) || 1)) })
               setStep(0)
             }}
           />
