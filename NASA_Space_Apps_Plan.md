@@ -314,7 +314,7 @@ Resmî demo olarak **toplam yedi İngilizce slayt** kullanılacak. Yerel sunumda
 - [ ] Üç nokta için kaynaklı veri (JSON) ve tekrarlanabilir ön işleme scriptleri.
 - [ ] Doğrulama sonuçları; ölçülmemiş doğruluk iddiası içermeyen açıklamalar.
 - [ ] Yedi İngilizce slayt.
-- [ ] NASA/veri/kütüphane atıfları ve açık AI kullanım beyanı.
+- [x] NASA/veri/kütüphane atıfları ve açık AI kullanım beyanı.
 - [ ] **Save Progress yerine Submit for Judging ile tamamlanmış, başarı mesajı görülmüş teslim.**
 
 **Son öncelik sırası:** doğru veri ve hesap → çalışan karşılaştırma → ufuk panoraması → anlaşılır 3B deneyim → güçlü sunum. Bir modül gecikirse önce ek görsel efektleri, sonra 3B görünümü çıkarın; bilimsel çekirdeği, karşılaştırmayı ve teslim zamanını koruyun.

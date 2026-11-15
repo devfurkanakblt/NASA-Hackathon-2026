@@ -68,7 +68,7 @@ on gentle ground. Against NASA GSFC's independent polar illumination maps (Mazar
 years) our Sun and Earth visibility falls within the map's local 3×3-pixel range at all 7 polar
 sites (rank correlation 0.96 for both), and Shackleton's floor is permanently shadowed in both.
 The TypeScript engine reproduces the Python reference values exactly; map points with the 1°
-horizon stay within 0.15 points of the 0.5° map values; 314 automated tests (235 TypeScript, 79 Python) run on every change.
+horizon stay within 0.15 points of the 0.5° map values; 395 automated tests (285 TypeScript, 110 Python) run on every change.
 
 **Limits.** Sites are research region centres, not certified landing sites; hardware values are
 example assumptions. Not modelled: eclipses, temperature, dust, battery ageing, ground-station
@@ -76,7 +76,7 @@ schedules and link budgets. Near the pole a 0.05° horizon error equals about 30
 rise/set time. The contrast points use the 474 m/px global LOLA map, so small nearby hills are
 not resolved.
 
-**Tools.** Python (NumPy, Rasterio, PyProj, Skyfield, Requests), TypeScript, React, three.js /
+**Tools.** Python (NumPy, SciPy, Rasterio, PyProj, Skyfield, Requests, Matplotlib), TypeScript, React, three.js /
 React Three Fiber, inline SVG charts, Vite, Vitest. Static hosting on [Vercel / GitHub Pages]; the same
 build runs offline.
 
@@ -85,7 +85,7 @@ relay-satellite models.
 
 ## Use of Artificial Intelligence (AI)
 
-[Team: confirm or edit.] We used AI assistants (Anthropic Claude) during research, coding, testing
+We used AI assistants (Anthropic Claude) during research, coding, testing
 and writing documentation. The team chose the approach, defined the data contract and the model,
 and reviewed the code. AI-generated code is covered by the same automated tests and validation
 reports as the rest of the project. No AI-generated images, data or results are presented as NASA
@@ -101,8 +101,10 @@ data; every number in the app is computed from the NASA sources below by code in
 - NASA Moon Trek, LOLA 5 m south-pole mosaic (terrain cross-check) — https://trek.nasa.gov/moon/
 - NASA Moon Trek, LOLA 30 m/px south-pole DEM `LRO_LOLA_DEM_SPole75_30mp_v04` (regional terrain in the 3D view, display only) — https://trek.nasa.gov/moon/
 - NASA Earth Observatory, *Blue Marble: Next Generation* (November 2004) (Earth texture in the 3D view, display only) — https://science.nasa.gov/earth/earth-observatory/blue-marble-next-generation/base-topography-bathymetry/
-- NASA Lunar Surface Data Book, M2M-30044 (2025), Table A2.1-1 (site coordinates) — https://ntrs.nasa.gov/citations/20250002845
+- NASA Moon to Mars (M2M) Lunar Surface Data Book, M2M-30044 Baseline (2025), NASA/TP-20250002845, Table A2.1-1 (site coordinates) — https://ntrs.nasa.gov/citations/20250002845
 - Contrast point coordinates: NASA NSSDC Apollo landing sites; LROC (ASU/NASA) Chang'e-6 first look — https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_sites.html, https://lroc.asu.edu/images/1374
+
+NASA data are used under NASA's open data policy; NASA does not endorse this project.
 
 ## Space agency partner and other data
 
@@ -110,7 +112,7 @@ data; every number in the app is computed from the NASA sources below by code in
 
 ## References
 
-- Barker, M.K. et al. (2021). Improved LOLA elevation maps for south pole landing sites. Planetary and Space Science 203, 105119. doi:10.1016/j.pss.2020.105119
-- Barker, M.K. et al. (2023). A New View of the Lunar South Pole from LOLA. Planetary Science Journal 4, 183. doi:10.3847/PSJ/acf3e1
+- Barker, M.K. et al. (2021). Improved LOLA elevation maps for south pole landing sites: Error estimates and their impact on illumination conditions. Planetary and Space Science 203, 105119. doi:10.1016/j.pss.2020.105119
+- Barker, M.K. et al. (2023). A New View of the Lunar South Pole from the Lunar Orbiter Laser Altimeter (LOLA). Planetary Science Journal 4, 183. doi:10.3847/PSJ/acf3e1; data doi:10.60903/gsfcpgda-lola-spole
 - Mazarico, E. et al. (2011). Illumination conditions of the lunar polar regions using LOLA topography. Icarus 211, 1066–1081. doi:10.1016/j.icarus.2010.10.030
 - NASA GSFC, Solar irradiance (solar constant 1361 W/m²) — https://earth.gsfc.nasa.gov/climate/projects/solar-irradiance/science
