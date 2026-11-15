@@ -1,3 +1,5 @@
+import { loadGlobalDemAround } from './globalDem.ts'
+import type { GlobalTerrain } from '../scene3d/globalTerrain.ts'
 import type { LoadedData, Provenance, Psr } from './contract.ts'
 import { validateCoverage } from './coverage.ts'
 import { validateTerrainNormal } from './terrainNormal.ts'
@@ -101,4 +103,21 @@ export async function loadAllData(baseUrl = `${import.meta.env.BASE_URL}data`): 
   // Optional: a missing or invalid coverage.json only removes the supported-area report.
   const coverage = await optionalVisual(`${base}/coverage.json`, doc => validateCoverage(doc, `${base}/coverage.json`), [])
   return { sites, bySite: Object.fromEntries(entries), psrs, ...(coverage && { coverage }) }
+}
+
+let globalTerrainPending: Promise<GlobalTerrain> | undefined
+/** Display adapter over A/D's checked global LOLA tiles; no duplicate data source. */
+export function loadGlobalTerrain(): Promise<GlobalTerrain> {
+  return globalTerrainPending ??= loadGlobalDemAround(0, 0, Math.PI * 1737400).then(dem => {
+    const m = dem.manifest
+    let north = 0, south = 0
+    for (let col = 0; col < m.cols; col++) {
+      const lon = (col + .5) / m.ppd
+      north += dem.heightAt(90 - .5 / m.ppd, lon)
+      south += dem.heightAt(-90 + .5 / m.ppd, lon)
+    }
+    return { width: m.cols, height: m.rows, scaleM: m.scaleM, referenceRadiusM: m.radiusM,
+      heightAt: (lat: number, lon: number) => dem.heightAt(lat, lon),
+      northPoleM: north / m.cols, southPoleM: south / m.cols }
+  }).catch(error => { globalTerrainPending = undefined; throw error })
 }

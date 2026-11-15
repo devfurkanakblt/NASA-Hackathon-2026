@@ -6,7 +6,7 @@ import type { VisibilityWindow } from './visibility.ts'
 
 /** Mission and hardware settings shared by every scenario being compared. */
 export interface MissionSettings extends PanelSettings {
-  /** 1–30 days. */
+  /** At least one day; the full mission must fit the supplied ephemeris coverage. */
   durationDays: number
   batteryCapacityWh: number
   /** State of charge at the start, 0–1. */
@@ -51,9 +51,7 @@ export const DEFAULT_SETTINGS: MissionSettings = {
   sunDiskModel: 'centre',
 }
 
-export const MAX_SCENARIOS = 3
 export const MIN_DURATION_DAYS = 1
-export const MAX_DURATION_DAYS = 30
 
 /** Thrown when settings are outside their physical or planned range. */
 export class SettingsError extends RangeError {
@@ -72,7 +70,7 @@ export function validateSettings(s: MissionSettings): string[] {
   const issues: string[] = []
   const finite = (v: number) => Number.isFinite(v)
   const between = (v: number, lo: number, hi: number) => finite(v) && v >= lo && v <= hi
-  if (!between(s.durationDays, MIN_DURATION_DAYS, MAX_DURATION_DAYS)) issues.push(`Mission duration must be ${MIN_DURATION_DAYS}–${MAX_DURATION_DAYS} days.`)
+  if (!(finite(s.durationDays) && s.durationDays >= MIN_DURATION_DAYS)) issues.push(`Mission duration must be at least ${MIN_DURATION_DAYS} day and finite.`)
   if (!(finite(s.panelAreaM2) && s.panelAreaM2 >= 0)) issues.push('Panel area must be zero or more.')
   if (!between(s.panelEfficiency, 0, 1)) issues.push('Panel efficiency must be 0–100 %.')
   if (!between(s.systemFactor, 0, 1)) issues.push('System factor must be 0–100 %.')
@@ -352,11 +350,10 @@ export function evaluateScenario(data: SiteData, startUtc: string, settings: Mis
 }
 
 /**
- * Evaluates up to three scenarios (site + start time) with the same mission and hardware
+ * Evaluates all requested scenarios (site + start time) with the same mission and hardware
  * settings, so their results can be compared like for like.
  */
 export function evaluateScenarios(candidates: ScenarioCandidate[], settings: MissionSettings, bySite: Record<string, SiteData>): ScenarioResult[] {
-  if (candidates.length > MAX_SCENARIOS) throw new RangeError(`At most ${MAX_SCENARIOS} scenarios can be compared.`)
   return candidates.map(({ siteId, startUtc }) => {
     const data = bySite[siteId]
     if (!data) throw new RangeError(`No data for site ${siteId}.`)

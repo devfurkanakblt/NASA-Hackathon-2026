@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { DEFAULT_SETTINGS, MAX_DURATION_DAYS, MIN_DURATION_DAYS } from '../sim/evaluate.ts'
+import { DEFAULT_SETTINGS, MIN_DURATION_DAYS } from '../sim/evaluate.ts'
 import type { MissionSettings } from '../sim/evaluate.ts'
 
 interface Props {
@@ -51,7 +51,7 @@ export function SettingsForm({ settings: s, issues, onChange, onReset }: Props) 
     <div className="settings">
       <fieldset>
         <legend>Mission goals</legend>
-        <NumberField label="Duration" unit="days" value={s.durationDays} min={MIN_DURATION_DAYS} max={MAX_DURATION_DAYS} onValue={(v) => onChange({ durationDays: v })} />
+        <NumberField label="Duration" unit="days" value={s.durationDays} min={MIN_DURATION_DAYS} onValue={(v) => onChange({ durationDays: v })} />
         <NumberField label="Longest time without Earth allowed" unit="h" value={s.maxEarthOutageH} min={0} step={1} onValue={(v) => onChange({ maxEarthOutageH: v })} />
       </fieldset>
       <fieldset>

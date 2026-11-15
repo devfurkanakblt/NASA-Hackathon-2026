@@ -6,7 +6,7 @@ import { evaluateScenario } from '../sim/evaluate.ts'
 import type { MissionSettings, ScenarioResult } from '../sim/evaluate.ts'
 import { MAX_ALTERNATIVE_SLOPE_DEG, RESEARCH_TYPES, alternativesFor, researchMetrics } from '../sim/research.ts'
 import type { Fit, ResearchMetrics } from '../sim/research.ts'
-import type { Loadable } from './extendedSites.ts'
+import type { Loadable, Resolved } from './extendedSites.ts'
 import { fmtUtc } from './format.ts'
 import { placeTitle } from './placeName.ts'
 
@@ -21,13 +21,15 @@ const fmtRange = (w: { firstUtc: string; lastUtc: string }) =>
  * Research the chosen place suits, measured for this mission, and the best other catalogue
  * places for the same research with the same dates and hardware.
  */
-export function ResearchView({ data, result, startUtc, settings, catalogue, psrs, inScenarios, canAdd, onCompare, year, chosenDates, onUseDate }: {
+export function ResearchView({ data, result, startUtc, settings, catalogue, resolveCatalogue, psrs, inScenarios, canAdd, onCompare, year, chosenDates, onUseDate }: {
   data: SiteData
   result: ScenarioResult
   startUtc: string
   settings: MissionSettings
   /** Catalogue sites (not map points) the alternatives are chosen from. */
   catalogue: Record<string, SiteData>
+  /** Data a catalogue place runs on for a start date: its one-year series past the two-month period. */
+  resolveCatalogue: (siteId: string, startUtc: string) => Resolved
   psrs: Psr[]
   /** Site ids already in the comparison. */
   inScenarios: string[]
@@ -45,20 +47,28 @@ export function ResearchView({ data, result, startUtc, settings, catalogue, psrs
   const scanSeries = yearLoaded ? year : data.ephemeris
   const dateCandidates = useMemo(() => scanStartDates(scanSeries, data.horizon, selected, result.durationS),
     [scanSeries, data.horizon, selected, result.durationS])
-  // Every catalogue place for the same mission dates and hardware; missions outside the
-  // pre-computed main period cannot be compared like for like and are skipped.
-  const { candidates, skipped } = useMemo(() => {
+  // Every catalogue place for the same mission dates and hardware, on the same data the
+  // scenarios use (the one-year series past the two-month period). Places whose one-year
+  // series is still loading are counted; those that cannot run these dates are skipped.
+  const { candidates, skipped, loading } = useMemo(() => {
     const out: ResearchMetrics[] = []
     let missing = 0
-    for (const site of Object.values(catalogue)) {
+    let waiting = 0
+    for (const id of Object.keys(catalogue)) {
+      // A south-polar place only gets south-polar alternatives (alternativesFor), and only
+      // those places' one-year series are fetched, so the others are not waited for.
+      if (selected.region === 'polar' && catalogue[id].site.category === 'contrast') continue
+      const resolved = resolveCatalogue(id, startUtc)
+      if ('loading' in resolved) { waiting++; continue }
+      if ('error' in resolved) { missing++; continue }
       try {
-        out.push(researchMetrics(site, evaluateScenario(site, startUtc, settings), psrs))
+        out.push(researchMetrics(resolved.data, evaluateScenario(resolved.data, startUtc, settings), psrs))
       } catch {
         missing++
       }
     }
-    return { candidates: out, skipped: missing }
-  }, [catalogue, startUtc, settings, psrs])
+    return { candidates: out, skipped: missing, loading: waiting }
+  }, [catalogue, resolveCatalogue, startUtc, settings, psrs, selected.region])
 
   const assessed = RESEARCH_TYPES.map((type) => ({ type, ...type.assess(selected) }))
   const suited = assessed.filter((a) => a.fit !== 'no')
@@ -66,11 +76,12 @@ export function ResearchView({ data, result, startUtc, settings, catalogue, psrs
   return (
     <div className="research">
       <p className="explain">
-        What can be done at <strong>{placeTitle(data.site.id, catalogue)}</strong> during this mission, measured from NASA data.
-        Each research type is a criterion NASA itself uses; the alternatives use the same dates and lander.
+        What can be done at <strong>{placeTitle(data.site.id, catalogue)}</strong> during this mission, screened using NASA data.
+        Alternatives below support the same listed research criterion, with the same dates and lander.
+        This screening does not confirm the same samples, geology or access to a specific science target.
       </p>
       {selected.slopeDeg !== null && selected.slopeDeg > MAX_ALTERNATIVE_SLOPE_DEG && (
-        <p className="research__warning">Slope here is {selected.slopeDeg.toFixed(0)}°: too steep for a safe landing, whatever the research.</p>
+        <p className="research__warning">Slope here is {selected.slopeDeg.toFixed(0)}°: above the app’s {MAX_ALTERNATIVE_SLOPE_DEG}° alternative-site threshold. This is not a landing-safety assessment.</p>
       )}
       <p className="research__summary">
         {suited.length ? <>Suited for: {suited.map((a) => a.type.title).join(' · ')}.</> : 'No research type below is suited here for this mission.'}
@@ -85,9 +96,10 @@ export function ResearchView({ data, result, startUtc, settings, catalogue, psrs
               <span className={`research__fit research__fit--${fit}`}>{FIT_LABEL[fit]}</span>
             </header>
             <p className="research__value">{value}</p>
-            <p className="small muted">
-              {type.basis} <a href={type.source.url} target="_blank" rel="noreferrer">{type.source.label}</a>. {type.rule}
-            </p>
+            <details className="small muted">
+              <summary>Why this research? Criteria and source</summary>
+              <p>{type.basis} <a href={type.source.url} target="_blank" rel="noreferrer">{type.source.label}</a>. {type.rule}</p>
+            </details>
             {alternatives.length > 0 ? (
               <div className="research__alts">
                 <span className="small">{fit === 'strong' ? 'Also good for this:' : 'Better places for this:'}</span>
@@ -98,6 +110,8 @@ export function ResearchView({ data, result, startUtc, settings, catalogue, psrs
                       <li key={a.metrics.siteId}>
                         <span>
                           <strong>{placeTitle(a.metrics.siteId, catalogue)}</strong> · {FIT_LABEL[a.fit].toLowerCase()} · {a.value} · {fmtKm(a.distanceKm)} away
+                          <br /><span className="small muted">Start {fmtUtc(startUtc)} · {settings.durationDays} days · same research criterion and hardware
+                            {a.metrics.slopeDeg === null ? ' · slope unverified' : ` · slope ${a.metrics.slopeDeg.toFixed(1)}°`}</span>
                         </span>
                         <button type="button" disabled={added} onClick={() => onCompare(a.metrics.siteId)}
                           title={added ? 'Already in the comparison' : canAdd ? 'Add to the comparison' : 'Replace the chosen place with this one'}>
@@ -120,9 +134,10 @@ export function ResearchView({ data, result, startUtc, settings, catalogue, psrs
       })}
 
       <p className="small muted">
-        Alternatives: catalogue places with a known slope of at most {MAX_ALTERNATIVE_SLOPE_DEG}° (app assumption), evaluated for the same
-        start date, duration and lander. PSRs: NASA Moon Trek layer PSR_SP (PSRs of 10 km² or more; smaller PSRs can be closer).
-        {skipped > 0 && ` ${skipped} place(s) skipped: this start date is outside their pre-computed period (1 Nov 2026 – 1 Jan 2027).`}
+        Alternatives: catalogue places evaluated for the same
+        start date, duration and lander. Known slopes above {MAX_ALTERNATIVE_SLOPE_DEG}° are excluded (app assumption); unknown slopes remain unverified. PSRs: NASA Moon Trek layer PSR_SP (PSRs of 10 km² or more; smaller PSRs can be closer).
+        {loading > 0 && ` Loading the one-year data of ${loading} more place(s) for these dates; they join the alternatives when ready.`}
+        {skipped > 0 && ` ${skipped} place(s) skipped: their data does not cover this mission (pre-computed period 1 Nov 2026 – 1 Nov 2027).`}
       </p>
       <p className="small muted">
         Other start dates: every start 6 hours apart{dateCandidates.length > 0 && ` from ${fmtUtc(dateCandidates[0].startUtc)} to ${fmtUtc(dateCandidates.at(-1)!.startUtc)}`},

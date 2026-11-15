@@ -33,7 +33,7 @@ a ridge 1.9 km away gets continuous sunlight and keeps its reserve.
 
 **What it does.** A mission planner picks a source-labelled point from the 32-entry catalogue,
 a start date within the available 1 Nov 2026 – 1 Nov 2027 UTC coverage and a
-mission length (1–30 days), optionally changes the panel, battery and load assumptions, and
+mission length (1–90 days), optionally changes the panel, battery and load assumptions, and
 compares up to three places or dates. For each one a result card answers the two questions in
 plain words, "Power?" and "Talk to Earth?", with a tick or a cross. Tabs then show why: the app shows a horizon panorama (terrain skyline with the Sun and Earth tracks), a 3D
 view of the local terrain with the lander, timelines of Sun / Earth / both in view, panel output

@@ -5,7 +5,7 @@
 import { describe, expect, it } from 'vitest'
 import type { SiteData } from '../data/contract.ts'
 import { AU_M } from './energy.ts'
-import { DEFAULT_SETTINGS, MAX_DURATION_DAYS, SettingsError, evaluateScenario, evaluateScenarios, sampleUtc, validateSettings } from './evaluate.ts'
+import { DEFAULT_SETTINGS, SettingsError, evaluateScenario, evaluateScenarios, sampleUtc, validateSettings } from './evaluate.ts'
 
 /** A 62-day synthetic site (the length of the real coverage) with a slowly turning Sun. */
 function site(days = 62): SiteData {
@@ -59,15 +59,23 @@ describe('UTC handling', () => {
 })
 
 describe('validateSettings', () => {
+  it('evaluates a full year and more than three scenarios while enforcing data coverage', () => {
+    const data = site(365), settings = { ...DEFAULT_SETTINGS, durationDays: 365 }
+    const candidates = Array.from({ length: 5 }, () => ({ siteId: 'Test', startUtc: '2026-11-01T00:00:00Z' }))
+    const results = evaluateScenarios(candidates, settings, { Test: data })
+    expect(results).toHaveLength(5)
+    expect(results.every(r => r.count === 365 * 144 + 1)).toBe(true)
+    expect(() => evaluateScenario(data, '2026-11-02T00:00:00Z', settings)).toThrow(/computed period/)
+  })
   it('accepts the defaults and both panel / disk modes', () => {
     expect(validateSettings(DEFAULT_SETTINGS)).toEqual([])
     expect(validateSettings({ ...DEFAULT_SETTINGS, panelMode: 'fixed', fixedNormalAzDeg: 270, fixedNormalElDeg: 10, sunDiskModel: 'partial' })).toEqual([])
     expect(validateSettings({ ...DEFAULT_SETTINGS, durationDays: 1 })).toEqual([])
-    expect(validateSettings({ ...DEFAULT_SETTINGS, durationDays: MAX_DURATION_DAYS })).toEqual([])
+    expect(validateSettings({ ...DEFAULT_SETTINGS, durationDays: 365 })).toEqual([])
   })
 
   it('names every value that is out of range', () => {
-    const issues = validateSettings({ ...DEFAULT_SETTINGS, durationDays: 31, panelEfficiency: 1.2, reserveFraction: -0.1, batteryCapacityWh: 0, baseLoadW: Number.NaN })
+    const issues = validateSettings({ ...DEFAULT_SETTINGS, durationDays: 0, panelEfficiency: 1.2, reserveFraction: -0.1, batteryCapacityWh: 0, baseLoadW: Number.NaN })
     expect(issues).toHaveLength(5)
     expect(issues.join(' ')).toMatch(/duration/)
     expect(issues.join(' ')).toMatch(/efficiency/)
@@ -94,6 +102,22 @@ describe('performance (plan: three scenarios in about two seconds)', () => {
     const elapsedMs = performance.now() - t0
     expect(results).toHaveLength(3)
     expect(elapsedMs).toBeLessThan(500)
+  })
+})
+
+describe('90-day performance regression', () => {
+  it('evaluates three 90-day scenarios within the budget', () => {
+    const data = site(90 + 30)
+    const bySite = { Test: data }
+    const settings = { ...DEFAULT_SETTINGS, durationDays: 90, sunDiskModel: 'partial' as const }
+    const candidates = ['2026-11-01T00:00:00Z', '2026-11-15T00:00:00Z', '2026-12-01T00:00:00Z'].map((startUtc) => ({ siteId: 'Test', startUtc }))
+    evaluateScenarios(candidates, settings, bySite) // warm-up
+    const t0 = performance.now()
+    const results = evaluateScenarios(candidates, settings, bySite)
+    const elapsedMs = performance.now() - t0
+    expect(results).toHaveLength(3)
+    expect(results[0].count).toBe(90 * 144 + 1)
+    expect(elapsedMs).toBeLessThan(1500)
   })
 })
 

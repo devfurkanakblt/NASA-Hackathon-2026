@@ -1,10 +1,9 @@
 import { useState } from 'react'
 import type { CSSProperties } from 'react'
 import type { SiteData, SitesDoc } from '../data/contract.ts'
-import { MAX_SCENARIOS } from '../sim/evaluate.ts'
 import { fromInputUtc, shiftUtc, toInputUtc } from './format.ts'
 import { mapPointWhere } from './placeName.ts'
-import { LETTERS, newKey, siteTitle } from './scenarios.ts'
+import { scenarioLabel, newKey, siteTitle } from './scenarios.ts'
 import type { Scenario, ScenarioOutcome } from './scenarios.ts'
 
 interface Props {
@@ -26,7 +25,7 @@ interface Props {
   bySite: Record<string, SiteData>
 }
 
-/** Up to three scenarios (site + start time). The active one drives the panorama, 3D view and power chart. */
+/** Multiple scenarios (site + start time). The active one drives the panorama, 3D view and power chart. */
 export function ScenarioList({ sites, scenarios, outcomes, colors, activeKey, onChange, onActivate, maxStartFor, snap, cellId, busy, bySite }: Props) {
   const [lat, setLat] = useState('')
   const [lon, setLon] = useState('')
@@ -36,7 +35,7 @@ export function ScenarioList({ sites, scenarios, outcomes, colors, activeKey, on
   const contrast = sites.sites.filter((s) => s.category === 'contrast')
   const { startUtc: minUtc } = sites.coverage
   const activeIndex = Math.max(0, scenarios.findIndex((s) => s.key === activeKey))
-  const activeLetter = LETTERS[activeIndex]
+  const activeLetter = scenarioLabel(activeIndex)
   const usePoint = () => {
     const target = scenarios.find((s) => s.key === activeKey) ?? scenarios[0]
     const r = snap(Number(lat.trim() === '' ? NaN : lat), Number(lon.trim() === '' ? NaN : lon))
@@ -61,9 +60,9 @@ export function ScenarioList({ sites, scenarios, outcomes, colors, activeKey, on
           <div key={s.key} className={`scenario${s.key === activeKey ? ' is-active' : ''}`} style={{ '--active': colors[i] } as CSSProperties}>
             <div className="scenario__head">
               <button type="button" className="scenario__letter" style={{ background: colors[i] }} onClick={() => onActivate(s.key)} title="Show this place in the charts below">
-                {LETTERS[i]}
+                {scenarioLabel(i)}
               </button>
-              <select aria-label={`Scenario ${LETTERS[i]} site`} value={s.siteId} onChange={(e) => update(s.key, { siteId: e.target.value })}>
+              <select aria-label={`Scenario ${scenarioLabel(i)} site`} value={s.siteId} onChange={(e) => update(s.key, { siteId: e.target.value })}>
                 <optgroup label="South-pole landing spots">
                   {polar.map((site) => (
                     <option key={site.id} value={site.id}>
@@ -87,7 +86,7 @@ export function ScenarioList({ sites, scenarios, outcomes, colors, activeKey, on
                 )}
               </select>
               {scenarios.length > 1 && (
-                <button type="button" className="icon" aria-label={`Remove scenario ${LETTERS[i]}`} onClick={() => onChange(scenarios.filter((x) => x.key !== s.key))}>
+                <button type="button" className="icon" aria-label={`Remove scenario ${scenarioLabel(i)}`} onClick={() => onChange(scenarios.filter((x) => x.key !== s.key))}>
                   ×
                 </button>
               )}
@@ -130,7 +129,7 @@ export function ScenarioList({ sites, scenarios, outcomes, colors, activeKey, on
           </div>
         )
       })}
-      {scenarios.length < MAX_SCENARIOS && (
+      {(
         <button
           type="button"
           className="scenario__add"
@@ -141,7 +140,7 @@ export function ScenarioList({ sites, scenarios, outcomes, colors, activeKey, on
             onActivate(copy.key)
           }}
         >
-          + Add another place or date (up to {MAX_SCENARIOS})
+          + Add another place or date
         </button>
       )}
       <details className="scenario__point">

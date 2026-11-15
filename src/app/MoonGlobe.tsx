@@ -1,12 +1,16 @@
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { Html, OrbitControls } from '@react-three/drei'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { GlobalMoonSurface } from '../scene3d/GlobalMoonSurface.tsx'
+import { useGlobalTerrain } from '../scene3d/useGlobalTerrain.ts'
 import { useMoonSurfaceTexture } from '../scene3d/moonSurfaceTexture.ts'
-import { PolarMoonCap } from '../scene3d/PolarMoonCap.tsx'
+import { terrainRadius } from '../scene3d/globalTerrain.ts'
+import type { GlobalTerrain } from '../scene3d/globalTerrain.ts'
 import { globeNearPlane } from '../scene3d/globeClip.ts'
 import { Vector3 } from 'three'
 import type { Mesh } from 'three'
-import { GLOBE_NORTH_EDGE_DEG, keepLabelInFrame, labelOffset, southernCameraPosition } from './globeView.ts'
+import { separateGlobeLabel, labelOffset } from './globeView.ts'
+import type { LabelBox } from './globeView.ts'
 import { createMoonRoute, moonLatLon, moonPosition, sampleMoonRoute } from './moonFlight.ts'
 import type { CSSProperties } from 'react'
 import type { SiteEntry } from '../data/contract.ts'
@@ -26,22 +30,11 @@ function PoleCamera({ request }: { request: number }) {
   return null
 }
 
-/** Keeps the whole-globe camera over the southern hemisphere, so the far side cannot be turned into view. */
-function SouthernView() {
-  useFrame(({ camera, invalidate }) => {
-    const p = camera.position
-    const [x, y, z] = southernCameraPosition([p.x, p.y, p.z])
-    if (x !== p.x || y !== p.y || z !== p.z) {
-      p.set(x, y, z)
-      camera.lookAt(0, 0, 0)
-      invalidate()
-    }
-  })
-  return null
-}
-
-function GlobeClipPlanes() {
+function GlobeClipPlanes({ terrain }: { terrain: GlobalTerrain | null }) {
   useFrame(({ camera }) => {
+    // Keep the camera above the measured terrain, including positive elevations.
+    const ground = terrainRadius(terrain, camera.position, 1000)
+    if (camera.position.length() < ground) camera.position.setLength(ground)
     // A constant 0.0001 near plane loses depth precision when viewing the whole globe:
     // photograph layers then fight with the base sphere and look like radial streaks.
     const near = globeNearPlane(camera.position.length())
@@ -71,6 +64,9 @@ function KeepLabelsInFrame({ positions, refs }: { positions: Vector3[]; refs: { 
     // demand, so keep drawing briefly until they can be measured. Labels hidden behind
     // the rim measure 0 and are skipped; turning the globe draws new frames anyway.
     let unmeasured = false
+    const placed: LabelBox[] = [{ x: 76, y: 29, w: 128, h: 38 }]
+    // Leave room for the floating comparison controls, particularly in a narrow window.
+    const labelFrame = { w: size.width, h: Math.max(0, size.height - (mobile ? 90 : 45)) }
     positions.forEach((position, i) => {
       const { label, line } = refs.current[i] ?? {}
       if (!label?.offsetWidth) { unmeasured = true; return }
@@ -78,7 +74,9 @@ function KeepLabelsInFrame({ positions, refs }: { positions: Vector3[]; refs: { 
       const pin = mobile ? { x: offset.mobileX, y: offset.mobileY } : { x: offset.x, y: offset.y }
       projected.copy(position).project(camera)
       const anchor = { x: (projected.x + 1) / 2 * size.width, y: (1 - projected.y) / 2 * size.height }
-      const shift = keepLabelInFrame(anchor, pin, { w: label.offsetWidth, h: label.offsetHeight }, { w: size.width, h: size.height })
+      const box = separateGlobeLabel(anchor, pin, { w: label.offsetWidth, h: label.offsetHeight }, labelFrame, placed)
+      placed.push(box)
+      const shift = { x: box.x - anchor.x - pin.x, y: box.y - anchor.y - pin.y }
       label.style.setProperty('--pin-shift-x', `${shift.x}px`)
       label.style.setProperty('--pin-shift-y', `${shift.y}px`)
       line?.setAttribute('x2', String(pin.x + shift.x))
@@ -124,31 +122,37 @@ export default function MoonGlobe({ sites, selected, onSelect, onPickPoint, flig
   // drei <Html> roots created while the canvas is still being set up can come out empty
   // (the first place label went missing). Mount the labels on the first frame after setup.
   const [labelsReady, setLabelsReady] = useState(false)
-  const labelSites = flight ? selected.map(p => p.site) : sites
-  const labelPositions = useMemo(() => labelSites.map(site => moonPosition(site).multiplyScalar(1.0007)), [labelSites])
+  // Keep the pole readable: chosen places carry labels; other places are named on hover.
+  // This is a label budget only: every chosen point remains in the comparison and on the globe.
+  const labelSites = useMemo(() => [...new Map(selected.map(p => [p.site.id, p.site])).values()].slice(-4), [selected])
+  const dotSites = useMemo(() => flight ? [] : [...new Map([...sites, ...selected.map(p => p.site)].map(site => [site.id, site])).values()]
+    .filter(site => !labelSites.some(label => label.id === site.id)), [flight, sites, selected, labelSites])
+  const { terrain, error } = useGlobalTerrain()
+  const photograph = useMoonSurfaceTexture()
+  const displayPosition = (site: SiteEntry) => {
+    const direction = moonPosition(site)
+    return direction.multiplyScalar(terrainRadius(terrain, direction, 200))
+  }
+  const labelPositions = useMemo(() => labelSites.map(site => {
+    const direction = moonPosition(site)
+    return direction.multiplyScalar(terrainRadius(terrain, direction, 200))
+  }), [labelSites, terrain])
   const labelRefs = useRef<LabelRefs[]>([])
-  const { texture, failed } = useMoonSurfaceTexture()
   return <div className="moon-globe" aria-label={flight ? 'Travelling between selected lunar locations' : 'Interactive Moon location selector'}>
     <Canvas frameloop={active ? 'demand' : 'never'} camera={{ position: [0, -2.8, .65], up: [0, 0, -1], fov: 42, near: .05, far: 30 }} dpr={[1, 1.75]}>
       <color attach="background" args={['#070a0f']} />
       <PoleCamera request={poleRequest} />
-      <GlobeClipPlanes />
-      {!flight && <SouthernView />}
+      <GlobeClipPlanes terrain={terrain} />
       <ambientLight intensity={1.3} />
       <directionalLight position={[3, -4, 5]} intensity={2.5} />
-      {/* Places are chosen by name only; the surface itself is not clickable. */}
-      <group>
-      {/* Southern hemisphere only (theta is measured from the north pole, +Y). */}
-      <mesh ref={moon} onClick={(e) => {
+      <group onClick={(e) => {
         if (!onPickPoint || flight || e.delta > 4) return
         e.stopPropagation()
         const local = moon.current.worldToLocal(e.point.clone())
         const { latDeg, lonDeg } = moonLatLon(local)
         onPickPoint(latDeg, lonDeg)
-      }}><sphereGeometry args={[1, 128, 64, 0, Math.PI * 2, (90 - GLOBE_NORTH_EDGE_DEG) * Math.PI / 180, (90 + GLOBE_NORTH_EDGE_DEG) * Math.PI / 180]} />
-        {texture ? <meshBasicMaterial map={texture} toneMapped={false} /> : <meshStandardMaterial color="#898985" roughness={1} />}
-      </mesh>
-      <PolarMoonCap />
+      }}>
+      <GlobalMoonSurface terrain={terrain} meshRef={moon} />
       </group>
       {!labelsReady && <FirstFrame onFrame={() => setLabelsReady(true)} />}
       {labelsReady && <KeepLabelsInFrame positions={labelPositions} refs={labelRefs} />}
@@ -170,14 +174,17 @@ export default function MoonGlobe({ sites, selected, onSelect, onPickPoint, flig
           </Html>
         </group>
       })}
-      {selected.filter(p => !sites.some(s => s.id === p.site.id)).map(p => <group key={p.key} position={moonPosition(p.site).multiplyScalar(1.001)}>
-        <mesh><sphereGeometry args={[.00004, 10, 10]} /><meshBasicMaterial color={p.color} depthTest={false} /></mesh>
-        <Html center occlude={[moon]} style={{ pointerEvents: 'none' }}><span style={{ color: p.color, background: '#10141c', padding: 4 }}>{p.letter}</span></Html>
+      {labelsReady && dotSites.map(site => <group key={site.id} position={displayPosition(site)}>
+        <Html center occlude={[moon]} zIndexRange={[19, 0]}>
+          <button type="button" className="moon-dot" style={{ color: selected.find(p => p.site.id === site.id)?.color }} onClick={() => onSelect?.(site)} aria-pressed={selected.some(p => p.site.id === site.id)} aria-label={`${selected.some(p => p.site.id === site.id) ? 'Remove' : 'Add'} ${site.name} ${selected.some(p => p.site.id === site.id) ? 'from' : 'to'} the comparison`}>
+            <span className="moon-dot__name" aria-hidden="true">{selected.filter(p => p.site.id === site.id).map(p => p.letter).join(' / ')} {site.name}</span>
+          </button>
+        </Html>
       </group>)}
       {flight && onComplete ? <FlightCamera flight={flight} onComplete={onComplete} /> : <OrbitControls makeDefault enablePan={false} minDistance={1.001} maxDistance={4} enableDamping dampingFactor={.12} />}
     </Canvas>
-    {!flight && <button type="button" style={{ position: 'absolute', left: 12, bottom: 50, zIndex: 25 }} onClick={() => setPoleRequest(n => n + 1)}>Focus south pole</button>}
-    {!flight && <span className="moon-globe__hint" title="The catalogue covers the southern hemisphere only: the south pole, where the Sun and Earth skim the horizon, is the target region of Artemis and current landers. Northern sites such as Apollo 11 are left out on purpose; Apollo 12 (3.0° S) is the near-side contrast point.">Southern hemisphere · Click a name to add or remove it (up to three)</span>}
-    <span className="moon-globe__credit">{texture ? 'NASA/LROC WAC archive · Catalogue coordinates' : failed ? 'Image unavailable · Untextured catalogue locator' : 'Loading NASA/LROC imagery · Untextured globe'}</span>
+    {!flight && <button type="button" style={{ position: 'absolute', left: 12, top: 12, zIndex: 25 }} onClick={() => setPoleRequest(n => n + 1)}>Focus south pole</button>}
+    {!flight && <span className="moon-globe__hint">Rotate the whole Moon · Click the surface to compare a point · Scroll to zoom</span>}
+    <span className="moon-globe__credit" title="Archival LROC photographs show their original illumination, not the selected mission time. Display terrain uses the shared NASA LOLA global tiles at ~1.9 km per pixel, true height; the mesh refines on zoom without adding source detail. Scientific coverage and precision are reported with each result.">{terrain ? 'NASA LOLA terrain · ~1.9 km/px' : error ? 'Terrain unavailable · Locator only' : 'Loading checked NASA LOLA terrain…'} · {photograph.texture ? 'LROC archive imagery' : photograph.failed ? 'Global image unavailable' : 'Loading global image…'}</span>
   </div>
 }

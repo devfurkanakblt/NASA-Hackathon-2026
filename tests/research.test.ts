@@ -4,6 +4,8 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import type { Psr, SiteData, SitesDoc } from '../src/data/contract.ts'
+import { parseYear, type ExtendedHeader } from '../src/data/extended.ts'
+import { resolveSiteData, type ExtendedState } from '../src/app/extendedSites.ts'
 import { DEFAULT_SETTINGS, evaluateScenario } from '../src/sim/evaluate.ts'
 import { MAX_ALTERNATIVE_SLOPE_DEG, RESEARCH_TYPES, STAY_S, alternativesFor, arcKm, nearestPsr, researchMetrics } from '../src/sim/research.ts'
 import type { ResearchMetrics } from '../src/sim/research.ts'
@@ -103,6 +105,39 @@ describe('alternatives', () => {
       const list = alternativesFor(t, metrics.Site01, all, 9)
       const firstPossible = list.findIndex((a) => a.fit === 'possible')
       if (firstPossible >= 0) expect(list.slice(firstPossible).every((a) => a.fit === 'possible')).toBe(true)
+    }
+  })
+})
+
+describe('alternatives after the two-month period (one-year series)', () => {
+  const readBin = (p: string): ArrayBuffer => {
+    const b = readFileSync(DATA + p)
+    return b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength) as ArrayBuffer
+  }
+  const later = '2027-03-01T00:00:00Z'
+  const end = sites.coverage.endUtc
+  const days = DEFAULT_SETTINGS.durationDays
+
+  it('needs the one-year series for every place, and says so while it loads', () => {
+    const none: ExtendedState = { years: {}, cells: {} }
+    for (const id of Object.keys(bySite)) expect(resolveSiteData(id, later, end, bySite, none, days)).toHaveProperty('loading')
+  })
+
+  it('compares every catalogue place in March 2027 once the series are loaded', () => {
+    const ext: ExtendedState = { years: Object.fromEntries(Object.keys(bySite).map((id) => [id, parseYear(id, read<ExtendedHeader>(`${id}/extended.json`), readBin(`${id}/year.bin`))])), cells: {} }
+    const laterMetrics = Object.keys(bySite).map((id) => {
+      const r = resolveSiteData(id, later, end, bySite, ext, days)
+      if (!('data' in r)) throw new Error(`${id}: ${JSON.stringify(r)}`)
+      return researchMetrics(r.data, evaluateScenario(r.data, later, DEFAULT_SETTINGS), psrs)
+    })
+    expect(laterMetrics).toHaveLength(Object.keys(bySite).length)
+    const site01 = laterMetrics.find((m) => m.siteId === 'Site01')!
+    // Water ice is a place-only criterion: March must give the same list as November.
+    const ids = (list: { metrics: { siteId: string } }[]) => list.map((a) => a.metrics.siteId)
+    expect(ids(alternativesFor(type('ice'), site01, laterMetrics))).toEqual(ids(alternativesFor(type('ice'), metrics.Site01, Object.values(metrics))))
+    expect(ids(alternativesFor(type('ice'), site01, laterMetrics))).toContain('Site04R')
+    for (const t of RESEARCH_TYPES) {
+      for (const a of alternativesFor(t, site01, laterMetrics, 9)) expect(a.fit).not.toBe('no')
     }
   })
 })
