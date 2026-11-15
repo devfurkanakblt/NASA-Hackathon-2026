@@ -28,6 +28,7 @@ export function Sources({ data, result }: { data: SiteData; result: ScenarioResu
           <dt>Terrain horizon</dt>
           <dd>
             {horizon.count} azimuths ({horizon.azStepDeg}° steps) · near: {site.demNear} · far: {site.demFar}
+            {!horizon.distanceM && ' · 1° horizon, no distance data; summary maps use 0.5°'}
           </dd>
           <dt>Sun &amp; Earth positions</dt>
           <dd>
@@ -59,7 +60,10 @@ export function Sources({ data, result }: { data: SiteData; result: ScenarioResu
           <li>NASA Lunar Surface Data Book, Table A2.1-1 — site coordinates</li>
           <li>Solar constant {result?.model.solarConstantWm2 ?? 1361} W/m² (NASA GSFC)</li>
         </ul>
-        <p className="muted small">All values are pre-computed offline and loaded once; the app makes no network requests after the first load.</p>
+        <p className="muted small">
+          All values are pre-computed offline. The site files load once at start; the one-year series and map-point horizons of a site are fetched from the same place when a scenario needs
+          them. No outside server is contacted.
+        </p>
       </div>
     </div>
   )

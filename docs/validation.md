@@ -141,3 +141,19 @@ Consistency: the Site04 map cell nearest to the derived ridge point Site04R (40 
 The map reports a 2-month period (same as ephemeris.json); see `season.json` for the seasonal change at the site centres. Slope is from the 5 m DEM over a 25 m baseline; it is a terrain descriptor, not a landing-safety assessment.
 
 Pixel size and these numerical checks are not a statement of the DEM's absolute accuracy.
+
+## 7. Map points: 1° horizon vs `map.json`
+
+A map cell simulated as a scenario uses `cells.bin`: the cell's horizon at 1° azimuth steps, taken as every second value of the 0.5° horizon behind `map.json` (no new ray marching). Check (`python -m preprocess.extended --check`, test `preprocess/tests/test_extended.py`): for each map site, the centre plus 6 fixed cells spread over the map (61×61: (5,5) (5,55) (55,5) (55,55) (30,10) (36,32); 31×31: the same halved), two-month visibility recomputed with the 1° horizon and compared with `map.json`.
+
+| Site | cells | max \|Δ\| Sun | max \|Δ\| Earth | max \|Δ\| both (points) |
+|---|---|---|---|---|
+| Site01 | 7 | 0.08 | 0.02 | 0.01 |
+| Site04 | 7 | 0.03 | 0.06 | 0.04 |
+| Site07 | 7 | 0.01 | 0.14 | 0.15 |
+| Site04R | 7 | 0.02 | 0.09 | 0.09 |
+| Site11 | 7 | 0.08 | 0.08 | 0.06 |
+| Site20 | 7 | 0.13 | 0.03 | 0.02 |
+| Site23 | 7 | 0.04 | 0.03 | 0.03 |
+
+All differences are ≤ 0.2 points (test limit). They come only from the coarser azimuth step: between two 1° samples the horizon is interpolated linearly and misses narrow peaks or notches that the 0.5° profile resolves. The app labels these scenarios "Regional map point (1° horizon), not a catalogue site". The TypeScript re-projection of the Sun/Earth direction into a cell's frame is checked against Python (`docs/reference/cells.json`, 5 cells × 10 samples, ≤ 0.001°) in `src/sim/cell.test.ts`.

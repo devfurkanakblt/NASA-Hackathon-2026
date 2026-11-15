@@ -1,8 +1,9 @@
 /// <reference types="node" />
 /**
- * Acceptance check from the plan (§5 "Performans"): after the first load the app makes no
- * network requests, and the browser never talks to the JPL API. The only network code in the
- * app is `loadAllData()` in src/data/load.ts, which runs once at start-up.
+ * Acceptance check from the plan (§5 "Performans"): the browser never talks to the JPL API.
+ * Network code lives in two loaders only: `loadAllData()` in src/data/load.ts, which runs once
+ * at start-up, and the per-site one-year / map-point loaders in src/data/extended.ts (fetched
+ * on demand after the first render; design 2026-11-15-year-and-custom-point, approach 1).
  */
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
@@ -22,9 +23,9 @@ function sourceFiles(dir: string): string[] {
 describe('network use in the app', () => {
   const files = sourceFiles(SRC).map((path) => ({ path: relative(SRC, path).replaceAll('\\', '/'), text: readFileSync(path, 'utf8') }))
 
-  it('fetches only in the data loader', () => {
+  it('fetches only in the data loaders', () => {
     const network = /\bfetch\s*\(|XMLHttpRequest|new\s+WebSocket|EventSource|navigator\.sendBeacon/
-    expect(files.filter((f) => network.test(f.text)).map((f) => f.path)).toEqual(['data/load.ts'])
+    expect(files.filter((f) => network.test(f.text)).map((f) => f.path).sort()).toEqual(['data/extended.ts', 'data/load.ts'])
   })
 
   it('never addresses an outside host (no JPL / NASA API calls from the browser)', () => {

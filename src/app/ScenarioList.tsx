@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import type { SitesDoc } from '../data/contract.ts'
 import { MAX_SCENARIOS } from '../sim/evaluate.ts'
 import { fromInputUtc, shiftUtc, toInputUtc } from './format.ts'
@@ -12,13 +13,32 @@ interface Props {
   activeKey: string | null
   onChange: (scenarios: Scenario[]) => void
   onActivate: (key: string) => void
+  /** Latest start the date picker allows for a site id (year end once its one-year file is in). */
+  maxStartFor: (siteId: string) => string
+  /** Nearest regional map cell to a coordinate. */
+  snap: (latDeg: number, lonDeg: number) => { siteId: string; row: number; col: number; distanceM: number } | { error: string }
+  cellId: (siteId: string, row: number, col: number) => string
+  /** The chosen scenario is still loading its files: "Use point" waits. */
+  busy?: boolean
 }
 
 /** Up to three scenarios (site + start time). The active one drives the panorama, 3D view and power chart. */
-export function ScenarioList({ sites, scenarios, outcomes, colors, activeKey, onChange, onActivate }: Props) {
+export function ScenarioList({ sites, scenarios, outcomes, colors, activeKey, onChange, onActivate, maxStartFor, snap, cellId, busy }: Props) {
+  const [lat, setLat] = useState('')
+  const [lon, setLon] = useState('')
+  const [snapMsg, setSnapMsg] = useState<{ ok: boolean; text: string } | null>(null)
+  const siteIds = new Set(sites.sites.map((s) => s.id))
   const polar = sites.sites.filter((s) => s.category !== 'contrast')
   const contrast = sites.sites.filter((s) => s.category === 'contrast')
-  const { startUtc: minUtc, endUtc: maxUtc } = sites.coverage
+  const { startUtc: minUtc } = sites.coverage
+  const usePoint = () => {
+    const target = scenarios.find((s) => s.key === activeKey) ?? scenarios[0]
+    const r = snap(Number(lat.trim() === '' ? NaN : lat), Number(lon.trim() === '' ? NaN : lon))
+    if ('error' in r) return setSnapMsg({ ok: false, text: r.error })
+    const id = cellId(r.siteId, r.row, r.col)
+    if (target) update(target.key, { siteId: id })
+    setSnapMsg({ ok: true, text: `Snapped to ${id} (${Math.round(r.distanceM)} m away).` })
+  }
   const update = (key: string, patch: Partial<Scenario>) => onChange(scenarios.map((s) => (s.key === key ? { ...s, ...patch } : s)))
   const updateStartDate = (scenario: Scenario, value: string) => {
     const iso = fromInputUtc(value)
@@ -29,6 +49,7 @@ export function ScenarioList({ sites, scenarios, outcomes, colors, activeKey, on
     <div className="scenarios">
       {scenarios.map((s, i) => {
         const error = outcomes[i]?.error
+        const loading = outcomes[i]?.loading
         return (
           <div key={s.key} className={`scenario${s.key === activeKey ? ' is-active' : ''}`} style={{ borderColor: s.key === activeKey ? colors[i] : undefined }}>
             <div className="scenario__head">
@@ -43,6 +64,11 @@ export function ScenarioList({ sites, scenarios, outcomes, colors, activeKey, on
                     </option>
                   ))}
                 </optgroup>
+                {!siteIds.has(s.siteId) && (
+                  <optgroup label="Regional map point">
+                    <option value={s.siteId}>{s.siteId} — map point (1° horizon)</option>
+                  </optgroup>
+                )}
                 {contrast.length > 0 && (
                   <optgroup label="For comparison: away from the pole">
                     {contrast.map((site) => (
@@ -67,7 +93,7 @@ export function ScenarioList({ sites, scenarios, outcomes, colors, activeKey, on
                   step={600}
                   value={toInputUtc(s.startUtc)}
                   min={toInputUtc(minUtc)}
-                  max={toInputUtc(maxUtc)}
+                  max={toInputUtc(maxStartFor(s.siteId))}
                   onInput={(e) => updateStartDate(s, e.currentTarget.value)}
                   onChange={(e) => updateStartDate(s, e.currentTarget.value)}
                 />
@@ -84,11 +110,16 @@ export function ScenarioList({ sites, scenarios, outcomes, colors, activeKey, on
                 </button>
               </span>
             </div>
-            {error && (
-              <p className="bad small" role="alert">
-                {error}
-              </p>
-            )}
+            {error &&
+              (loading ? (
+                <p className="muted small" role="status">
+                  {error}
+                </p>
+              ) : (
+                <p className="bad small" role="alert">
+                  {error}
+                </p>
+              ))}
           </div>
         )
       })}
@@ -106,6 +137,22 @@ export function ScenarioList({ sites, scenarios, outcomes, colors, activeKey, on
           + Add another place or date (up to {MAX_SCENARIOS})
         </button>
       )}
+      <div className="scenario__point">
+        <span className="small">Lat / Lon (±3 km of a site)</span>
+        <div className="scenario__point-row">
+          <input aria-label="Latitude in degrees" inputMode="decimal" placeholder="lat −89.46" value={lat} onChange={(e) => setLat(e.target.value)} />
+          <input aria-label="Longitude in degrees (east positive)" inputMode="decimal" placeholder="lon −137.49" value={lon} onChange={(e) => setLon(e.target.value)} />
+          <button type="button" onClick={usePoint} disabled={busy} title="Move the active scenario to the nearest regional map cell">
+            Use point
+          </button>
+        </div>
+        {snapMsg && (
+          <p className={`small ${snapMsg.ok ? 'muted' : 'bad'}`} role="status">
+            {snapMsg.text}
+          </p>
+        )}
+      </div>
+      <p className="muted small">Dates up to 2027-11-01 UTC. Later dates and map points load extra data for that site first.</p>
     </div>
   )
 }

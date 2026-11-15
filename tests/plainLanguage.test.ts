@@ -17,7 +17,7 @@ const bySite: Record<string, SiteData> = Object.fromEntries(
 )
 
 describe('plain-language result cards', () => {
-  const [a, b, c] = evaluateAll(defaultScenarios(sites.sites.map((s) => s.id)), DEFAULT_SETTINGS, bySite).map((o) => o.result!)
+  const [a, b, c] = evaluateAll(defaultScenarios(sites.sites.map((s) => s.id)), DEFAULT_SETTINGS, (id) => ({ data: bySite[id] })).map((o) => o.result!)
 
   it('shows the Sun / Earth shares of docs/presentation-notes.md on the cards', () => {
     expect([a, b, c].map((r) => [fmtPct(r.summary.sunVisibleFraction), fmtPct(r.summary.earthVisibleFraction)])).toEqual([

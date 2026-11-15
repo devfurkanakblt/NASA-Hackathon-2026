@@ -138,7 +138,7 @@ export function Comparison({ outcomes, settings, bySite, colors }: Props) {
               <tr key={row.label}>
                 <th scope="row">{row.label}</th>
                 {outcomes.map((o) => (
-                  <td key={o.scenario.key}>{isEvaluated(o) ? row.cell(o) : row.label === 'Site' ? o.scenario.siteId : <span className="bad">{row.label === 'Start' ? o.error : '—'}</span>}</td>
+                  <td key={o.scenario.key}>{isEvaluated(o) ? row.cell(o) : row.label === 'Site' ? o.scenario.siteId : <span className={o.loading ? 'muted' : 'bad'}>{row.label === 'Start' ? o.error : '—'}</span>}</td>
                 ))}
               </tr>
             ))}

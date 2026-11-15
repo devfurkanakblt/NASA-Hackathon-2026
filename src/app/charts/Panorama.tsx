@@ -24,10 +24,16 @@ const COMPASS: Record<number, string> = { 0: 'N', 45: 'NE', 90: 'E', 135: 'SE', 
 
 const fmtKm = (m: number) => (m < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(1)} km`)
 
-/** Distance to the terrain that forms the horizon at an azimuth (nearest 0.1° sample). */
-function ridgeDistanceM(horizon: HorizonDoc, azDeg: number): number {
+/** Distance to the terrain that forms the horizon at an azimuth (nearest sample); undefined for map cells. */
+function ridgeDistanceM(horizon: HorizonDoc, azDeg: number): number | undefined {
+  if (!horizon.distanceM) return undefined
   const i = Math.round((((azDeg % 360) + 360) % 360) / horizon.azStepDeg) % horizon.count
   return horizon.distanceM[i]
+}
+
+function cursorRidge(horizon: HorizonDoc, azDeg: number): string {
+  const d = ridgeDistanceM(horizon, azDeg)
+  return d === undefined ? '' : `, ${fmtKm(d)} away`
 }
 
 /**
@@ -164,7 +170,7 @@ export function Panorama({ horizon, sun, earth, k }: Props) {
         </span>
         {hoverAz !== null && (
           <span className="pano__hover-read">
-            {Math.round(hoverAz)}°: skyline {horizonAt(horizon, hoverAz).toFixed(1)}° high, {fmtKm(ridgeDistanceM(horizon, hoverAz))} away
+            {Math.round(hoverAz)}°: skyline {horizonAt(horizon, hoverAz).toFixed(1)}° high{cursorRidge(horizon, hoverAz)}
           </span>
         )}
       </div>

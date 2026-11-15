@@ -30,7 +30,7 @@ a ridge 1.9 km away gets continuous sunlight and keeps its reserve.
 
 **What it does.** A mission planner picks one of seven south-pole sites (six from NASA's Lunar
 Surface Data Book plus a derived ridge point) or two contrast points (Chang'e-6 on the far side,
-Apollo 11 near the equator), a start date (1 Nov 2026 – 1 Jan 2027 UTC) and a
+Apollo 11 near the equator), a start date (1 Nov 2026 – 1 Nov 2027 UTC) and a
 mission length (1–30 days), optionally changes the panel, battery and load assumptions, and
 compares up to three places or dates. For each one a result card answers the two questions in
 plain words, "Power?" and "Talk to Earth?", with a tick or a cross. Tabs then show why: the app shows a horizon panorama (terrain skyline with the Sun and Earth tracks), a 3D
@@ -39,7 +39,8 @@ versus demand, and battery state of charge. Each scenario reports whether it kee
 reserve, the first reserve violation, unmet energy, the longest Earth outage against the accepted
 limit, and the time to the next rise or set. Around each polar site a ±3 km map shows Sun / Earth
 visibility and slope for every 100 m cell (on Shackleton's map the catalogue point and the ridge
-1.9 km away sit side by side), and a one-year monthly chart shows the seasonal effect. The whole
+1.9 km away sit side by side); any 100 m map cell can be simulated as a scenario (or reached by
+typing a latitude/longitude within ±3 km of a site), and a one-year monthly chart shows the seasonal effect. The whole
 comparison (sites, dates, hardware) is kept in the page link, so it can be shared as is, and a
 short built-in tour explains the screen to first-time visitors.
 
@@ -48,7 +49,10 @@ elevation and distance seen from each site (10-minute steps, observer 2 m above 
 and computes a 3 600-direction terrain horizon from LOLA 5 m/px DEMs within 7 km and the LOLA
 80 m/px south-pole DEM out to 250 km, including lunar curvature. The results are small static JSON
 files. The web app (React + TypeScript) loads them once and runs the visibility, power and battery
-model in the browser, so every setting change updates instantly and no server is needed. The 3D
+model in the browser, so every setting change updates instantly and no server is needed. The
+one-year ephemeris and the per-cell 1° horizons are small binary files fetched per site only when
+a scenario needs them; a map point re-projects the site's Sun/Earth positions into the cell's own
+local frame. The 3D
 terrain is for orientation only; visibility always comes from the horizon profile.
 
 **Why it matters.** At the lunar south pole the Sun and Earth stay close to the horizon, so a few
@@ -63,8 +67,8 @@ rise/set times from 10-minute data agree with a 1-minute series within 0.33 min 
 on gentle ground. Against NASA GSFC's independent polar illumination maps (Mazarico et al., 18.6
 years) our Sun and Earth visibility falls within the map's local 3×3-pixel range at all 7 polar
 sites (rank correlation 0.96 for both), and Shackleton's floor is permanently shadowed in both.
-The TypeScript engine reproduces the Python reference values exactly; 203 automated tests run on
-every change.
+The TypeScript engine reproduces the Python reference values exactly; map points with the 1°
+horizon stay within 0.15 points of the 0.5° map values; 310 automated tests (231 TypeScript, 79 Python) run on every change.
 
 **Limits.** Sites are research region centres, not certified landing sites; hardware values are
 example assumptions. Not modelled: eclipses, temperature, dust, battery ageing, ground-station
@@ -76,8 +80,8 @@ not resolved.
 React Three Fiber, inline SVG charts, Vite, Vitest. Static hosting on [Vercel / GitHub Pages]; the same
 build runs offline.
 
-**Next steps.** Run the full mission simulation for any map cell (not only the listed sites),
-extend the time series to a full year, thermal and relay-satellite models.
+**Next steps.** Free coordinates anywhere on the Moon (needs an online DEM), thermal and
+relay-satellite models.
 
 ## Use of Artificial Intelligence (AI)
 

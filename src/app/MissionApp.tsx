@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { CSSProperties } from 'react'
-import type { LoadedData } from '../data/contract.ts'
+import type { LoadedData, SiteData } from '../data/contract.ts'
+import { loadCells, loadYear } from '../data/extended.ts'
 import { loadAllData } from '../data/load.ts'
 import { MissionScene3D } from '../scene3d/index.ts'
 import type { BodyState, PanelState } from '../scene3d/index.ts'
@@ -16,7 +17,10 @@ import { SiteMap } from './charts/SiteMap.tsx'
 import { Comparison } from './Comparison.tsx'
 import { errorMessage, fmtDuration, fmtUtc } from './format.ts'
 import { ScenarioList } from './ScenarioList.tsx'
-import { defaultScenarios, evaluateAll, isEvaluated } from './scenarios.ts'
+import { cellId, isKnownSiteId, parseCellId, resolveSiteData, sitesNeeded, snapToCell } from './extendedSites.ts'
+import type { ExtendedState } from './extendedSites.ts'
+import { cellAt } from './mapGrid.ts'
+import { defaultScenarios, evaluateAll, isEvaluated, targetScenarioKey } from './scenarios.ts'
 import type { Scenario } from './scenarios.ts'
 import { SettingsForm } from './SettingsForm.tsx'
 import { decodeShare, encodeShare } from './share.ts'
@@ -55,6 +59,16 @@ function writeFlag(key: string) {
 const COLORS = ['#f2a541', '#4cc9f0', '#c77dff']
 const STEPS_PER_FRAME = 2
 
+/** "the same point" / "200 m east, 600 m north of it". */
+function cellOffset(map: Parameters<typeof cellAt>[0], row: number, col: number): string {
+  const c = cellAt(map, row, col)
+  if (c.distanceM === 0) return 'the same point'
+  return `${fmtM(Math.abs(c.eastM))} ${c.eastM >= 0 ? 'east' : 'west'}, ${fmtM(Math.abs(c.northM))} ${c.northM >= 0 ? 'north' : 'south'} of it`
+}
+const yearEndUtc = (y: { startUtc: string; stepS: number; count: number }) =>
+  new Date(Date.parse(y.startUtc) + (y.count - 1) * y.stepS * 1000).toISOString().replace('.000Z', 'Z')
+const fmtM = (m: number) => (Math.abs(m) < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(1)} km`)
+
 /** "in view, sets in 5 d 20 h" / "hidden for the rest of the mission". */
 function countdown(windows: VisibilityWindow[], visibleNow: boolean, tS: number): string {
   const next = nextTransition(windows, tS)
@@ -81,6 +95,8 @@ export function MissionApp() {
   const diagnostics = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('diagnostics') === '1'
   // Result of the last "Copy link", for the link it copied; a changed comparison clears it.
   const [copyResult, setCopyResult] = useState<{ hash: string; ok: boolean } | null>(null)
+  // One-year series and map-point horizons, fetched per site after the first render.
+  const [ext, setExt] = useState<ExtendedState>({ years: {}, cells: {} })
 
   useEffect(() => {
     let cancelled = false
@@ -89,7 +105,7 @@ export function MissionApp() {
         if (cancelled) return
         const siteIds = data.sites.sites.map((s) => s.id)
         // A shared link (#s=...) opens the comparison it describes; otherwise the demo default.
-        const shared = decodeShare(window.location.hash, siteIds)
+        const shared = decodeShare(window.location.hash, (id) => isKnownSiteId(id, data.bySite))
         const initial = shared?.scenarios ?? defaultScenarios(siteIds)
         if (shared) setSettings(shared.settings)
         setLoaded(data)
@@ -120,13 +136,69 @@ export function MissionApp() {
     )
   }
 
+  // Which per-site files to fetch: what the scenarios need now, plus (in the background) the
+  // one-year series of every scenario's site so later dates open without waiting.
+  const wanted = useMemo(() => {
+    if (!loaded) return { years: [] as string[], cells: [] as string[] }
+    const need = sitesNeeded(scenarios, loaded.sites.coverage.endUtc, settings.durationDays)
+    const bases = scenarios.map((s) => parseCellId(s.siteId)?.siteId ?? s.siteId).filter((id) => id in loaded.bySite)
+    return { years: [...new Set([...need.years, ...bases])], cells: need.cells }
+  }, [loaded, scenarios, settings.durationDays])
+  const wantedKey = `${wanted.years.join(',')}|${wanted.cells.join(',')}`
+  useEffect(() => {
+    const years = wanted.years.filter((id) => ext.years[id] === undefined)
+    const cells = wanted.cells.filter((id) => ext.cells[id] === undefined)
+    if (years.length === 0 && cells.length === 0) return
+    const mark = (kind: 'years' | 'cells', id: string, value: ExtendedState['years'][string] | ExtendedState['cells'][string]) =>
+      setExt((e) => ({ ...e, [kind]: { ...e[kind], [id]: value } }))
+    for (const id of years) {
+      mark('years', id, 'loading')
+      loadYear(id).then(
+        (y) => mark('years', id, y),
+        () => mark('years', id, 'error'),
+      )
+    }
+    for (const id of cells) {
+      mark('cells', id, 'loading')
+      loadCells(id).then(
+        (c) => mark('cells', id, c),
+        () => mark('cells', id, 'error'),
+      )
+    }
+  }, [wantedKey]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const resolve = useCallback(
+    (id: string, startUtc: string) =>
+      loaded ? resolveSiteData(id, startUtc, loaded.sites.coverage.endUtc, loaded.bySite, ext, settings.durationDays) : { error: 'Site data not loaded.' },
+    [loaded, ext, settings.durationDays],
+  )
+  /** Latest start the date picker offers for a site: the year end once its one-year file is in. */
+  const maxStartFor = useCallback(
+    (siteId: string) => {
+      const y = ext.years[parseCellId(siteId)?.siteId ?? siteId]
+      return y && y !== 'loading' && y !== 'error' ? yearEndUtc(y) : (loaded?.sites.coverage.endUtc ?? '')
+    },
+    [ext, loaded],
+  )
+
   const issues = useMemo(() => validateSettings(settings), [settings])
-  const outcomes = useMemo(() => (loaded && issues.length === 0 ? evaluateAll(scenarios, settings, loaded.bySite) : []), [loaded, scenarios, settings, issues])
+  const outcomes = useMemo(() => (loaded && issues.length === 0 ? evaluateAll(scenarios, settings, resolve) : []), [loaded, scenarios, settings, issues, resolve])
+  const shownBySite = useMemo(() => {
+    const out: Record<string, SiteData> = { ...(loaded?.bySite ?? {}) }
+    for (const o of outcomes) if (o.data) out[o.data.site.id] = o.data
+    return out
+  }, [loaded, outcomes])
   const evaluated = useMemo(() => outcomes.filter(isEvaluated), [outcomes])
   const activeIndex = Math.max(0, scenarios.findIndex((s) => s.key === activeKey))
   const active = outcomes[activeIndex] && isEvaluated(outcomes[activeIndex]) ? outcomes[activeIndex] : evaluated[0]
   const activeColor = COLORS[active ? outcomes.indexOf(active) : 0]
-  const activeData = active && loaded ? loaded.bySite[active.scenario.siteId] : null
+  const activeData = active?.data ?? null
+  const activeCell = activeData ? parseCellId(activeData.site.id) : null
+  // Map-point actions and the highlight stay on the chosen scenario, also while it loads.
+  const chosenKey = targetScenarioKey(scenarios, activeKey)
+  const chosenOutcome = outcomes.find((o) => o.scenario.key === chosenKey)
+  const chosenLoading = !!chosenOutcome?.loading
+  const setActiveSite = (siteId: string) => setScenarios((list) => list.map((s) => (s.key === chosenKey ? { ...s, siteId } : s)))
   const colorsOfEvaluated = evaluated.map((o) => COLORS[outcomes.indexOf(o)])
 
   const lastStep = evaluated.length ? evaluated[0].result.count - 1 : 0
@@ -258,7 +330,11 @@ export function MissionApp() {
               scenarios={scenarios}
               outcomes={outcomes}
               colors={COLORS}
-              activeKey={active?.scenario.key ?? activeKey}
+              activeKey={chosenKey}
+              busy={chosenLoading}
+              maxStartFor={maxStartFor}
+              snap={(lat, lon) => snapToCell(lat, lon, loaded.bySite)}
+              cellId={cellId}
               onChange={(next) => {
                 setScenarios(next)
                 if (!next.some((s) => s.key === activeKey)) setActiveKey(next[0]?.key ?? null)
@@ -293,7 +369,7 @@ export function MissionApp() {
             {issues.length > 0 ? (
               <p className="bad">Some lander settings are out of range. Fix them in step 2 to see the result.</p>
             ) : (
-              <Comparison outcomes={outcomes} settings={settings} bySite={loaded.bySite} colors={COLORS} />
+              <Comparison outcomes={outcomes} settings={settings} bySite={shownBySite} colors={COLORS} />
             )}
           </section>
 
@@ -363,7 +439,12 @@ export function MissionApp() {
                         <input type="checkbox" checked={show3d} onChange={(e) => setShow3d(e.target.checked)} /> Show
                       </label>
                     </div>
-                    {show3d && (
+                    {show3d && activeCell && activeData.map && (
+                      <p className="muted small">
+                        The 3D view shows the catalogue point; the selected map point is {cellOffset(activeData.map, activeCell.row, activeCell.col)}.
+                      </p>
+                    )}
+                    {show3d && !activeCell && (
                       <div className="scene-box">
                         <MissionScene3D
                           terrain={activeData.terrain}
@@ -424,7 +505,13 @@ export function MissionApp() {
                   <>
                     <p className="explain">Every spot within {activeData.map ? activeData.map.grid.halfSizeM / 1000 : 3} km. Brighter means more time in view. Click a spot to read it.</p>
                     {activeData.map ? (
-                      <SiteMap map={activeData.map} sites={loaded.sites.sites} />
+                      <SiteMap
+                        map={activeData.map}
+                        sites={loaded.sites.sites}
+                        selected={activeCell ?? undefined}
+                        onSimulate={(siteId, row, col) => setActiveSite(cellId(siteId, row, col))}
+                        busy={chosenLoading ? (chosenOutcome?.error ?? 'Loading…') : undefined}
+                      />
                     ) : (
                       <p className="muted">
                         No area map here{activeData.site.category === 'contrast' ? ': this is a comparison point away from the pole' : ''}. Pick a south-pole site to see one.

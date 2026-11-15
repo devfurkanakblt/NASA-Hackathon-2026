@@ -165,7 +165,8 @@ def build(site_id, half_m=HALF_M, spacing_m=SPACING_M, workers=None):
     if from_far.any():
         warnings.append(f"{int(from_far.sum())} cells outside the 5 m tile: height/slope from the 80 m DEM")
     if fallback:
-        warnings.append(f"{fallback} near-field ray samples (<= {C.NEAR_RANGE_M:.0f} m) used the 80 m DEM")
+        from .extended import near_field_total, near_field_warning
+        warnings.append(near_field_warning(fallback, near_field_total(lat.size, horizons.shape[1])))
     if np.isnan(slope).any():
         warnings.append("slopeDeg is null where the 5 m DEM does not cover the cell")
 

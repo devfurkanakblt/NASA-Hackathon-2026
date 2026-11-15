@@ -56,8 +56,8 @@ export interface HorizonDoc {
   count: number
   /** Terrain horizon elevation at azimuth `i * azStepDeg`. */
   elevDeg: number[]
-  /** Distance to the terrain point that forms the horizon. */
-  distanceM: number[]
+  /** Distance to the terrain point that forms the horizon; absent for regional map cells. */
+  distanceM?: number[]
   warnings?: string[]
   params?: { nearRangeM: number; nearStepM: number; maxRangeM: number; farStepM: number; minRangeM: number; curvature: boolean }
 }

@@ -19,8 +19,16 @@ export interface ScenarioOutcome {
   /** A, B, C — the scenario's name on every chart and in the comparison. */
   letter: string
   result: ScenarioResult | null
+  /** Error, or the loading message while the scenario's per-site files arrive. */
   error: string | null
+  /** True while the scenario waits for its one-year / map-point files (shown muted, not as an error). */
+  loading: boolean
+  /** The data the scenario ran on (a map point or the one-year series when needed). */
+  data: SiteData | null
 }
+
+/** Turns a scenario's site id and start into the data to run on (see extendedSites.resolveSiteData). */
+export type SiteResolver = (siteId: string, startUtc: string) => { data: SiteData } | { loading: string } | { error: string }
 
 export type EvaluatedOutcome = ScenarioOutcome & { result: ScenarioResult }
 
@@ -46,17 +54,23 @@ export function defaultScenarios(siteIds: string[]): Scenario[] {
 }
 
 /** Evaluates every scenario with the same settings; an error stays with its own scenario. */
-export function evaluateAll(scenarios: Scenario[], settings: MissionSettings, bySite: Record<string, SiteData>): ScenarioOutcome[] {
+export function evaluateAll(scenarios: Scenario[], settings: MissionSettings, resolve: SiteResolver): ScenarioOutcome[] {
   return scenarios.slice(0, MAX_SCENARIOS).map((scenario, i) => {
     const letter = LETTERS[i]
-    const data = bySite[scenario.siteId]
-    if (!data) return { scenario, letter, result: null, error: `No data for site ${scenario.siteId}.` }
+    const r = resolve(scenario.siteId, scenario.startUtc)
+    if ('loading' in r) return { scenario, letter, result: null, error: r.loading, loading: true, data: null }
+    if ('error' in r) return { scenario, letter, result: null, error: r.error, loading: false, data: null }
     try {
-      return { scenario, letter, result: evaluateScenario(data, scenario.startUtc, settings), error: null }
+      return { scenario, letter, result: evaluateScenario(r.data, scenario.startUtc, settings), error: null, loading: false, data: r.data }
     } catch (e) {
-      return { scenario, letter, result: null, error: errorMessage(e) }
+      return { scenario, letter, result: null, error: errorMessage(e), loading: false, data: r.data }
     }
   })
+}
+
+/** The scenario the map-point actions change: the chosen one (even while it loads), else the first. */
+export function targetScenarioKey(scenarios: Scenario[], activeKey: string | null): string | null {
+  return scenarios.some((s) => s.key === activeKey) ? activeKey : (scenarios[0]?.key ?? null)
 }
 
 export const isEvaluated = (o: ScenarioOutcome): o is EvaluatedOutcome => o.result !== null

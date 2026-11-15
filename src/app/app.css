@@ -207,6 +207,22 @@
 .app .scenario__add {
   border-style: dashed;
 }
+.scenario__point {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--muted);
+}
+.scenario__point-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.scenario__point-row input {
+  width: 8.5em;
+  min-width: 0;
+  flex: 1 1 6em;
+}
 
 /* Settings */
 .settings fieldset {
@@ -669,6 +685,10 @@
 .sitemap__ramp-labels {
   display: flex;
   justify-content: space-between;
+}
+.app .sitemap__simulate {
+  align-self: flex-start;
+  margin-top: 6px;
 }
 .sitemap__cell {
   display: grid;

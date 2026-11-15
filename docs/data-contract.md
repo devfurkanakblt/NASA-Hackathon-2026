@@ -163,6 +163,23 @@ The terrain horizon does not change; only the ephemeris is re-queried (JPL Horiz
 - `mainPeriod` uses exactly the samples of `ephemeris.json`; its percentages equal `docs/reference/visibility.json` (checked when the file is built).
 - `sunElMaxDeg` / `sunElMinDeg`: Sun elevation above the local horizontal plane (no terrain). When `sunElMaxDeg` is below the terrain horizon in the Sun's direction the month has no sunlight, which is the seasonal effect to show.
 
+## `{siteId}/extended.json`, `year.bin`, `cells.bin` (loaded per site on demand, added in v1 without breaking changes)
+
+Written by `python -m preprocess.extended` from existing caches only. Not part of the first page load; the app fetches them for one site when a scenario needs them. If they are missing, the two-month simulation keeps working.
+
+```jsonc
+{
+  "version": 1, "siteId": "Site01",
+  "year": { "file": "year.bin", "startUtc": "2026-11-01T00:00:00Z", "stepS": 600, "count": 52561, "source": "jpl-horizons" },
+  // only for sites with map.json:
+  "cells": { "file": "cells.bin", "azStepDeg": 1, "count": 360, "unitDeg": 0.01, "n": 3721, "eyeM": [ /* n values */ ] }
+}
+```
+
+- **`year.bin`**: little-endian float32, six blocks of `count` values in this order: `sun.azDeg, sun.elDeg, sun.distanceM, earth.azDeg, earth.elDeg, earth.distanceM`. Coverage `2026-11-01T00:00:00Z` … `2027-11-01T00:00:00Z`, `stepS` 600, count 52 561 (both ends inclusive). Same observer and settings as `ephemeris.json`; the first `ephemeris.json.count` samples equal it within float32 rounding (angles ≤ 1e-4°).
+- **`cells.bin`**: little-endian int16, unit `unitDeg` (0.01°). Row = cell in `map.json` order (row 0 = south, col 0 = west, row-major), 360 columns = azimuth `j × 1°`. Taken as every second column of the 0.5° map horizons (decimation, not averaging: a horizon value is a maximum, an average would invent a value). No `distanceM`.
+- `cells.eyeM[i]`: eye height of cell `i` above the 1737.4 km sphere (surface + 2 m).
+
 ## Visibility rule (shared by B and D)
 
 ```ts
