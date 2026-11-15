@@ -1,10 +1,11 @@
 /// <reference types="node" />
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { cellId, isKnownSiteId, needsYear, parseCellId, resolveSiteData, sitesNeeded, snapToCell, type ExtendedState } from '../src/app/extendedSites.ts'
 import type { MapDoc, SiteData, SitesDoc } from '../src/data/contract.ts'
 import { parseCells, parseYear, type ExtendedHeader } from '../src/data/extended.ts'
+import { CoverageError, DEFAULT_SETTINGS, evaluateScenario } from '../src/sim/evaluate.ts'
 
 const DATA_DIR = fileURLToPath(new URL('../public/data/', import.meta.url))
 const read = <T>(path: string): T => JSON.parse(readFileSync(DATA_DIR + path, 'utf8')) as T
@@ -21,7 +22,7 @@ const bySite: Record<string, SiteData> = Object.fromEntries(
       ephemeris: read(`${site.id}/ephemeris.json`),
       horizon: read(`${site.id}/horizon.json`),
       terrain: { sizeM: 0, n: 0, cellM: 0, zM: [] },
-      map: site.category === 'contrast' ? undefined : read<MapDoc>(`${site.id}/map.json`),
+      map: existsSync(`${DATA_DIR}${site.id}/map.json`) ? read<MapDoc>(`${site.id}/map.json`) : undefined,
     } as SiteData,
   ]),
 )
@@ -95,10 +96,10 @@ describe('resolveSiteData', () => {
     expect(resolveSiteData(id, '2026-11-15T00:00:00Z', END, bySite, none)).toEqual({ loading: 'Loading map point…' })
     const ext: ExtendedState = { years: { Site01: yearOf('Site01') }, cells: { Site01: 'loading' } }
     expect(resolveSiteData(id, '2026-11-15T00:00:00Z', END, bySite, ext)).toEqual({ loading: 'Loading map point…' })
-    const done: ExtendedState = { years: { Site01: yearOf('Site01') }, cells: { Site01: cellsOf('Site01') } }
+    const done: ExtendedState = { years: { Site01: yearOf('Site01') }, cells: { Site01: cellsOf('Site01') }, headers: { Site01: header('Site01') } }
     const r = resolveSiteData(id, '2026-11-15T00:00:00Z', END, bySite, done)
     expect('data' in r && r.data.site.id).toBe(id)
-    const err: ExtendedState = { years: { Site01: 'error' }, cells: { Site01: cellsOf('Site01') } }
+    const err: ExtendedState = { years: { Site01: 'error' }, cells: { Site01: cellsOf('Site01') }, headers: { Site01: header('Site01') } }
     expect(resolveSiteData(id, '2026-11-15T00:00:00Z', END, bySite, err)).toEqual({ error: 'Map point data not available.' })
   })
 
@@ -161,5 +162,54 @@ describe('snapToCell', () => {
     expect(snapToCell(ce6.latDeg, ce6.lonDeg, bySite)).toEqual({ error: 'Outside the ±3 km maps around the polar sites.' })
     expect('error' in snapToCell(Number.NaN, 0, bySite)).toBe(true)
     expect('error' in snapToCell(-95, 0, bySite)).toBe(true)
+  })
+})
+
+describe('acceptance: coverage limits and failure modes', () => {
+  const settings = { ...DEFAULT_SETTINGS, durationDays: 1 }
+  const yearData = () => {
+    const r = resolveSiteData('Site01', '2027-10-31T00:00:00Z', END, bySite, { years: { Site01: yearOf('Site01') }, cells: {} }, 1)
+    if (!('data' in r)) throw new Error('year data expected')
+    return r.data
+  }
+
+  it('start + duration exactly at 2027-11-01T00:00:00Z is accepted', () => {
+    const r = evaluateScenario(yearData(), '2027-10-31T00:00:00Z', settings)
+    expect(r.count).toBe(145)
+    expect(r.startIndex + r.count - 1).toBe(yearData().ephemeris.count - 1)
+  })
+
+  it('600 s later throws CoverageError naming 2027-11-01', () => {
+    const run = () => evaluateScenario(yearData(), '2027-10-31T00:10:00Z', settings)
+    expect(run).toThrow(CoverageError)
+    expect(run).toThrow(/2027-11-01/)
+  })
+
+  it('snapToCell(-89.4632, 180.0001) and (-89.4632, -179.9999) agree', () => {
+    expect(snapToCell(-89.4632, 180.0001, bySite)).toEqual(snapToCell(-89.4632, -179.9999, bySite))
+  })
+
+  it('±180° wrap: a synthetic map centred on the seam snaps both sides to the same cell', () => {
+    // 3x3 map, lat -89.46, columns at lon 179.65, 180 and -179.65 (about 100 m apart at this latitude)
+    const lons = [179.65, 180, -179.65]
+    const latDeg: number[] = []
+    const lonDeg: number[] = []
+    for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) { latDeg.push(-89.46 + (r - 1) * 0.0009); lonDeg.push(lons[c]) }
+    const base = bySite.Site01
+    const seam = { ...base, site: { ...base.site, id: 'Seam' }, map: { ...base.map!, siteId: 'Seam', grid: { nx: 3, ny: 3, spacingM: 100, halfSizeM: 100 }, latDeg, lonDeg } } as SiteData
+    const only = { Seam: seam }
+    const a = snapToCell(-89.46, 180.0001, only)
+    const b = snapToCell(-89.46, -179.9999, only)
+    expect(a).toMatchObject({ siteId: 'Seam', row: 1, col: 1 })
+    expect(b).toMatchObject({ siteId: 'Seam', row: 1, col: 1 })
+    expect(snapToCell(-89.46, 180.3, only)).toMatchObject({ row: 1, col: 2 })
+    expect(snapToCell(-89.46, -179.7, only)).toMatchObject({ row: 1, col: 2 })
+    expect(snapToCell(-89.46, 179.7, only)).toMatchObject({ row: 1, col: 0 })
+  })
+
+  it('missing cells.bin shows an error, not a zero horizon', () => {
+    const missing: ExtendedState = { years: { Site01: yearOf('Site01') }, cells: { Site01: 'error' }, headers: { Site01: header('Site01') } }
+    expect(resolveSiteData('Site01:r36c32', '2026-11-15T00:00:00Z', END, bySite, missing)).toEqual({ error: 'Map point data not available.' })
+    expect(() => parseCells(header('Site01'), new ArrayBuffer(0))).toThrow(/Site01\/cells\.bin/)
   })
 })

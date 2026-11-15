@@ -1,7 +1,7 @@
 import type { SiteData } from '../data/contract.ts'
 import { J_PER_WH, SOLAR_CONSTANT_W_M2, clearSkyPanelPowerW, simulateBattery } from './energy.ts'
 import type { PanelSettings } from './energy.ts'
-import { intersectWindows, longestGapS, marginSeries, stepFractions, sunDiskFraction, totalDurationS, windowsFromMargins } from './visibility.ts'
+import { intersectWindows, longestGapS, marginSeries, sunDiskFraction, totalDurationS, windowsFromMargins } from './visibility.ts'
 import type { VisibilityWindow } from './visibility.ts'
 
 /** Mission and hardware settings shared by every scenario being compared. */
@@ -174,6 +174,22 @@ const MODEL_NOTES: Record<SunDiskModel, string[]> = {
 /** Thrown when a mission does not fit inside the pre-computed data. */
 export class CoverageError extends RangeError {}
 
+/** Thrown when the data a mission needs has a missing, non-finite or impossible value. */
+export class DataError extends RangeError {}
+
+function assertMissionData(data: SiteData, startIndex: number, count: number) {
+  const { ephemeris, horizon } = data
+  if (!horizon.elevDeg.every(Number.isFinite) || !(horizon.azStepDeg > 0)) throw new DataError(`${data.site.id}: the terrain horizon has a missing or non-finite value.`)
+  for (const body of ['sun', 'earth'] as const) {
+    const s = ephemeris[body]
+    for (let i = startIndex; i < startIndex + count; i++) {
+      if (!Number.isFinite(s.azDeg[i]) || !Number.isFinite(s.elDeg[i]) || !(s.distanceM[i] > 0)) {
+        throw new DataError(`${data.site.id}: ${body} position at sample ${i} is missing or invalid.`)
+      }
+    }
+  }
+}
+
 /**
  * Runs one scenario: where the Sun and Earth are over the mission, when terrain hides them,
  * what the panel produces and how the battery fares. Pure: same inputs, same result.
@@ -193,13 +209,12 @@ export function evaluateScenario(data: SiteData, startUtc: string, settings: Mis
     throw new CoverageError(`The mission must lie within the computed period (${ephemeris.startUtc.slice(0, 16)} to ${end} UTC).`)
   }
 
+  assertMissionData(data, startIndex, count)
   const sunMargin = marginSeries(ephemeris.sun, horizon, startIndex, count)
   const earthMargin = marginSeries(ephemeris.earth, horizon, startIndex, count)
   const sunWindows = windowsFromMargins(sunMargin, stepS)
   const earthWindows = windowsFromMargins(earthMargin, stepS)
   const bothWindows = intersectWindows(sunWindows, earthWindows)
-  const sunShare = stepFractions(sunMargin)
-  const earthShare = stepFractions(earthMargin)
   const diskModel: SunDiskModel = settings.sunDiskModel ?? 'centre'
 
   // Instantaneous values at every sample (for the 3D view and the charts).
@@ -222,25 +237,66 @@ export function evaluateScenario(data: SiteData, startUtc: string, settings: Mis
   // Energy per step. `centre`: mean clear-sky power times the part of the step the Sun's
   // centre was up. `partial`: trapezoid of the disk-weighted power at the two samples.
   // The communication load runs for the part of the step Earth was up.
-  const generationJ = new Float64Array(steps)
-  const demandJ = new Float64Array(steps)
+  //
+  // The battery runs on sub-intervals cut at the Sun and Earth crossings inside a step, in time
+  // order, so demand before a sunrise is not paid for by generation after it (and the comm load
+  // starts at Earthrise). Steps without a crossing are one interval, as before; the energy
+  // totals are the same either way.
+  const subGenJ: number[] = []
+  const subDemJ: number[] = []
+  const subEndS: number[] = []
+  const stepEnd = new Int32Array(steps)
   let energyGeneratedJ = 0
   let energyDemandJ = 0
+  const crossAt = (a: number, b: number) => (a > 0 === b > 0 ? null : a / (a - b))
+  const upAt = (a: number, f: number | null, t: number) => (f === null ? a > 0 : a > 0 ? t < f : t > f)
   for (let k = 0; k < steps; k++) {
-    generationJ[k] = diskModel === 'partial' ? 0.5 * (generationW[k] + generationW[k + 1]) * stepS : 0.5 * (clearW[k] + clearW[k + 1]) * sunShare[k] * stepS
-    demandJ[k] = (settings.baseLoadW + settings.commLoadW * earthShare[k]) * stepS
-    energyGeneratedJ += generationJ[k]
-    energyDemandJ += demandJ[k]
+    const fs = crossAt(sunMargin[k], sunMargin[k + 1])
+    const fe = crossAt(earthMargin[k], earthMargin[k + 1])
+    const cuts = [0, 1]
+    for (const f of [fs, fe]) if (f !== null && f > 0 && f < 1 && !cuts.includes(f)) cuts.push(f)
+    cuts.sort((x, y) => x - y)
+    const meanClearW = 0.5 * (clearW[k] + clearW[k + 1])
+    for (let c = 0; c < cuts.length - 1; c++) {
+      const u = cuts[c]
+      const v = cuts[c + 1]
+      const mid = 0.5 * (u + v)
+      let g: number
+      if (diskModel === 'partial') {
+        const w = (t: number) => generationW[k] + (generationW[k + 1] - generationW[k]) * t
+        g = 0.5 * (w(u) + w(v)) * (v - u) * stepS
+      } else {
+        g = upAt(sunMargin[k], fs, mid) ? meanClearW * (v - u) * stepS : 0
+      }
+      const d = (settings.baseLoadW + (upAt(earthMargin[k], fe, mid) ? settings.commLoadW : 0)) * (v - u) * stepS
+      subGenJ.push(g)
+      subDemJ.push(d)
+      subEndS.push((k + v) * stepS)
+      energyGeneratedJ += g
+      energyDemandJ += d
+    }
+    stepEnd[k] = subGenJ.length
   }
 
   const batteryCapacityJ = settings.batteryCapacityWh * J_PER_WH
-  const battery = simulateBattery(generationJ, demandJ, {
+  const sub = simulateBattery(subGenJ, subDemJ, {
     capacityJ: batteryCapacityJ,
     initialJ: batteryCapacityJ * settings.initialSocFraction,
     reserveJ: batteryCapacityJ * settings.reserveFraction,
     chargeEfficiency: settings.chargeEfficiency,
     dischargeEfficiency: settings.dischargeEfficiency,
   })
+  const socJ = new Float64Array(count)
+  socJ[0] = sub.socJ[0]
+  for (let k = 0; k < steps; k++) socJ[k + 1] = sub.socJ[stepEnd[k]]
+  const v = sub.firstReserveViolationIndex
+  const battery = {
+    socJ,
+    unmetJ: sub.unmetJ,
+    curtailedJ: sub.curtailedJ,
+    minSocJ: sub.minSocJ,
+    firstReserveViolationS: v === null ? null : v === 0 ? 0 : subEndS[v - 1],
+  }
 
   const durationS = steps * stepS
   const longestEarthOutageS = longestGapS(earthWindows, durationS)
@@ -274,8 +330,8 @@ export function evaluateScenario(data: SiteData, startUtc: string, settings: Mis
       curtailedEnergyJ: battery.curtailedJ,
       minSocFraction: battery.minSocJ / batteryCapacityJ,
       finalSocFraction: battery.socJ[steps] / batteryCapacityJ,
-      firstReserveViolationS: battery.firstReserveViolationIndex === null ? null : battery.firstReserveViolationIndex * stepS,
-      keepsBatteryReserve: battery.firstReserveViolationIndex === null,
+      firstReserveViolationS: battery.firstReserveViolationS,
+      keepsBatteryReserve: battery.firstReserveViolationS === null,
       earthOutageWithinLimit: longestEarthOutageS <= settings.maxEarthOutageH * 3600,
     },
     model: { ephemerisSource: ephemeris.source, solarConstantWm2: SOLAR_CONSTANT_W_M2, sunDiskModel: diskModel, notes: MODEL_NOTES[diskModel] },

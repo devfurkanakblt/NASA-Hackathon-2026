@@ -1,7 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import type { LoadedData, SiteData, SiteEntry } from '../data/contract.ts'
-import { loadCells, loadYear } from '../data/extended.ts'
+import { loadCells, loadHeader, loadYear } from '../data/extended.ts'
 import { loadAllData } from '../data/load.ts'
 import { MissionScene3D } from '../scene3d/index.ts'
 import { SceneMissionControls } from '../scene3d/SceneMissionControls.tsx'
@@ -217,6 +217,7 @@ export function MissionApp() {
     }
     for (const id of cells) {
       mark('cells', id, 'loading')
+      loadHeader(id).then((h) => setExt((e) => ({ ...e, headers: { ...e.headers, [id]: h } })), () => mark('cells', id, 'error'))
       loadCells(id).then(
         (c) => mark('cells', id, c),
         () => mark('cells', id, 'error'),
@@ -769,8 +770,11 @@ export function MissionApp() {
                   {tab === 'year' && (
                     <>
                       <p className="explain">One point per month.</p>
-                      {activeData.season && !activeCell ? (
-                        <SeasonChart season={activeData.season} missionStartUtc={active.result.alignedStartUtc} />
+                      {activeData.season && (!activeCell || activeData.season.siteId === activeData.site.id) ? (
+                        <>
+                          {activeCell && <p className="muted">This map point’s own monthly summary (its 1° terrain horizon and re-projected ephemeris), not the catalogue centre’s.</p>}
+                          <SeasonChart season={activeData.season} missionStartUtc={active.result.alignedStartUtc} />
+                        </>
                       ) : (
                         <p className="muted">No monthly summary for this exact point. Mission results above use this point’s own horizon; the catalogue centre’s annual summary is not substituted.</p>
                       )}

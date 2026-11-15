@@ -1,10 +1,10 @@
 /// <reference types="node" />
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { MapDoc, SiteData, SitesDoc } from '../data/contract.ts'
-import { parseCells, parseYear, type ExtendedHeader } from '../data/extended.ts'
-import { cellEphemeris, cellSiteData } from './cell.ts'
+import { loadRefined, parseCells, parseYear, validateRefined, type ExtendedHeader, type RefinedDoc } from '../data/extended.ts'
+import { CELL_LABEL, REFINED_CELL_LABEL, cellEphemeris, cellSiteData } from './cell.ts'
 import { DEFAULT_SETTINGS, evaluateScenario } from './evaluate.ts'
 import { marginSeries } from './visibility.ts'
 
@@ -27,7 +27,7 @@ const base = (id: string): SiteData => ({
 })
 const ext = (id: string) => {
   const header = read<ExtendedHeader>(`${id}/extended.json`)
-  return { year: parseYear(id, header, readBin(`${id}/year.bin`)), cells: parseCells(header, readBin(`${id}/cells.bin`)) }
+  return { header, year: parseYear(id, header, readBin(`${id}/year.bin`)), cells: parseCells(header, readBin(`${id}/cells.bin`)) }
 }
 const centreOf = (d: SiteData) => ({ latDeg: d.site.latDeg, lonDeg: d.site.lonDeg, eyeM: d.site.surfaceElevationM + d.site.observerHeightM })
 
@@ -70,13 +70,13 @@ describe('cellSiteData', () => {
   it('cell percentages over the two months match map.json within 0.2 points', () => {
     for (const id of MAP_SITES) {
       const d = base(id)
-      const { year, cells } = ext(id)
+      const { year, cells, header } = ext(id)
       const nx = d.map!.grid.nx
       const k = nx === 61 ? 1 : 2
       const list = [[nx >> 1, nx >> 1], ...FIXED.map(([r, c]) => [Math.floor(r / k), Math.floor(c / k)])]
       const n = d.ephemeris.count
       for (const [r, c] of list) {
-        const cell = cellSiteData(d, year, cells, r, c)
+        const cell = cellSiteData(d, year, cells, header, r, c)
         const sun = marginSeries(cell.ephemeris.sun, cell.horizon, 0, n)
         const earth = marginSeries(cell.ephemeris.earth, cell.horizon, 0, n)
         let s = 0
@@ -97,31 +97,140 @@ describe('cellSiteData', () => {
 
   it('labels the cell and keeps the base site data', () => {
     const d = base('Site01')
-    const { year, cells } = ext('Site01')
-    const cell = cellSiteData(d, year, cells, 36, 32)
+    const { year, cells, header } = ext('Site01')
+    const cell = cellSiteData(d, year, cells, header, 36, 32)
     expect(cell.site.id).toBe('Site01:r36c32')
     expect(cell.site.name).toBe('Connecting Ridge — map point')
-    expect(cell.site.label).toBe('Regional map point (1° horizon), not a catalogue site')
+    expect(cell.site.label).toBe('Regional screening estimate (1° horizon), not a catalogue site')
     expect(cell.site.derivedFrom).toBe('Site01')
     expect(cell.site.warnings).toEqual([])
     expect(cell.site.derivation).toBe('regional map cell row 36, col 32 (200 m east, 600 m north of the site centre); 1° terrain horizon')
     expect(cell.site.coordSource).toBe('Regional map of Site01 (map.json cell centre)')
-    const ridgeCell = cellSiteData(base('Site04R'), ext('Site04R').year, ext('Site04R').cells, 30, 30)
+    const ridgeCell = cellSiteData(base('Site04R'), ext('Site04R').year, ext('Site04R').cells, ext('Site04R').header, 30, 30)
     expect(ridgeCell.site.derivation).toMatch(/^regional map cell row 30, col 30 \(site centre\)/)
     expect(cell.site.latDeg).toBe(d.map!.latDeg[36 * 61 + 32])
     expect(cell.horizon.azStepDeg).toBe(1)
     expect(cell.horizon.distanceM).toBeUndefined()
     expect(cell.ephemeris.count).toBe(year.count)
     expect(cell.map).toBe(d.map)
-    expect(() => cellSiteData(d, year, cells, 61, 0)).toThrow(RangeError)
+    expect(() => cellSiteData(d, year, cells, header, 61, 0)).toThrow(RangeError)
   })
+
+  it('cell carries 1° screening provenance with its own coordinate and eye', () => {
+    const d = base('Site01')
+    const { year, cells, header } = ext('Site01')
+    const p = cellSiteData(d, year, cells, header, 36, 32).provenance!
+    expect(p).toMatchObject({
+      horizonResolutionDeg: 1, horizonSource: 'map-cell', precision: 'regional screening estimate',
+      eyeM: cells.eyeM[36 * 61 + 32], latDeg: d.map!.latDeg[36 * 61 + 32], lonDeg: d.map!.lonDeg[36 * 61 + 32],
+      observerHeightM: d.site.observerHeightM, ephemerisSource: header.year.source,
+    })
+    expect(p.dataHash).toBe(header.year.sha256)
+    expect(p.coverageWarnings).toEqual(d.map!.warnings)
+    expect(p.coverageWarnings.join(' ')).toMatch(/2\.9 % of terrain samples/)
+  })
+
+  it('cell label says regional screening estimate', () => expect(CELL_LABEL).toMatch(/screening estimate/))
 
   it('cell scenario evaluates in April 2027', () => {
     const d = base('Site07')
-    const { year, cells } = ext('Site07')
-    const result = evaluateScenario(cellSiteData(d, year, cells, 55, 5), '2027-04-10T00:00:00Z', DEFAULT_SETTINGS)
+    const { year, cells, header } = ext('Site07')
+    const result = evaluateScenario(cellSiteData(d, year, cells, header, 55, 5), '2027-04-10T00:00:00Z', DEFAULT_SETTINGS)
     expect(result.count).toBeGreaterThan(0)
     expect(result.siteId).toBe('Site07:r55c5')
   })
 })
 
+
+describe('refined cells (0.1° horizon)', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.restoreAllMocks()
+  })
+  const refinedDoc = (id: string) => read<RefinedDoc>(`${id}/refined.json`)
+  const I = 36 * 61 + 32
+
+  it('the committed refined files are valid and match their cells.bin', () => {
+    for (const id of ['Site01', 'Site04', 'Site07', 'Site11']) {
+      const header = read<ExtendedHeader>(`${id}/extended.json`)
+      expect(validateRefined(refinedDoc(id), id, header), id).toEqual([])
+    }
+    expect(Object.keys(refinedDoc('Site01').cells)).toEqual(expect.arrayContaining(['r36c32', 'r30c30']))
+  })
+
+  it('a refined cell switches to 0.1° provenance', () => {
+    const d = base('Site01')
+    const { year, cells, header } = ext('Site01')
+    const doc = refinedDoc('Site01')
+    const entry = doc.cells.r36c32
+    const cell = cellSiteData(d, year, cells, header, 36, 32, doc)
+    expect(cell.provenance).toMatchObject({
+      horizonResolutionDeg: 0.1, horizonSource: 'refined-cell', precision: 'catalogue',
+      eyeM: cells.eyeM[I], latDeg: d.map!.latDeg[I], lonDeg: d.map!.lonDeg[I], dataHash: header.year.sha256,
+    })
+    expect(cell.provenance!.coverageWarnings).toEqual(entry.warnings)
+    expect(cell.horizon.azStepDeg).toBe(0.1)
+    expect(cell.horizon.count).toBe(3600)
+    expect(cell.horizon.elevDeg).toEqual(entry.elevDeg)
+    expect(cell.horizon.distanceM).toEqual(entry.distanceM)
+    expect(cell.site.label).toBe(REFINED_CELL_LABEL)
+    expect(cell.site.label).not.toMatch(/(^|[^.\d])1°|screening/)
+    expect(cell.site.derivation).toMatch(/0\.1° terrain horizon/)
+    // the ephemeris is the same cell observer as without refinement
+    expect(cell.ephemeris).toEqual(cellSiteData(d, year, cells, header, 36, 32).ephemeris)
+    // a cell that was not refined keeps the 1° screening result
+    const other = cellSiteData(d, year, cells, header, 5, 5, doc)
+    expect(other.provenance).toMatchObject({ horizonResolutionDeg: 1, horizonSource: 'map-cell', precision: 'regional screening estimate' })
+    expect(other.site.label).toBe(CELL_LABEL)
+  })
+
+  it('a refined file with a stale cellsSha256 is ignored with a warning', async () => {
+    const d = base('Site01')
+    const { year, cells, header } = ext('Site01')
+    const stale: RefinedDoc = { ...refinedDoc('Site01'), cellsSha256: '0'.repeat(64) }
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const cell = cellSiteData(d, year, cells, header, 36, 32, stale)
+    expect(cell.provenance).toMatchObject({ horizonResolutionDeg: 1, horizonSource: 'map-cell', precision: 'regional screening estimate' })
+    expect(cell.horizon.azStepDeg).toBe(1)
+    expect(warn).toHaveBeenCalledWith(expect.stringMatching(/stale/))
+
+    warn.mockClear()
+    const docs: Record<string, unknown> = { '/stale/Site01/extended.json': header, '/stale/Site01/refined.json': stale }
+    vi.stubGlobal('fetch', vi.fn(async (input: string | URL | Request) => {
+      const url = String(input)
+      const ok = Object.hasOwn(docs, url)
+      return { ok, status: ok ? 200 : 404, json: async () => structuredClone(docs[url]) } as Response
+    }))
+    expect(await loadRefined('Site01', '/stale')).toBeNull()
+    expect(warn).toHaveBeenCalledWith(expect.stringMatching(/stale/))
+  })
+
+  it('loadRefined returns null when the file is missing and the document when it is current', async () => {
+    const header = read<ExtendedHeader>('Site01/extended.json')
+    const doc = refinedDoc('Site01')
+    const files = (withRefined: boolean): Record<string, unknown> => ({
+      [`/${withRefined ? 'ok' : 'none'}/Site01/extended.json`]: header,
+      ...(withRefined ? { '/ok/Site01/refined.json': doc } : {}),
+    })
+    const docs = { ...files(false), ...files(true) }
+    vi.stubGlobal('fetch', vi.fn(async (input: string | URL | Request) => {
+      const url = String(input)
+      const ok = Object.hasOwn(docs, url)
+      return { ok, status: ok ? 200 : 404, json: async () => structuredClone(docs[url]) } as Response
+    }))
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    expect(await loadRefined('Site01', '/none')).toBeNull()
+    expect(warn).not.toHaveBeenCalled()
+    expect(await loadRefined('Site01', '/ok')).toEqual(doc)
+  })
+
+  it('an entry whose eye differs from cells.eyeM is ignored with a warning', () => {
+    const d = base('Site01')
+    const { year, cells, header } = ext('Site01')
+    const doc = refinedDoc('Site01')
+    const moved: RefinedDoc = { ...doc, cells: { ...doc.cells, r36c32: { ...doc.cells.r36c32, eyeM: doc.cells.r36c32.eyeM + 1 } } }
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    expect(cellSiteData(d, year, cells, header, 36, 32, moved).provenance!.horizonSource).toBe('map-cell')
+    expect(warn).toHaveBeenCalled()
+  })
+})

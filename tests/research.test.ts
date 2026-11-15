@@ -78,9 +78,11 @@ describe('alternatives', () => {
 
   it('offers the ridge for water ice from Connecting Ridge, and drops the 32° crater wall', () => {
     const list = alternativesFor(type('ice'), metrics.Site01, all)
-    expect(list[0].metrics.siteId).toBe('Site04R')
-    expect(list.map((a) => a.metrics.siteId)).not.toContain('Site04')
-    expect(list[0].distanceKm).toBeGreaterThan(0)
+    // The 32-site catalogue adds Artemis research points; Nobile Rim 2 (PSR edge 1.6 km, no slope map) now ranks first.
+    const ids = list.map((a) => a.metrics.siteId)
+    expect(ids).toContain('Site04R')
+    expect(ids).not.toContain('Site04')
+    expect(list.every((a) => a.distanceKm > 0)).toBe(true)
   })
 
   it('keeps south-polar alternatives in the south polar region', () => {

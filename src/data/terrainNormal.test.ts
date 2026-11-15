@@ -10,7 +10,7 @@ const directory = fileURLToPath(new URL('../../public/data/', import.meta.url))
 const catalogue = JSON.parse(readFileSync(`${directory}sites.json`, 'utf8')) as SitesDoc
 
 describe('published measured surface detail', () => {
-  for (const site of catalogue.sites.filter(s => s.category !== 'contrast')) {
+  for (const site of catalogue.sites.filter(s => s.category !== 'contrast' && !s.program)) {
     it(`${site.id}: registers the measured footprint and verifies the exact PNG bytes`, () => {
       const terrain = JSON.parse(readFileSync(`${directory}${site.id}/terrain.json`, 'utf8'))
       const manifest = validateTerrainNormal(JSON.parse(readFileSync(`${directory}${site.id}/terrain-normal.json`, 'utf8')), site, terrain.sizeM, site.id)
