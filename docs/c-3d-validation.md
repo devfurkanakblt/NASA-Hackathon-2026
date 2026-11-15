@@ -102,7 +102,7 @@ The annual season range is independent of the mission ephemeris range. Regional-
 
 ## Readability follow-up
 
-The display uses ACES tone mapping, exposure 1.2, a 1.5–2 pixel ratio, and 4096 soft solar shadow maps fitted to the local patch (light at 45 km, shadow depth 30–60 km). These settings improve readability; shadows still do not decide scientific visibility. The regional mesh now renders in both cameras, with the horizon silhouette outside its measured boundary rather than a flat wall in front of it. Sun/Earth positions and apparent diameters remain unchanged. Earth uses the same tone-mapping pipeline as the terrain.
+The display uses ACES tone mapping, exposure 1.1, a 1.5–2 pixel ratio, and 4096 soft solar shadow maps fitted to the local patch (light at 45 km, shadow depth 30–60 km). These settings improve readability; shadows still do not decide scientific visibility. The regional mesh now renders in both cameras, with the horizon silhouette outside its measured boundary rather than a flat wall in front of it. Sun/Earth positions and apparent diameters remain unchanged. Earth uses the same tone-mapping pipeline as the terrain.
 
 Selecting Earth in the lander camera sets an 18-degree inspection field of view; Sun uses 32 degrees. This is camera zoom, not an enlarged body model. Playback preserves later manual zoom. No finer terrain detail is claimed than the source grid resolves.
 
@@ -140,3 +140,16 @@ Browser checks include both cameras, Sun/Earth look targets, time slider, +24/+7
 - Skyfield frame documentation: https://rhodesmill.org/skyfield/coordinates.html#rotation-matrices
 
 NASA data is credited separately; no generated image replaces a NASA observation. This module is a scientific-data visualisation prototype with the limits above, not a flight-qualified mission simulator.
+
+
+## Follow-up review at main 22b365f
+
+Only a small lighting adjustment was implemented in this follow-up: exposure 1.2 -> 1.1, hemisphere fill 0.9 -> 0.75, inspection directional fill 1.1 -> 0.9. Solar direction, solar-light intensity, terrain geometry and scientific calculation code were not edited. 237 existing JS/TS tests, the build and browser shader check passed. The following items are analysis, not additional implemented features.
+
+1. **LOD boundary quality (C).** The 39.0625 m visual grid meets a 1250 m grid, a 32-fold spacing jump. Triangle-interpolated boundary samples at Site04 differ by up to about 224.7 m between these resolutions. `terrainGeometry.ts` closes the difference with vertical faces: no overlap or hole remains, but a visible artificial cliff/line can remain. Add an intermediate resolution ring sampled from consistent source/datum, with matched boundaries. This is display error from resampling, not evidence of a real cliff or erroneous scientific horizon.
+2. **Selected-cell annual chart (B/D coordination).** `cellSiteData` inherits `base.season`; the annual tab renders it without selecting a cell-specific summary. Reproduced with real `Site01:r36c32`: the inherited summary says Site01, Sun 47.4% / Earth 40.03%, while the cell's own year-series sample visibility is 65.84% / 50.90%. Compute the cell summary, or clearly show that the chart is the catalogue centre. The code was not changed during this review.
+3. **Extended binary validation (shared data layer).** `parseYear`/`parseCells` check byte lengths but do not enforce all metadata/finite-value constraints used by the original JSON path. A synthetic in-memory fixture with wrong version/site, invalid UTC, zero step and float32 NaNs was accepted. Current NASA files were not changed or declared corrupt. Validate metadata and numeric arrays before these values reach evaluation.
+4. **Annual registered Earth display (C).** The annual series extends to 2027-11-01; registered Earth orientation ends at 2027-01-01. Sampling April returns undefined orientation and Earth-Sun direction, so the map is safely omitted. Extend and validate the display coverage and report a date-specific visual warning. No incorrect geographic orientation should be invented.
+5. **Surface detail and distant silhouette (C).** Normals currently come from the downsampled mesh; the material has no measured albedo detail. More faithful close views require a finer measured DEM mesh or DEM-derived normal map, not invented crater/noise texture. The distant horizon curtain is a one-dimensional visibility silhouette, and the exterior sphere is a smooth reference datum. Their plain shading should not be presented as measured three-dimensional relief.
+
+Priority: fix the selected-cell summary association and extended-data validation before adding analytical claims; for visual quality, fix the LOD transition before adding more light or decorative texture. A physical illumination view and a labelled inspection view serve different purposes; the existing inspection fill should remain explicit.
