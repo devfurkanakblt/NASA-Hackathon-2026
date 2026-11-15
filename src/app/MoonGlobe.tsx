@@ -177,7 +177,7 @@ export default function MoonGlobe({ sites, selected, onSelect, onPickPoint, flig
       {flight && onComplete ? <FlightCamera flight={flight} onComplete={onComplete} /> : <OrbitControls makeDefault enablePan={false} minDistance={1.001} maxDistance={4} enableDamping dampingFactor={.12} />}
     </Canvas>
     {!flight && <button type="button" style={{ position: 'absolute', left: 12, bottom: 50, zIndex: 25 }} onClick={() => setPoleRequest(n => n + 1)}>Focus south pole</button>}
-    {!flight && <span className="moon-globe__hint">Southern hemisphere · Click a name to add or remove it (up to three)</span>}
+    {!flight && <span className="moon-globe__hint" title="The catalogue covers the southern hemisphere only: the south pole, where the Sun and Earth skim the horizon, is the target region of Artemis and current landers. Northern sites such as Apollo 11 are left out on purpose; Apollo 12 (3.0° S) is the near-side contrast point.">Southern hemisphere · Click a name to add or remove it (up to three)</span>}
     <span className="moon-globe__credit">{texture ? 'NASA/LROC WAC archive · Catalogue coordinates' : failed ? 'Image unavailable · Untextured catalogue locator' : 'Loading NASA/LROC imagery · Untextured globe'}</span>
   </div>
 }

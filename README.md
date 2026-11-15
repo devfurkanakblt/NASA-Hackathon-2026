@@ -53,7 +53,10 @@ The catalogue contains **25 points**, all in the southern hemisphere. The origin
 the Chang'e-6 contrast point are listed below. The 17 additions cover Apollo 12/14/16, IM-1/IM-2,
 Chandrayaan-3, SLIM, Chang'e-4, and one published research candidate for each of NASA's nine
 October 2024 Artemis III candidate regions. Northern landing sites (Apollo 11/15/17, Blue Ghost 1,
-Chang'e-3/5, Peregrine) are not included. Research representatives are not approved landing
+Chang'e-3/5, Peregrine) are left out on purpose: the tool is about the south pole, where the Sun and
+Earth skim the horizon and where Artemis III and current landers aim, and the globe shows only the
+southern hemisphere. Apollo 12 (3.0° S) takes Apollo 11's place as the near-side equatorial
+contrast point (Earth always up, two-week day and night). Research representatives are not approved landing
 sites. Coordinate status, primary sources and DEM resolution
 travel with each point. Details: [mission catalogue](preprocess/mission_catalogue.py),
 [independent validation and DEM coverage](docs/validation-missions.md).
@@ -68,6 +71,13 @@ travel with each point. Details: [mission catalogue](preprocess/mission_catalogu
 | Site20 | Leibnitz Beta Plateau | −85.4266° | 31.74276° | |
 | Site23 | Malapert Massif | −85.9948° | −0.23578° | |
 | CE6 | Chang'e-6 landing site | −41.6385° | −153.9852° | contrast point (far side, Earth never rises); global 474 m/px DEM |
+
+**Libration.** Earth is not fixed in the lunar sky. The Moon's elliptical orbit and tilted axis make it
+appear to rock (libration), so Earth draws a loop about once every 27 days. The JPL Horizons /
+DE421 positions already contain this motion; nothing is added on top. At the polar sites the loop
+spans ~11–15° of azimuth and ~13–14° of elevation per month (Site01: −7.5° to +6.2° over the year),
+so it crosses the horizon and Earth rises and sets. The "Skyline" tab explains this and gives the
+numbers for the current mission. Details: [Data & Methods](docs/data-methods.md#libration).
 
 Coordinates: NASA Lunar Surface Data Book (M2M-30044, 2025), Table A2.1-1; contrast points from
 LROC (Chang'e-6) and NASA NSSDC (Apollo). Missions of 1–30 days can start anywhere from

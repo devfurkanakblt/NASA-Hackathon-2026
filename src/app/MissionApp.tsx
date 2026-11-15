@@ -35,6 +35,7 @@ import { SettingsForm } from './SettingsForm.tsx'
 import { decodeShare, encodeShare } from './share.ts'
 import { Sources } from './Sources.tsx'
 import { Timelines } from './Timelines.tsx'
+import { earthWobble } from './libration.ts'
 import { Tour } from './Tour.tsx'
 import type { TourStep } from './Tour.tsx'
 import { MissionFooter } from './MissionFooter.tsx'
@@ -308,6 +309,7 @@ export function MissionApp() {
     const earthPath = { azDeg: slice(earth.azDeg), elDeg: slice(earth.elDeg), visible: active.result.earthVisible }
     return { sunPath, earthPath, sunDist: slice(sun.distanceM), earthDist: slice(earth.distanceM) }
   }, [active, activeData])
+  const wobble = useMemo(() => (tracks ? earthWobble(tracks.earthPath.azDeg, tracks.earthPath.elDeg) : null), [tracks])
 
   const now = useMemo(() => {
     if (!active || !tracks) return null
@@ -353,7 +355,7 @@ export function MissionApp() {
     {
       target: 'tabs',
       title: 'See why',
-      body: 'These tabs show the reason behind the answer: the skyline the lander sees, the battery over time, a map of the area and how things change through the year.',
+      body: 'These tabs show the reason behind the answer: the skyline the lander sees, the battery over time, a map of the area and how things change through the year. The skyline tab also explains why Earth is not fixed in the sky: the Moon wobbles slightly (libration), so Earth draws a small loop and, near the pole, rises and sets.',
       before: () => {
         go('results')
         setTab('sky')
@@ -506,8 +508,10 @@ export function MissionApp() {
     }}
     onCopy={() => { if (chosenScenario && scenarios.length < 3) { const copy = { ...chosenScenario, key: newKey() }; setScenarios([...scenarios, copy]); setActiveKey(copy.key); setPlaying(false); setStep(0) } }} />
 
+  // Choosing places is a single screen: the globe fills the viewport and the page does not scroll.
+  const picking = view === 'simulation' && simulationStage === 'pick' && !flight
   return (
-    <div className="app">
+    <div className={picking ? 'app app--pick' : 'app'}>
       {header}
       {covered && <div key={transitionId} className="mission-blackout" aria-hidden="true" />}
       <Tour steps={tourSteps} open={tourOpen} onClose={() => setTourOpen(false)} />
@@ -516,7 +520,21 @@ export function MissionApp() {
           <main className="app__main">
             <section className="card moon-picker" data-mode={flight ? 'flight' : simulationStage} aria-hidden={simulationStage !== 'pick' && !flight || undefined} inert={simulationStage !== 'pick' && !flight || undefined} data-tour="places">
               <div className="card__head"><div><h2>Choose places on the Moon</h2>
-                <p className="card__tagline">Click a place name, or anywhere on the globe, to add it, or enter coordinates below. You can compare up to three places.</p></div></div>
+                <p className="card__tagline">Click a place name or anywhere on the globe, or enter coordinates. You can compare up to three places.</p></div>
+                <div className="moon-picker__selection" aria-live="polite">
+                {picked.length === 0 && <p className="muted">No place chosen yet. Click a name on the globe.</p>}
+                {picked.map((s, i) => <div key={s.key} className="moon-choice" style={{ '--place-color': COLORS[i] } as CSSProperties}>
+                  <span className="moon-choice__letter">{String.fromCharCode(65 + i)}</span>
+                  <span>{placeTitle(s.siteId, shownBySite)}</span>
+                  <button type="button" aria-label={`Remove ${placeTitle(s.siteId, loaded.bySite)}`} onClick={() => updateLocations(picked.filter(p => p.key !== s.key))}>&times;</button>
+                </div>)}
+              </div>
+              <details className="moon-picker__coords">
+                <summary>Enter your own coordinates</summary>
+                <CoordinateForm action="Add point" disabled={picked.length >= 3} onUse={addCoordinate} />
+              </details>
+              {pickMessage && <p className={`small moon-picker__message ${pickMessage.ok ? 'muted' : 'bad'}`} role="status">{pickMessage.text}</p>}
+              </div>
               <div className="moon-picker__globe"><Suspense fallback={<p role="status">Loading the Moon&hellip;</p>}>
                 <MoonGlobe active={simulationStage === 'pick' || !!flight} flight={flight ?? undefined} onComplete={() => { if (flight) { setActiveKey(flight.targetKey); setFlight(null) } }} sites={loaded.sites.sites} selected={(flight ? scenarios : picked).flatMap((s, i) => {
                   const site = shownBySite[s.siteId]?.site ?? loaded.sites.sites.find(site => site.id === s.siteId)
@@ -525,25 +543,14 @@ export function MissionApp() {
                   ? picked.filter(s => s.siteId !== site.id)
                   : picked.length < 3 ? [...picked, { key: newKey(), siteId: site.id, startUtc: scenarios[0]?.startUtc ?? loaded.sites.coverage.startUtc }] : picked)}
                   onPickPoint={(lat, lon) => setPickMessage(addCoordinate(lat, lon))} />
-              </Suspense></div>
-              <details className="moon-picker__coords">
-                <summary>Enter your own coordinates</summary>
-                <CoordinateForm action="Add point" disabled={picked.length >= 3} onUse={addCoordinate} />
-              </details>
-              {pickMessage && <p className={`small ${pickMessage.ok ? 'muted' : 'bad'}`} role="status">{pickMessage.text}</p>}
-              {flight && <p className="sim__flight-label" role="status">{flight.from.name} <span aria-hidden="true">&rarr;</span> {flight.to.name}</p>}
-              <div className="moon-picker__selection" aria-live="polite">
-                {picked.length === 0 && <p className="muted">No place chosen yet. Click a name on the globe.</p>}
-                {picked.map((s, i) => <div key={s.key} className="moon-choice" style={{ '--place-color': COLORS[i] } as CSSProperties}>
-                  <span className="moon-choice__letter">{String.fromCharCode(65 + i)}</span>
-                  <span>{placeTitle(s.siteId, shownBySite)}</span>
-                  <button type="button" aria-label={`Remove ${placeTitle(s.siteId, loaded.bySite)}`} onClick={() => updateLocations(picked.filter(p => p.key !== s.key))}>&times;</button>
-                </div>)}
-              </div>
-              <div className="moon-picker__actions"><button type="button" className="primary" disabled={picked.length < 2} onClick={() => { setScenarios(picked); setActiveKey(picked[0].key); setPlaying(false); setStep(0); go('results') }}>Compare selected points</button><span className="muted small">{picked.length} / 3 locations</span>
+              </Suspense>
+              {/* Actions float in the globe's lower-right corner once a place is chosen: no scrolling down. */}
+              {picked.length > 0 && !flight && <div className="moon-picker__actions" role="group" aria-label="Selected places actions"><button type="button" className="primary" disabled={picked.length < 2} onClick={() => { setScenarios(picked); setActiveKey(picked[0].key); setPlaying(false); setStep(0); go('results') }}>Compare selected points</button><span className="muted small">{picked.length} / 3 locations</span>
                 <button type="button" className="primary" disabled={!picked.length || covered || !selectionReady} onClick={() => darken(() => {
                   setScenarios(picked); setActiveKey(picked[0].key); setStep(0); setSimulationStarted(true); setSimulationStage('watch')
-                })}>{picked.length > 0 && !selectionReady ? 'Preparing terrain…' : 'Show in simulation'} <span aria-hidden="true">&nearr;</span></button></div>
+                })}>{picked.length > 0 && !selectionReady ? 'Preparing terrain…' : 'Show in simulation'} <span aria-hidden="true">↗</span></button></div>}
+              </div>
+              {flight && <p className="sim__flight-label" role="status">{flight.from.name} <span aria-hidden="true">&rarr;</span> {flight.to.name}</p>}
             </section>
             {simulationStarted && <section className="card sim" hidden={simulationStage === 'pick'} inert={simulationStage === 'pick' || undefined}>
               <div className="sim__route">
@@ -719,6 +726,18 @@ export function MissionApp() {
                       </h3>
                       <SkyVisibilityChart horizon={activeData.horizon} sun={tracks.sunPath} earth={tracks.earthPath} stepH={active.result.stepS / 3600} k={now.kk} />
                       {status}
+                      {wobble && (
+                        <p className="explain libration-note">
+                          <strong>Why <span className="earth">Earth</span> moves in the sky.</strong> The Moon always turns the same face to us, so
+                          Earth should hang still. It does not quite: the Moon&rsquo;s orbit is an ellipse and its axis is tilted, so it seems to
+                          rock by a few degrees (this wobble is called <em>libration</em>). Earth therefore draws a small loop in the sky about once
+                          every 27 days. During this mission it moved across {wobble.azSpanDeg.toFixed(1)}° of azimuth, between{' '}
+                          {wobble.elMinDeg.toFixed(1)}° and {wobble.elMaxDeg.toFixed(1)}° of elevation.{' '}
+                          {wobble.loop === 'crosses-horizon' && 'Here that loop crosses the level horizon, which is why Earth rises and sets at this place.'}
+                          {wobble.loop === 'always-up' && 'Here the whole loop stays above the level horizon, so Earth never sets.'}
+                          {wobble.loop === 'never-up' && 'Here the whole loop stays below the level horizon (far side), so Earth never rises.'}
+                        </p>
+                      )}
                       <h3>In view during the mission</h3>
                       <Timelines outcomes={evaluated} colors={colorsOfEvaluated} k={k} />
                     </>
