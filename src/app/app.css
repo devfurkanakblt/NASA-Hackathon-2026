@@ -2079,7 +2079,9 @@
 .app button.moon-pin { white-space: normal; width: 175px; text-align: left; }
 .app button.moon-pin:focus-visible { outline: 2px solid var(--sun); outline-offset: 4px; }
 .moon-picker__selection { display: flex; flex-wrap: wrap; gap: 12px; min-height: 74px; align-items: center; padding-block: 16px; }
-.moon-choice { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+.moon-choice { display: flex; align-items: center; gap: 10px; font-size: 13px; min-width: 0; max-width: 100%; }
+.moon-choice > span:not(.moon-choice__letter) { min-width: 0; overflow-wrap: anywhere; }
+.moon-choice__letter { flex: none; }
 .moon-choice__letter { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--place-color); color: white; font-weight: 600; }
 .app .moon-choice button { min-width: 36px; min-height: 36px; background: transparent; font-size: 20px; }
 /* Selection actions float in the globe box's lower-right corner, above the image credit. */
@@ -2134,7 +2136,9 @@
   .moon-globe { height: 510px; }
   .moon-globe__hint { bottom: 36px; font-size: 10px; }
   .moon-globe__credit { left: 20px; right: auto; bottom: 16px; }
-  .moon-picker__actions { left: 12px; right: 12px; bottom: 58px; max-width: none; justify-content: space-between; }
+  /* Above the two-line hint, so the hint is not hidden behind the buttons. */
+  .moon-picker__actions { left: 12px; right: 12px; bottom: 74px; max-width: none; justify-content: space-between; }
+  .moon-globe__hint { left: 20px; right: 20px; }
   .app .moon-picker__actions .primary { flex: 1 1 auto; }
   .sim__route-nav { width: 100%; justify-content: space-between; gap: 8px; }
   .sim__route-nav > span { font-size: 12px; }

@@ -1,6 +1,6 @@
 import { loadGlobalDemAround } from './globalDem.ts'
 import type { GlobalTerrain } from '../scene3d/globalTerrain.ts'
-import type { LoadedData, Provenance, Psr } from './contract.ts'
+import type { EphemerisDoc, LoadedData, Provenance, Psr, SiteData, SiteEntry } from './contract.ts'
 import { validateCoverage } from './coverage.ts'
 import { validateTerrainNormal } from './terrainNormal.ts'
 import { validateLunarImagery } from './lunarImagery.ts'
@@ -55,8 +55,46 @@ function validatePsrs(value: unknown): Psr[] {
   return list as Psr[]
 }
 
-/** Loads the catalogue's sites once; user interaction makes no further NASA requests. */
-export async function loadAllData(baseUrl = `${import.meta.env.BASE_URL}data`): Promise<LoadedData> {
+/** Display-only files of one site: 3D terrain, imagery, Earth orientation. */
+export type SiteVisuals = Pick<SiteData, 'terrain' | 'terrainFar' | 'earthOrientation' | 'visualWarnings'>
+
+/**
+ * Fetches one site's display files. They are several megabytes per site, so the app loads them
+ * only for the places that are shown; the scientific results never wait for them.
+ */
+export async function loadSiteVisuals(site: SiteEntry, ephemeris: EphemerisDoc, baseUrl = `${import.meta.env.BASE_URL}data`): Promise<SiteVisuals> {
+  const root = `${baseUrl.replace(/\/+$/, '')}/${encodeURIComponent(site.id)}`
+  const visualWarnings: string[] = []
+  const [terrain, terrainFar, earthOrientation] = await Promise.all([
+    optionalVisual(`${root}/terrain.json`, (doc) => validateTerrain(doc, site.id, `${root}/terrain.json`), visualWarnings,
+      `${root}/terrain.json: local 3D terrain unavailable. Scientific results remain available.`),
+    // Missing regional meshes are expected for newly generated A catalogue entries.
+    optionalVisual(`${root}/terrain-far.json`, (doc) => validateTerrain(doc, site.id, `${root}/terrain-far.json`), visualWarnings),
+    optionalVisual(`${root}/earth-orientation.json`, (doc) => validateEarthOrientation(doc, site.id, ephemeris, `${root}/earth-orientation.json`, site), visualWarnings,
+      `${root}/earth-orientation.json: registered Earth texture orientation unavailable.`),
+  ])
+  const [normalManifest, localImagery, farImagery] = await Promise.all([
+    terrain && site.category !== 'contrast'
+    ? optionalVisual(`${root}/terrain-normal.json`, doc => validateTerrainNormal(doc, site, terrain.sizeM, `${root}/terrain-normal.json`), visualWarnings)
+    : undefined,
+    terrain ? optionalVisual(`${root}/lunar-imagery.json`, doc => validateLunarImagery(doc, site, terrain.sizeM, false, `${root}/lunar-imagery.json`), visualWarnings) : undefined,
+    terrainFar ? optionalVisual(`${root}/lunar-imagery-far.json`, doc => validateLunarImagery(doc, site, terrainFar.sizeM, true, `${root}/lunar-imagery-far.json`), visualWarnings) : undefined,
+  ])
+  const displayTerrain = terrain ? {
+    ...terrain,
+    ...(normalManifest && { normalDetail: { manifest: normalManifest, textureUrl: `${root}/${normalManifest.file}?v=${normalManifest.sha256}` } }),
+    ...(localImagery && { imagery: { manifest: localImagery, textureUrl: `${root}/${localImagery.file}?v=${localImagery.sha256}` } }),
+  } : terrain
+  const displayFar = terrainFar && farImagery ? { ...terrainFar, imagery: { manifest: farImagery, textureUrl: `${root}/${farImagery.file}?v=${farImagery.sha256}` } } : terrainFar
+  return { terrain: displayTerrain, terrainFar: displayFar, earthOrientation, visualWarnings }
+}
+
+/**
+ * Loads the catalogue's sites once; user interaction makes no further NASA requests.
+ * `visuals: false` skips the per-site display files (see loadSiteVisuals), which the app
+ * then fetches only for the places it shows.
+ */
+export async function loadAllData(baseUrl = `${import.meta.env.BASE_URL}data`, { visuals = true }: { visuals?: boolean } = {}): Promise<LoadedData> {
   const base = baseUrl.replace(/\/+$/, '')
   const sites = validateSites(await getJson(`${base}/sites.json`), `${base}/sites.json`)
   const entries = await Promise.all(sites.sites.map(async (site) => {
@@ -65,38 +103,22 @@ export async function loadAllData(baseUrl = `${import.meta.env.BASE_URL}data`): 
       getJson(`${root}/ephemeris.json`).then((doc) => validateEphemeris(doc, site, sites.coverage, `${root}/ephemeris.json`)),
       getJson(`${root}/horizon.json`).then((doc) => validateHorizon(doc, site.id, `${root}/horizon.json`)),
     ])
-    const visualWarnings: string[] = []
-    const [terrain, terrainFar, earthOrientation, season, map] = await Promise.all([
-      optionalVisual(`${root}/terrain.json`, (doc) => validateTerrain(doc, site.id, `${root}/terrain.json`), visualWarnings,
-        `${root}/terrain.json: local 3D terrain unavailable. Scientific results remain available.`),
-      // Missing regional meshes are expected for newly generated A catalogue entries.
-      optionalVisual(`${root}/terrain-far.json`, (doc) => validateTerrain(doc, site.id, `${root}/terrain-far.json`), visualWarnings),
-      optionalVisual(`${root}/earth-orientation.json`, (doc) => validateEarthOrientation(doc, site.id, ephemeris, `${root}/earth-orientation.json`, site), visualWarnings,
-        `${root}/earth-orientation.json: registered Earth texture orientation unavailable.`),
-      optionalVisual(`${root}/season.json`, (doc) => validateSeason(doc, site.id, sites.coverage, `${root}/season.json`), visualWarnings),
+    const contextWarnings: string[] = []
+    const [shown, season, map] = await Promise.all([
+      visuals ? loadSiteVisuals(site, ephemeris, base) : Promise.resolve<SiteVisuals>({}),
+      optionalVisual(`${root}/season.json`, (doc) => validateSeason(doc, site.id, sites.coverage, `${root}/season.json`), contextWarnings),
       site.category === 'contrast' ? Promise.resolve(undefined) :
-        optionalVisual(`${root}/map.json`, (doc) => validateMap(doc, site.id, sites.coverage, `${root}/map.json`), visualWarnings),
+        optionalVisual(`${root}/map.json`, (doc) => validateMap(doc, site.id, sites.coverage, `${root}/map.json`), contextWarnings),
     ])
-    const [normalManifest, localImagery, farImagery] = await Promise.all([
-      terrain && site.category !== 'contrast'
-      ? optionalVisual(`${root}/terrain-normal.json`, doc => validateTerrainNormal(doc, site, terrain.sizeM, `${root}/terrain-normal.json`), visualWarnings)
-      : undefined,
-      terrain ? optionalVisual(`${root}/lunar-imagery.json`, doc => validateLunarImagery(doc, site, terrain.sizeM, false, `${root}/lunar-imagery.json`), visualWarnings) : undefined,
-      terrainFar ? optionalVisual(`${root}/lunar-imagery-far.json`, doc => validateLunarImagery(doc, site, terrainFar.sizeM, true, `${root}/lunar-imagery-far.json`), visualWarnings) : undefined,
-    ])
-    const displayTerrain = terrain ? {
-      ...terrain,
-      ...(normalManifest && { normalDetail: { manifest: normalManifest, textureUrl: `${root}/${normalManifest.file}?v=${normalManifest.sha256}` } }),
-      ...(localImagery && { imagery: { manifest: localImagery, textureUrl: `${root}/${localImagery.file}?v=${localImagery.sha256}` } }),
-    } : terrain
-    const displayFar = terrainFar && farImagery ? { ...terrainFar, imagery: { manifest: farImagery, textureUrl: `${root}/${farImagery.file}?v=${farImagery.sha256}` } } : terrainFar
+    const visualWarnings = [...(shown.visualWarnings ?? []), ...contextWarnings]
     const provenance: Provenance = {
       latDeg: site.latDeg, lonDeg: site.lonDeg, observerHeightM: site.observerHeightM,
       eyeM: site.surfaceElevationM + site.observerHeightM,
       horizonResolutionDeg: horizon.azStepDeg, horizonSource: 'catalogue',
       ephemerisSource: ephemeris.source, dataHash: null, precision: 'catalogue', coverageWarnings: [...(horizon.warnings ?? [])],
     }
-    return [site.id, { site, ephemeris, horizon, terrain: displayTerrain, terrainFar: displayFar, earthOrientation, visualWarnings, season, map, provenance }] as const
+    const data: SiteData = { site, ephemeris, horizon, terrain: shown.terrain, terrainFar: shown.terrainFar, earthOrientation: shown.earthOrientation, visualWarnings, season, map, provenance }
+    return [site.id, data] as const
   }))
   const psrWarnings: string[] = []
   const psrs = await optionalVisual(`${base}/psr-south.json`, validatePsrs, psrWarnings)

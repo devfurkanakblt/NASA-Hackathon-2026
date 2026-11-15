@@ -3,7 +3,7 @@ import type { CSSProperties } from 'react'
 import { motion, useAnimate, useReducedMotion } from 'motion/react'
 import type { LoadedData, SiteData, SiteEntry } from '../data/contract.ts'
 import { loadCells, loadHeader, loadYear } from '../data/extended.ts'
-import { loadAllData } from '../data/load.ts'
+import { loadAllData, loadSiteVisuals } from '../data/load.ts'
 import { MissionScene3D } from '../scene3d/index.ts'
 import { SceneMissionControls } from '../scene3d/SceneMissionControls.tsx'
 import { SceneMissionSummary } from '../scene3d/SceneMissionSummary.tsx'
@@ -149,9 +149,32 @@ export function MissionApp() {
   // One-year series and map-point horizons, fetched per site after the first render.
   const [ext, setExt] = useState<ExtendedState>({ years: {}, cells: {} })
 
+  // 3D terrain, imagery and Earth orientation are fetched per site, only for the places shown.
+  const visualsPending = useRef<Record<string, Promise<void>>>({})
+  const visualsReady = useRef(new Set<string>())
+  const ensureVisuals = useCallback((ids: string[]) => {
+    if (!loaded) return
+    for (const id of new Set(ids)) {
+      const data = loaded.bySite[id]
+      if (!data || id in visualsPending.current) continue
+      visualsPending.current[id] = loadSiteVisuals(data.site, data.ephemeris).then(v => {
+        visualsReady.current.add(id)
+        setLoaded(prev => prev && { ...prev, bySite: { ...prev.bySite, [id]: {
+          ...prev.bySite[id], ...v, visualWarnings: [...(v.visualWarnings ?? []), ...(prev.bySite[id].visualWarnings ?? [])],
+        } } })
+      }, () => { visualsReady.current.add(id); setLoaded(prev => prev && { ...prev }) })
+    }
+  }, [loaded])
+  const baseIdOf = (id: string) => parseCellId(id)?.siteId ?? id
+  const shownBaseKey = [...new Set([...scenarios, ...picked].map(s => baseIdOf(s.siteId)))].sort().join(',')
+  useEffect(() => { if (shownBaseKey) ensureVisuals(shownBaseKey.split(',')) }, [shownBaseKey, ensureVisuals])
+
   const pickKey = picked.map(place => `${place.key}:${place.siteId}`).join(',')
   useEffect(() => {
     if (!loaded || !picked.length || view !== 'simulation' || simulationStage !== 'pick') return
+    // Wait for the display files; their arrival updates `loaded` and runs this again.
+    const waiting = picked.map(place => baseIdOf(place.siteId)).filter(id => id in loaded.bySite && !visualsReady.current.has(id))
+    if (waiting.length) { ensureVisuals(waiting); return }
     let cancelled = false
     void import('../scene3d/SceneCanvas.tsx').catch(() => { /* The scene boundary offers retry on failure. */ })
     void Promise.all(picked.map(place => {
@@ -165,11 +188,11 @@ export function MissionApp() {
       setSimulationStarted(true)
     })
     return () => { cancelled = true }
-  }, [loaded, picked, pickKey, view, simulationStage])
+  }, [loaded, picked, pickKey, view, simulationStage, ensureVisuals])
 
   useEffect(() => {
     let cancelled = false
-    loadAllData()
+    loadAllData(undefined, { visuals: false })
       .then((data) => {
         if (cancelled) return
         const siteIds = data.sites.sites.map((s) => s.id)

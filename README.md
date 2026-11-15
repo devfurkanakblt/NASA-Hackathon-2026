@@ -28,7 +28,15 @@ npm run preview    # serve dist/ locally (works offline)
 ```
 
 There is no server at run time: the app loads the JSON files in `public/data/` once and does every
-calculation in the browser.
+calculation in the browser. At start it fetches only what the calculations need (each site's
+ephemeris, horizon, regional map and season summary); the 3D terrain, imagery and Earth-orientation
+files are fetched per site, only for the places being shown.
+
+Python pipeline tests: `pip install -r preprocess/requirements-c.txt`, then `python -m pytest preprocess`.
+Tests that need the raw DEM tiles in `data_raw/` (not in git) skip themselves when the tiles are
+missing; GitHub Actions (`.github/workflows/ci.yml`) runs lint, both test suites and the build on
+every pull request, so those DEM tests still need a run on a machine that has the tiles.
+`python -m preprocess.coverage` rewrites `public/data/coverage.json` from the DEMs and catalogue.
 
 **Comparing dates at one place.** In the mission controls (Simulation and Results), the scenario
 row switches between scenarios; **+ Another date here** adds the selected place again one week
@@ -112,7 +120,8 @@ Chang'e-3/5, Peregrine) are left out of the catalogue on purpose: the tool is ab
 and Earth skim the horizon and where Artemis III and current landers aim. They are still one click
 away: the coordinate forms offer **Past landings** presets (Apollo 11/15/17, Chang'e-3/5, Blue
 Ghost M1) that run on the global LOLA terrain like any typed coordinate, and the globe shows the
-whole Moon. Apollo 12 (3.0° S) takes Apollo 11's place as the near-side equatorial
+whole Moon. Griffin-1 and Chang'e-7 are not included because no landing coordinates have been
+published for them yet. Apollo 12 (3.0° S) takes Apollo 11's place as the near-side equatorial
 contrast point (Earth always up, two-week day and night). Research representatives are not approved landing
 sites. Coordinate status, primary sources and DEM resolution
 travel with each point. Details: [mission catalogue](preprocess/mission_catalogue.py),
@@ -201,8 +210,9 @@ reserve violation and the longest Earth outage.
 battery, 80 % initial charge, 20 % reserve, 90 % charge/discharge efficiency; 200 W base load,
 +100 W while Earth is in view; 6 h accepted Earth outage.
 
-**Limits.** Not modelled: eclipses, temperature, dust, battery ageing, limb darkening. Earth view
-is line of sight only: no ground-station schedule, antenna or link budget. Near the pole the Sun
+**Limits (out of scope by design).** Not modelled: eclipses, temperature, dust, battery ageing,
+limb darkening. Earth view is line of sight only: no Deep Space Network schedule, antenna or link
+budget. Near the pole the Sun
 and Earth cross the horizon slowly, so a 0.05° horizon error equals roughly 30 minutes to 4 hours of
 rise/set time. DEM pixel size and the checks below are not a statement of absolute accuracy.
 
