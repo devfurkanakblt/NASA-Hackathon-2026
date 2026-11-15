@@ -49,6 +49,8 @@ Time series do **not** carry a time array: `t[i] = startUtc + i * stepS`.
 
 Optional fields for derived evaluation points (e.g. `Site04R`): `derivedFrom` (catalogue site id) and `derivation` (the reproducible rule, see `preprocess/ridge.py`). `warnings` may hold site notes (e.g. the Site04 catalogue coordinate lies on a ~32° crater wall) — show them in the UI.
 
+Optional `category`: `"contrast"` marks comparison points away from the pole (`CE6`, `Apollo11`). They have no `map.json`, their terrain comes from the global LOLA DEM, and the UI lists them separately. Absent = south-pole site.
+
 `surfaceElevationM` is the DEM height at the site. Observer eye = `surfaceElevationM + observerHeightM`.
 
 ## `{siteId}/ephemeris.json`
@@ -88,6 +90,8 @@ Optional fields for derived evaluation points (e.g. `Site04R`): `derivedFrom` (c
   "warnings": []
 }
 ```
+
+`nearStepM` and `farStepM` are ray sampling steps, not DEM resolutions. Optional `params.nearDem` names the DEM when the near field does not come from a LOLA 5 m product: the contrast points `CE6` and `Apollo11` use `"LDEM_64 (~474 m/px)"` and carry a matching note in `warnings`.
 
 Optional: `refinedAzDeg` (azimuths recomputed with halved steps) and `coverageLimitedAzDeg` (azimuths where terrain beyond the regional DEM's -80 deg edge could raise the horizon; absent when there are none, which is the case for all current sites).
 
@@ -139,12 +143,12 @@ Each cell has its own terrain horizon and its own Sun/Earth directions (see `doc
 - `longestNoSunS`, `longestNoEarthS`: longest continuous run without Sun / Earth, seconds. A value equal to `(count) * stepS` means "never visible in the period".
 - `slopeDeg`: terrain slope over a 25 m baseline from the 5 m DEM; `null` if not covered. Terrain descriptor only, not a landing-safety assessment.
 - `surfaceElevationM`: DEM height of the cell (observer eye = this + 2 m).
-- **Summary only.** There is no time series for map cells. If the UI lets the user pick a cell, label the numbers as a summary for that period; the energy simulation and the rise/set timeline run only for entries in `sites.json`.
+- This file is a summary only; it holds no time series. Per-cell horizons for a full simulation are in `cells.bin` (see `extended.json` below): with them the app runs the energy simulation for a map cell, re-projecting the site's Sun/Earth series into the cell's own local frame (`src/sim/cell.ts`). Without `cells.bin`, show the numbers here as a summary for that period.
 - Site01/04/04R/07 use 100 m cells (61×61); Site11/20/23 use 200 m cells (31×31). Always read `nx`, `spacingM` from the file.
 
 ## `{siteId}/season.json` (one-year summary, added in v1 without breaking changes)
 
-The terrain horizon does not change; only the ephemeris is re-queried (JPL Horizons, same settings, 10-minute steps) for one year. The year series itself is not published; the file holds monthly summaries.
+The terrain horizon does not change; only the ephemeris is re-queried (JPL Horizons, same settings, 10-minute steps) for one year. This file holds monthly summaries; the year series itself is published separately as `year.bin` (see below).
 
 ```json
 {
@@ -179,6 +183,15 @@ Written by `python -m preprocess.extended` from existing caches only. Not part o
 - **`year.bin`**: little-endian float32, six blocks of `count` values in this order: `sun.azDeg, sun.elDeg, sun.distanceM, earth.azDeg, earth.elDeg, earth.distanceM`. Coverage `2026-11-01T00:00:00Z` … `2027-11-01T00:00:00Z`, `stepS` 600, count 52 561 (both ends inclusive). Same observer and settings as `ephemeris.json`; the first `ephemeris.json.count` samples equal it within float32 rounding (angles ≤ 1e-4°).
 - **`cells.bin`**: little-endian int16, unit `unitDeg` (0.01°). Row = cell in `map.json` order (row 0 = south, col 0 = west, row-major), 360 columns = azimuth `j × 1°`. Taken as every second column of the 0.5° map horizons (decimation, not averaging: a horizon value is a maximum, an average would invent a value). No `distanceM`.
 - `cells.eyeM[i]`: eye height of cell `i` above the 1737.4 km sphere (surface + 2 m).
+
+## `{siteId}/terrain-far.json`, `earth-orientation.json` (3D only, visual; written by C)
+
+Optional display files for the 3D scene. They are not used for visibility or energy, and the loader treats a missing or invalid file as a visual warning only.
+
+- **`terrain-far.json`**: coarse regional terrain around `terrain.json`, same shape and frame as `terrain.json`. Written by `python -m preprocess.regional_moontrek` (NASA Moon Trek, LOLA 30 m/px south-pole DEM).
+- **`earth-orientation.json`**: Earth texture orientation registered to UTC for each ephemeris sample. Written by `python -m preprocess.sky_orientation --crosscheck`; tied to the site's coordinates and `ephemeris.json`, so it must be rebuilt if either changes (the loader rejects a stale file).
+
+Method, sources and checks: `docs/c-3d-validation.md`.
 
 ## Visibility rule (shared by B and D)
 
