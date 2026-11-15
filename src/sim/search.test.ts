@@ -24,6 +24,7 @@ import {
   findPlacesForDate,
   latestSearch,
   markPareto,
+  compareCandidates,
   type PlaceSource,
   type SearchCandidate,
 } from './search.ts'
@@ -308,5 +309,14 @@ describe('runSearch', () => {
     expect(typeof Worker).toBe('undefined')
     expect(r.tested).toBe(3)
     expect(progress.at(-1)).toBe(3)
+  })
+})
+
+describe('ranking ties', () => {
+  it('equal chosen metric: the other visible metrics decide before time or name', () => {
+    const a = cand('A-site', 0.8, 0.5, 10)
+    const z = cand('Z-site', 0.8, 0.5, 2) // same lowest charge, shorter Earth outage
+    const list = [a, z].sort(compareCandidates('minSoc'))
+    expect(list.map((c) => c.siteId)).toEqual(['Z-site', 'A-site'])
   })
 })
