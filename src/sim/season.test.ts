@@ -64,7 +64,7 @@ describe('cell season', () => {
     const d = base('Site01')
     const y = year('Site01')
     const cells = parseCells(header('Site01'), readBin('Site01/cells.bin'))
-    const cell = cellSiteData(d, y, cells, 36, 32)
+    const cell = cellSiteData(d, y, cells, header('Site01'), 36, 32)
     expect(cell.season).not.toBe(d.season)
     expect(cell.season!.siteId).toBe('Site01:r36c32')
     // Values from the C/B finding (docs/ekip-notlari.md): centre 47.4 / 40.03, cell 65.84 / 50.90.
@@ -73,13 +73,13 @@ describe('cell season', () => {
     expect(cell.season!.year.earthPct).toBeCloseTo(50.9, 1)
     expect(cell.season!.months).toHaveLength(12)
     // computed once per cell
-    expect(cellSiteData(d, y, cells, 36, 32).season).toBe(cell.season)
-    expect(cellSiteData(d, y, cells, 36, 33).season).not.toBe(cell.season)
+    expect(cellSiteData(d, y, cells, header('Site01'), 36, 32).season).toBe(cell.season)
+    expect(cellSiteData(d, y, cells, header('Site01'), 36, 33).season).not.toBe(cell.season)
   })
 
   it('a contradicting cells.bin size is refused', () => {
     const d = base('Site01')
     const cells = parseCells(header('Site01'), readBin('Site01/cells.bin'))
-    expect(() => cellSiteData(d, year('Site01'), { ...cells, n: cells.n - 1 }, 0, 0)).toThrow(/cells/)
+    expect(() => cellSiteData(d, year('Site01'), { ...cells, n: cells.n - 1 }, header('Site01'), 0, 0)).toThrow(/cells/)
   })
 })

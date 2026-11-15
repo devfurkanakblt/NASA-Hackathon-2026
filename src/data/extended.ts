@@ -5,11 +5,115 @@
  */
 import type { BodySeries, EphemerisDoc, HorizonDoc } from './contract.ts'
 
+/** The only `extendedSchema` this reader understands (docs/data-contract.md, extended.json). */
+export const SUPPORTED_EXTENDED_SCHEMA = 2
+
+const YEAR_FIELDS = ['sun.azDeg', 'sun.elDeg', 'sun.distanceM', 'earth.azDeg', 'earth.elDeg', 'earth.distanceM'] as const
+
 export interface ExtendedHeader {
   version: number
+  extendedSchema: number
   siteId: string
-  year: { file: string; startUtc: string; stepS: number; count: number; source: string }
-  cells?: { file: string; azStepDeg: number; count: number; unitDeg: number; n: number; eyeM: number[] }
+  year: {
+    file: string
+    sha256: string
+    startUtc: string
+    /** Inclusive: the last sample is `startUtc + (count - 1) * stepS`. */
+    endUtc: string
+    stepS: number
+    count: number
+    source: string
+    observer: { latDeg: number; lonDeg: number; eyeM: number }
+    fields: string[]
+  }
+  cells?: {
+    file: string
+    sha256: string
+    azStartDeg: number
+    azStepDeg: number
+    count: number
+    coverageDeg: number
+    unitDeg: number
+    horizonResolutionDeg: number
+    n: number
+    eyeM: number[]
+    grid: { nx: number; ny: number; spacingM: number; halfSizeM: number }
+  }
+}
+
+const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v)
+const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v)
+const isPosInt = (v: unknown): v is number => typeof v === 'number' && Number.isInteger(v) && v > 0
+const isSha = (v: unknown) => typeof v === 'string' && /^[0-9a-f]{64}$/.test(v)
+const utcTime = (v: unknown) => {
+  if (typeof v !== 'string' || !/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ$/.test(v)) return NaN
+  const ms = Date.parse(v)
+  return Number.isFinite(ms) && new Date(ms).toISOString().slice(0, 19) === v.slice(0, 19) ? ms : NaN
+}
+
+/**
+ * Checks an `extended.json` against schema 2. Returns one English sentence per problem
+ * (each names `<siteId>/extended.json`); an empty array means the header is valid.
+ * `sha256` is only checked for shape here; `npm test` verifies it against the real files.
+ */
+export function validateExtendedHeader(h: unknown, siteId: string): string[] {
+  const where = `${siteId}/extended.json`
+  const out: string[] = []
+  const bad = (msg: string) => out.push(`${where}: ${msg}`)
+  if (!isObj(h)) return [`${where}: header must be a JSON object`]
+  if (h.version !== 1) bad('version must be 1')
+  if (h.extendedSchema !== SUPPORTED_EXTENDED_SCHEMA) bad(`extendedSchema must be ${SUPPORTED_EXTENDED_SCHEMA}, got ${JSON.stringify(h.extendedSchema)}`)
+  if (h.siteId !== siteId) bad(`siteId must be "${siteId}", got ${JSON.stringify(h.siteId)}`)
+  const y = h.year
+  if (!isObj(y)) bad('year section is missing')
+  else {
+    if (y.file !== 'year.bin') bad('year.file must be year.bin')
+    if (!isSha(y.sha256)) bad('year.sha256 must be 64 lowercase hex characters')
+    if (y.stepS !== 600) bad(`year.stepS must be 600, got ${JSON.stringify(y.stepS)}`)
+    if (!isPosInt(y.count) || y.count < 2) bad(`year.count must be an integer of at least 2, got ${JSON.stringify(y.count)}`)
+    if (!['jpl-horizons', 'skyfield-de421'].includes(y.source as string)) bad('year.source must be jpl-horizons or skyfield-de421')
+    const start = utcTime(y.startUtc)
+    const end = utcTime(y.endUtc)
+    if (!Number.isFinite(start)) bad(`year.startUtc is not a parsable UTC time: ${JSON.stringify(y.startUtc)}`)
+    if (!Number.isFinite(end)) bad(`year.endUtc is not a parsable UTC time: ${JSON.stringify(y.endUtc)}`)
+    if (Number.isFinite(start) && Number.isFinite(end) && isPosInt(y.count) && isNum(y.stepS) && end !== start + (y.count - 1) * y.stepS * 1000) {
+      bad(`year.endUtc must equal startUtc + (count - 1) * stepS, got ${String(y.endUtc)}`)
+    }
+    const o = y.observer
+    if (!isObj(o) || !isNum(o.latDeg) || !isNum(o.lonDeg) || !isNum(o.eyeM)) bad('year.observer must have finite latDeg, lonDeg and eyeM')
+    else if (Math.abs(o.latDeg) > 90 || Math.abs(o.lonDeg) > 180) bad('year.observer coordinate is outside latitude/longitude bounds')
+    if (!Array.isArray(y.fields) || y.fields.length !== YEAR_FIELDS.length || YEAR_FIELDS.some((f, i) => (y.fields as unknown[])[i] !== f)) {
+      bad(`year.fields must be exactly [${YEAR_FIELDS.join(', ')}] in that order`)
+    }
+  }
+  const c = h.cells
+  if (c !== undefined) {
+    if (!isObj(c)) bad('cells section must be an object')
+    else {
+      if (c.file !== 'cells.bin') bad('cells.file must be cells.bin')
+      if (!isSha(c.sha256)) bad('cells.sha256 must be 64 lowercase hex characters')
+      if (c.azStartDeg !== 0) bad(`cells.azStartDeg must be 0, got ${JSON.stringify(c.azStartDeg)}`)
+      if (!isNum(c.azStepDeg) || c.azStepDeg <= 0 || !isPosInt(c.count) || Math.abs(c.azStepDeg * c.count - 360) > 1e-9) {
+        bad(`cells.azStepDeg * count must equal 360, got ${JSON.stringify(c.azStepDeg)} * ${JSON.stringify(c.count)}`)
+      }
+      if (c.coverageDeg !== 360) bad(`cells.coverageDeg must be 360, got ${JSON.stringify(c.coverageDeg)}`)
+      if (c.unitDeg !== .01) bad('cells.unitDeg must be 0.01')
+      if (c.horizonResolutionDeg !== c.azStepDeg) bad('cells.horizonResolutionDeg must equal azStepDeg')
+      if (!isPosInt(c.n)) bad(`cells.n must be a positive integer, got ${JSON.stringify(c.n)}`)
+      if (!Array.isArray(c.eyeM) || (isPosInt(c.n) && c.eyeM.length !== c.n)) bad(`cells.eyeM must be an array of length n (${JSON.stringify(c.n)})`)
+      else if (!c.eyeM.every(isNum)) bad('cells.eyeM contains a non-finite value')
+      const g = c.grid
+      if (!isObj(g) || !isPosInt(g.nx) || !isPosInt(g.ny) || !isNum(g.spacingM) || !isNum(g.halfSizeM)) {
+        bad('cells.grid must have positive integer nx, ny and finite spacingM, halfSizeM')
+      } else if (isPosInt(c.n) && g.nx * g.ny !== c.n) bad(`cells.grid nx * ny (${g.nx * g.ny}) must equal cells.n (${c.n})`)
+    }
+  }
+  return out
+}
+
+function assertValidHeader(siteId: string, header: unknown): asserts header is ExtendedHeader {
+  const issues = validateExtendedHeader(header, siteId)
+  if (issues.length) throw new Error(issues.join('; '))
 }
 
 export interface CellHorizons {
@@ -25,72 +129,24 @@ export interface CellHorizons {
   unitDeg: number
 }
 
-/** `extended.json` versions this parser understands. */
-export const SUPPORTED_EXTENDED_VERSIONS = [1] as const
-
-const ISO_UTC = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?Z$/
-const isPosInt = (v: unknown): v is number => typeof v === 'number' && Number.isInteger(v) && v > 0
-const isFiniteNum = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v)
-
-/**
- * Problems with an `extended.json` header for `siteId`, as sentences; empty when it can be used.
- * Checks what the binary parsers rely on: version, site, source, UTC start, step, count, and for
- * cells a full 360° azimuth ring, a positive angle unit and one finite eye height per cell.
- */
-export function validateExtendedHeader(siteId: string, header: ExtendedHeader): string[] {
-  const issues: string[] = []
-  const h = header as Partial<ExtendedHeader> | null | undefined
-  if (!h || typeof h !== 'object') return [`${siteId}/extended.json: not an object.`]
-  if (!(SUPPORTED_EXTENDED_VERSIONS as readonly unknown[]).includes(h.version)) issues.push(`${siteId}/extended.json: unsupported version ${String(h.version)} (supported: ${SUPPORTED_EXTENDED_VERSIONS.join(', ')}).`)
-  if (h.siteId !== siteId) issues.push(`${siteId}/extended.json: siteId is ${JSON.stringify(h.siteId)}, expected ${JSON.stringify(siteId)}.`)
-  const y = h.year
-  if (!y || typeof y !== 'object') {
-    issues.push(`${siteId}/extended.json: no year block.`)
-  } else {
-    if (typeof y.file !== 'string' || y.file === '') issues.push(`${siteId}/extended.json: year.file missing.`)
-    if (typeof y.source !== 'string' || y.source === '') issues.push(`${siteId}/extended.json: year.source missing.`)
-    if (typeof y.startUtc !== 'string' || !ISO_UTC.test(y.startUtc) || !Number.isFinite(Date.parse(y.startUtc))) issues.push(`${siteId}/extended.json: year.startUtc must be a UTC time like 2026-11-01T00:00:00Z.`)
-    if (!isPosInt(y.stepS)) issues.push(`${siteId}/extended.json: year.stepS must be a positive whole number of seconds.`)
-    if (!isPosInt(y.count) || y.count < 2) issues.push(`${siteId}/extended.json: year.count must be at least 2.`)
-  }
-  const c = h.cells
-  if (c !== undefined) {
-    if (!c || typeof c !== 'object') {
-      issues.push(`${siteId}/extended.json: cells is not an object.`)
-    } else {
-      if (typeof c.file !== 'string' || c.file === '') issues.push(`${siteId}/extended.json: cells.file missing.`)
-      if (!isPosInt(c.count) || !isFiniteNum(c.azStepDeg) || c.azStepDeg <= 0 || Math.abs(c.azStepDeg * c.count - 360) > 1e-9) issues.push(`${siteId}/extended.json: cells must cover 360° of azimuth (azStepDeg × count = 360).`)
-      if (!isFiniteNum(c.unitDeg) || c.unitDeg <= 0) issues.push(`${siteId}/extended.json: cells.unitDeg must be a positive number.`)
-      if (!isPosInt(c.n)) issues.push(`${siteId}/extended.json: cells.n must be a positive whole number.`)
-      if (!Array.isArray(c.eyeM) || c.eyeM.length !== c.n) issues.push(`${siteId}/extended.json: cells.eyeM must hold one eye height per cell (${String(c.n)}).`)
-      else if (!c.eyeM.every(isFiniteNum)) issues.push(`${siteId}/extended.json: cells.eyeM has a non-finite value.`)
-    }
-  }
-  return issues
-}
-
-function assertHeader(siteId: string, header: ExtendedHeader) {
-  const issues = validateExtendedHeader(siteId, header)
-  if (issues.length > 0) throw new Error(issues.join(' '))
-}
-
 /**
  * Six float32 blocks of `count`: sun az, el, distance, earth az, el, distance. Every value must
  * be finite, azimuths in [0, 360], elevations in [−90, 90] and distances positive; a bad value is
  * an error naming the block and sample, never a silent zero.
  */
 export function parseYear(siteId: string, header: ExtendedHeader, buf: ArrayBuffer): EphemerisDoc {
-  assertHeader(siteId, header)
+  assertValidHeader(siteId, header)
   const { count, startUtc, stepS, source } = header.year
   if (buf.byteLength !== 6 * count * 4) throw new Error(`${siteId}/year.bin: expected ${6 * count * 4} bytes, got ${buf.byteLength}`)
   const f = new Float32Array(buf)
-  const names = ['sun azDeg', 'sun elDeg', 'sun distanceM', 'earth azDeg', 'earth elDeg', 'earth distanceM']
   const ok = [(v: number) => v >= 0 && v <= 360, (v: number) => v >= -90 && v <= 90, (v: number) => v > 0]
   for (let k = 0; k < 6; k++) {
     const test = ok[k % 3]
     for (let i = 0; i < count; i++) {
       const v = f[k * count + i]
-      if (!Number.isFinite(v) || !test(v)) throw new Error(`${siteId}/year.bin: ${names[k]}[${i}] = ${v} is not a valid value.`)
+      if (!Number.isFinite(v) || !test(v)) {
+        throw new Error(`${siteId}/year.bin: ${YEAR_FIELDS[k].replace('.', ' ')}[${i}] = ${v} is ${Number.isFinite(v) ? 'out of range' : 'not finite'}.`)
+      }
     }
   }
   const block = (k: number) => Array.from(f.subarray(k * count, (k + 1) * count))
@@ -100,14 +156,17 @@ export function parseYear(siteId: string, header: ExtendedHeader, buf: ArrayBuff
 
 /** Int16 horizon values; each must stay within ±90° once scaled by `unitDeg` (int16 has no NaN). */
 export function parseCells(header: ExtendedHeader, buf: ArrayBuffer): CellHorizons {
+  const siteId = header.siteId
+  assertValidHeader(siteId, header)
   const c = header.cells
-  if (!c) throw new Error(`${header.siteId}: no map cells`)
-  assertHeader(header.siteId, header)
-  if (buf.byteLength !== c.n * c.count * 2) throw new Error(`${header.siteId}/cells.bin: expected ${c.n * c.count * 2} bytes, got ${buf.byteLength}`)
+  if (!c) throw new Error(`${siteId}: no map cells`)
+  if (buf.byteLength !== c.n * c.count * 2) throw new Error(`${siteId}/cells.bin: expected ${c.n * c.count * 2} bytes, got ${buf.byteLength}`)
   const data = new Int16Array(buf)
+  const at = data.indexOf(-32768)
+  if (at >= 0) throw new Error(`${siteId}/cells.bin: sentinel value -32768 at index ${at} (no horizon was computed)`)
   const limit = 90 / c.unitDeg
   for (let i = 0; i < data.length; i++) {
-    if (Math.abs(data[i]) > limit) throw new Error(`${header.siteId}/cells.bin: cell ${Math.floor(i / c.count)} azimuth ${(i % c.count) * c.azStepDeg}° has horizon ${data[i] * c.unitDeg}° (outside ±90°).`)
+    if (Math.abs(data[i]) > limit) throw new Error(`${siteId}/cells.bin: cell ${Math.floor(i / c.count)} azimuth ${(i % c.count) * c.azStepDeg}° has horizon ${data[i] * c.unitDeg}° (outside ±90°).`)
   }
   return { azStepDeg: c.azStepDeg, count: c.count, n: c.n, eyeM: c.eyeM, data, unitDeg: c.unitDeg }
 }
@@ -117,6 +176,56 @@ export function cellHorizon(cells: CellHorizons, index: number): HorizonDoc {
   if (!Number.isInteger(index) || index < 0 || index >= cells.n) throw new RangeError(`Cell index ${index} outside 0..${cells.n - 1}`)
   const row = cells.data.subarray(index * cells.count, (index + 1) * cells.count)
   return { azStepDeg: cells.azStepDeg, count: cells.count, elevDeg: Array.from(row, (v) => v * cells.unitDeg) }
+}
+
+/** One map cell recomputed with the 0.1° catalogue horizon (`python -m preprocess.refine_cells`). */
+export interface RefinedCell {
+  latDeg: number
+  lonDeg: number
+  /** Same observer as `cells.eyeM[i]`: surface + 2 m above the 1737.4 km sphere. */
+  eyeM: number
+  azStepDeg: number
+  count: number
+  elevDeg: number[]
+  distanceM: number[]
+  /** Near-field and far-terrain coverage warnings of this horizon, verbatim from the pipeline. */
+  warnings: string[]
+}
+
+/** `refined.json`: a few finalist map cells, keyed `r<row>c<col>`, bound to one `cells.bin` by its sha256. */
+export interface RefinedDoc {
+  version: 1
+  siteId: string
+  cellsSha256: string
+  cells: Record<string, RefinedCell>
+}
+
+/**
+ * Checks a `refined.json` against the site's `extended.json`. Returns one English sentence per problem;
+ * a `cellsSha256` that differs from `cells.sha256` makes the whole file stale.
+ */
+export function validateRefined(doc: unknown, siteId: string, header: ExtendedHeader): string[] {
+  const where = `${siteId}/refined.json`
+  if (!isObj(doc)) return [`${where}: must be a JSON object`]
+  const out: string[] = []
+  const bad = (msg: string) => out.push(`${where}: ${msg}`)
+  if (doc.version !== 1) bad(`version must be 1, got ${JSON.stringify(doc.version)}`)
+  if (doc.siteId !== siteId) bad(`siteId must be "${siteId}", got ${JSON.stringify(doc.siteId)}`)
+  if (!header.cells) bad('the site has no map cells in extended.json')
+  else if (doc.cellsSha256 !== header.cells.sha256) bad(`stale: cellsSha256 ${JSON.stringify(doc.cellsSha256)} does not match cells.sha256 ${header.cells.sha256} in extended.json`)
+  if (!isObj(doc.cells)) return [...out, `${where}: cells must be an object`]
+  for (const [id, c] of Object.entries(doc.cells)) {
+    if (!/^r\d+c\d+$/.test(id)) bad(`cell id ${JSON.stringify(id)} must look like r<row>c<col>`)
+    if (!isObj(c)) { bad(`${id} must be an object`); continue }
+    if (!isNum(c.latDeg) || !isNum(c.lonDeg) || !isNum(c.eyeM)) bad(`${id} must have finite latDeg, lonDeg and eyeM`)
+    if (!isNum(c.azStepDeg) || !isPosInt(c.count) || Math.abs(c.azStepDeg * c.count - 360) > 1e-9) bad(`${id}: azStepDeg * count must equal 360`)
+    for (const k of ['elevDeg', 'distanceM'] as const) {
+      const a = c[k]
+      if (!Array.isArray(a) || a.length !== c.count || !a.every(isNum)) bad(`${id}.${k} must be ${JSON.stringify(c.count)} finite numbers`)
+    }
+    if (!Array.isArray(c.warnings) || !c.warnings.every((w) => typeof w === 'string')) bad(`${id}.warnings must be an array of strings`)
+  }
+  return out
 }
 
 const defaultBase = () => `${import.meta.env.BASE_URL}data`
@@ -141,9 +250,15 @@ function cached<T>(cache: Map<string, Promise<T>>, key: string, make: () => Prom
 const headers = new Map<string, Promise<ExtendedHeader>>()
 const years = new Map<string, Promise<EphemerisDoc>>()
 const cellsCache = new Map<string, Promise<CellHorizons>>()
+const refinedCache = new Map<string, Promise<RefinedDoc | null>>()
 
-function loadHeader(siteId: string, baseUrl: string): Promise<ExtendedHeader> {
-  return cached(headers, `${baseUrl}/${siteId}`, async () => (await (await getOk(`${baseUrl}/${siteId}/extended.json`)).json()) as ExtendedHeader)
+/** Fetches and validates `extended.json`; `sha256` is not recomputed in the browser (tests check it). */
+export function loadHeader(siteId: string, baseUrl = defaultBase()): Promise<ExtendedHeader> {
+  return cached(headers, `${baseUrl}/${siteId}`, async () => {
+    const header: unknown = await (await getOk(`${baseUrl}/${siteId}/extended.json`)).json()
+    assertValidHeader(siteId, header)
+    return header
+  })
 }
 
 /** One-year ephemeris of a site (cached per site). */
@@ -162,5 +277,28 @@ export function loadCells(siteId: string, baseUrl = defaultBase()): Promise<Cell
     if (!header.cells) throw new Error(`${siteId}: no map cells`)
     const buf = await (await getOk(`${baseUrl}/${siteId}/${header.cells.file}`)).arrayBuffer()
     return parseCells(header, buf)
+  })
+}
+
+/**
+ * 0.1° horizons of the site's revalidated map cells (cached per site). `null` when the site has no
+ * `refined.json`. An invalid or stale file (another `cells.bin`) is never used: it is ignored with a
+ * console warning and the cells keep their 1° screening horizon.
+ */
+export function loadRefined(siteId: string, baseUrl = defaultBase()): Promise<RefinedDoc | null> {
+  return cached(refinedCache, `${baseUrl}/${siteId}`, async () => {
+    const response = await fetch(`${baseUrl}/${siteId}/refined.json`)
+    if (response.status === 404) return null
+    if (!response.ok) throw new Error(`${baseUrl}/${siteId}/refined.json: HTTP ${response.status}`)
+    const doc: unknown = await response.json()
+    const issues = validateRefined(doc, siteId, await loadHeader(siteId, baseUrl))
+    if (issues.length) {
+      console.warn(`${issues.join('; ')}. Ignored; map cells keep the 1° screening horizon.`)
+      return null
+    }
+    return doc as RefinedDoc
+  }).catch((error: unknown) => {
+    console.warn(`${siteId}/refined.json not used: ${error instanceof Error ? error.message : String(error)}`)
+    return null
   })
 }

@@ -29,6 +29,8 @@ def fetch(url, dest):
 
 def main(sites):
     for s in sites:
+        if C.SITES[s].get("dem") in ("ldem64", "regional80"):
+            continue  # global data is fetched by global_dem.window; regional file is shared below
         fetch(C.local_dem_url(s), C.local_dem_path(s))
     fetch(C.REGIONAL_DEM_URL, C.REGIONAL_DEM_PATH)
 

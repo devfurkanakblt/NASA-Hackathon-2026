@@ -274,7 +274,8 @@ describe('real data', () => {
   it('places for a date over Site01 map cells: slice re-projection equals the full cell run, labelled as screening', async () => {
     const base = real('Site01')
     const year = yearOf('Site01')
-    const cells = parseCells(read<ExtendedHeader>('Site01/extended.json'), readBin('Site01/cells.bin'))
+    const hdr = read<ExtendedHeader>('Site01/extended.json')
+    const cells = parseCells(hdr, readBin('Site01/cells.bin'))
     const pick = (row: number, col: number) => row % 6 === 0 && col % 6 === 0
     const places = [...cataloguePlaces([base]), ...cellPlaces(base, year, cells, pick)]
     const startUtc = '2027-02-10T06:00:00Z'
@@ -287,7 +288,7 @@ describe('real data', () => {
     expect(catalogue?.failures.map((f) => f.code)).toEqual(['coverage'])
     const anyCell = [...r.feasible, ...r.rejected].find((c) => c.precision === 'cell' && c.summary)!
     const m = /:r(\d+)c(\d+)$/.exec(anyCell.siteId)!
-    const full = evaluateScenario(cellSiteData(base, year, cells, Number(m[1]), Number(m[2])), startUtc, DEFAULT_SETTINGS)
+    const full = evaluateScenario(cellSiteData(base, year, cells, hdr, Number(m[1]), Number(m[2])), startUtc, DEFAULT_SETTINGS)
     for (const k of ['sunVisibleFraction', 'earthVisibleFraction', 'minSocFraction', 'longestEarthOutageS'] as const) {
       expect(anyCell.summary![k], k).toBeCloseTo(full.summary[k], 9)
     }

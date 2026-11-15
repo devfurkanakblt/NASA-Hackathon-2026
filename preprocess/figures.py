@@ -65,7 +65,7 @@ def site04_map():
 
 
 def season():
-    polar = [s for s in C.SITES if C.SITES[s].get("category") != "contrast"]
+    polar = [s for s in C.SITES if C.SITES[s].get("category") != "contrast" and not C.SITES[s].get("program")]
     fig, axes = plt.subplots(1, 2, figsize=(14, 5.8), layout="constrained", sharey=True)
     for sid in polar:
         doc = load(sid, "season.json")

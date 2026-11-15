@@ -17,11 +17,20 @@ const readBin = (path: string): ArrayBuffer => {
   return b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength) as ArrayBuffer
 }
 
+const SHA = '0'.repeat(64)
 const good = (): ExtendedHeader => ({
   version: 1,
+  extendedSchema: 2,
   siteId: 'X',
-  year: { file: 'year.bin', startUtc: '2026-11-01T00:00:00Z', stepS: 600, count: 2, source: 'test' },
-  cells: { file: 'cells.bin', azStepDeg: 90, count: 4, unitDeg: 0.01, n: 2, eyeM: [10, 11] },
+  year: {
+    file: 'year.bin', sha256: SHA, startUtc: '2026-11-01T00:00:00Z', endUtc: '2026-11-01T00:10:00Z', stepS: 600, count: 2,
+    source: 'jpl-horizons', observer: { latDeg: -89.5, lonDeg: 0, eyeM: 10 },
+    fields: ['sun.azDeg', 'sun.elDeg', 'sun.distanceM', 'earth.azDeg', 'earth.elDeg', 'earth.distanceM'],
+  },
+  cells: {
+    file: 'cells.bin', sha256: SHA, azStartDeg: 0, azStepDeg: 90, count: 4, coverageDeg: 360, unitDeg: 0.01,
+    horizonResolutionDeg: 90, n: 2, eyeM: [10, 11], grid: { nx: 2, ny: 1, spacingM: 500, halfSizeM: 250 },
+  },
 })
 // sun az, el, dist, earth az, el, dist — 2 samples each
 const yearValues = () => new Float32Array([10, 20, 1, 2, 1.5e11, 1.5e11, 30, 40, 3, 4, 3.8e8, 3.8e8])
@@ -30,31 +39,31 @@ const cellValues = () => new Int16Array([0, 100, 200, 300, -50, 0, 50, 0])
 describe('validateExtendedHeader', () => {
   it('accepts every real header', () => {
     for (const { id } of read<SitesDoc>('sites.json').sites) {
-      expect(validateExtendedHeader(id, read<ExtendedHeader>(`${id}/extended.json`)), id).toEqual([])
+      expect(validateExtendedHeader(read<ExtendedHeader>(`${id}/extended.json`), id), id).toEqual([])
     }
-    expect(validateExtendedHeader('X', good())).toEqual([])
+    expect(validateExtendedHeader(good(), 'X')).toEqual([])
   })
 
   const cases: [string, (h: ExtendedHeader) => void, RegExp][] = [
-    ['unknown version', (h) => { h.version = 2 }, /unsupported version 2/],
-    ['other site', (h) => { h.siteId = 'Y' }, /siteId is "Y"/],
+    ['unknown version', (h) => { h.version = 2 }, /version must be 1/],
+    ['other site', (h) => { h.siteId = 'Y' }, /siteId must be "X", got "Y"/],
     ['no source', (h) => { h.year.source = '' }, /year.source/],
     ['local time', (h) => { h.year.startUtc = '2026-11-01T00:00:00' }, /startUtc/],
     ['not a date', (h) => { h.year.startUtc = '2026-13-45T00:00:00Z' }, /startUtc/],
     ['zero step', (h) => { h.year.stepS = 0 }, /stepS/],
     ['fractional step', (h) => { h.year.stepS = 600.5 }, /stepS/],
     ['one sample', (h) => { h.year.count = 1 }, /count/],
-    ['half ring', (h) => { h.cells!.azStepDeg = 45 }, /360°/],
-    ['NaN step', (h) => { h.cells!.azStepDeg = Number.NaN }, /360°/],
+    ['half ring', (h) => { h.cells!.azStepDeg = 45 }, /must equal 360/],
+    ['NaN step', (h) => { h.cells!.azStepDeg = Number.NaN }, /must equal 360/],
     ['zero unit', (h) => { h.cells!.unitDeg = 0 }, /unitDeg/],
     ['eye heights short', (h) => { h.cells!.eyeM = [10] }, /eyeM/],
-    ['NaN eye height', (h) => { h.cells!.eyeM = [10, Number.NaN] }, /eyeM has a non-finite/],
+    ['NaN eye height', (h) => { h.cells!.eyeM = [10, Number.NaN] }, /eyeM contains a non-finite/],
   ]
   for (const [name, mutate, message] of cases) {
     it(`refuses: ${name}`, () => {
       const h = good()
       mutate(h)
-      expect(validateExtendedHeader('X', h).join(' ')).toMatch(message)
+      expect(validateExtendedHeader(h, 'X').join(' ')).toMatch(message)
       expect(() => parseYear('X', h, yearValues().buffer)).toThrow(message)
     })
   }

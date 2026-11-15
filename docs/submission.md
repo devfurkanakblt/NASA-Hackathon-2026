@@ -11,8 +11,9 @@ Lunar Landing Site Navigator
 
 ## High-level project summary
 
-We built a browser-based mission-control tool for lunar south-pole landing sites (7 NASA
-candidate regions, plus 2 contrast points: the Chang'e-6 far-side site and Apollo 11). For a site and
+We built a browser-based mission-control tool with 32 lunar evaluation points: the original seven
+south-polar points and two contrast sites, plus Apollo, CLPS, international landing sites and
+representative research points for the dated October 2024 Artemis III candidate-region list. For a site and
 a start date it shows where the Sun and Earth are against the real terrain horizon, how much power
 a solar panel produces, when the battery drops below its reserve, and when there is a line of
 sight to Earth. Up to three scenarios (sites or dates) are compared with the same hardware, and
@@ -28,9 +29,8 @@ a ridge 1.9 km away gets continuous sunlight and keeps its reserve.
 
 ## Project details
 
-**What it does.** A mission planner picks one of seven south-pole sites (six from NASA's Lunar
-Surface Data Book plus a derived ridge point) or two contrast points (Chang'e-6 on the far side,
-Apollo 11 near the equator), a start date (1 Nov 2026 – 1 Nov 2027 UTC) and a
+**What it does.** A mission planner picks a source-labelled point from the 32-entry catalogue,
+a start date within the available 1 Nov 2026 – 1 Nov 2027 UTC coverage and a
 mission length (1–30 days), optionally changes the panel, battery and load assumptions, and
 compares up to three places or dates. For each one a result card answers the two questions in
 plain words, "Power?" and "Talk to Earth?", with a tick or a cross. Tabs then show why: the app shows a horizon panorama (terrain skyline with the Sun and Earth tracks), a 3D
@@ -68,7 +68,11 @@ on gentle ground. Against NASA GSFC's independent polar illumination maps (Mazar
 years) our Sun and Earth visibility falls within the map's local 3×3-pixel range at all 7 polar
 sites (rank correlation 0.96 for both), and Shackleton's floor is permanently shadowed in both.
 The TypeScript engine reproduces the Python reference values exactly; map points with the 1°
-horizon stay within 0.15 points of the 0.5° map values; 451 automated tests (341 TypeScript, 110 Python) run on every change.
+horizon stay within 0.15 points of the 0.5° map values. The current suite has 775 passing tests
+(457 TypeScript, 318 Python). All 23 new catalogue packages and both coordinate-package examples
+pass independent Horizons checks at 14 epochs per body; maximum sky angle difference is
+0.00002442°, and the 32-direction horizon convergence difference is below 0.01550°
+([validation report](validation-missions.md)).
 
 **Limits.** Sites are research region centres, not certified landing sites; hardware values are
 example assumptions. Not modelled: eclipses, temperature, dust, battery ageing, ground-station
@@ -80,12 +84,15 @@ not resolved.
 React Three Fiber, inline SVG charts, Vite, Vitest. Static hosting on [Vercel / GitHub Pages]; the same
 build runs offline.
 
-**Next steps.** Free coordinates anywhere on the Moon (needs an online DEM), thermal and
+**Next steps.** Connect the validated coordinate/multiyear package importer and generation contract
+to a browser upload or generation-job interface (B/D). Offline generation already supports explicit
+local 5 m, south-polar 80 m or global ~474 m terrain choices, and a real 2026–2029 example package
+is included; the current form remains regional-cell snapping. Further work includes thermal and
 relay-satellite models.
 
 ## Use of Artificial Intelligence (AI)
 
-We used AI assistants (Anthropic Claude) during research, coding, testing
+We used AI assistants (Anthropic Claude and OpenAI Codex) during research, coding, testing
 and writing documentation. The team chose the approach, defined the data contract and the model,
 and reviewed the code. AI-generated code is covered by the same automated tests and validation
 reports as the rest of the project. No AI-generated images, data or results are presented as NASA
@@ -100,7 +107,7 @@ data; every number in the app is computed from the NASA sources below by code in
 - NASA GSFC PGDA Lunar Polar Illumination maps (Mazarico et al.; external validation) — https://pgda.gsfc.nasa.gov/products/69
 - NASA Moon Trek, LOLA 5 m south-pole mosaic (terrain cross-check) — https://trek.nasa.gov/moon/
 - NASA Moon Trek, LOLA 30 m/px south-pole DEM `LRO_LOLA_DEM_SPole75_30mp_v04` (regional terrain in the 3D view, display only) — https://trek.nasa.gov/moon/
-- NASA Earth Observatory, *Blue Marble: Next Generation* (November 2004) (Earth texture in the 3D view, display only) — https://science.nasa.gov/earth/earth-observatory/blue-marble-next-generation/base-topography-bathymetry/
+- NASA Earth Observatory, *Blue Marble: Next Generation* (November 2004) (Earth image in the 3D view: archive composite, not live imagery; display only) — https://science.nasa.gov/earth/earth-observatory/blue-marble-next-generation/base-topography-bathymetry/
 - NASA Moon to Mars (M2M) Lunar Surface Data Book, M2M-30044 Baseline (2025), NASA/TP-20250002845, Table A2.1-1 (site coordinates) — https://ntrs.nasa.gov/citations/20250002845
 - Contrast point coordinates: NASA NSSDC Apollo landing sites; LROC (ASU/NASA) Chang'e-6 first look — https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_sites.html, https://lroc.asu.edu/images/1374
 
