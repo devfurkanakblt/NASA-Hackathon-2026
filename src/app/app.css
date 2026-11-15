@@ -1193,3 +1193,203 @@
 .scenario__point[open] summary {
   margin-bottom: 4px;
 }
+
+/* ==== Calm surfaces: fewer frames, one level of grouping ==== */
+.app {
+  --line: #1c2433;
+  --surface: #10151e;
+  --control: #161c28;
+  --control-hover: #1f2738;
+  line-height: 1.5;
+}
+.app__layout {
+  gap: 20px;
+}
+.app__side,
+.app__main {
+  gap: 20px;
+}
+
+/* Top-level sections: a soft surface, no outline */
+.card {
+  background: var(--surface);
+  border: none;
+  border-radius: 12px;
+  padding: 18px 20px;
+}
+.app h2 {
+  font-size: 16px;
+  margin-bottom: 14px;
+}
+.step {
+  background: none;
+  color: var(--muted);
+  border: 1px solid #2a3346;
+}
+
+/* Controls: filled, not outlined */
+.app button {
+  background: var(--control);
+  border: 1px solid transparent;
+  border-radius: 6px;
+}
+.app button:hover:not(:disabled) {
+  background: var(--control-hover);
+  border-color: transparent;
+}
+.app input,
+.app select {
+  background: #0c1017;
+  border: 1px solid #222a3a;
+  border-radius: 6px;
+}
+.app .app__help {
+  background: var(--control);
+  border-color: transparent;
+}
+
+/* Places: rows with a divider instead of nested boxes */
+.scenarios {
+  gap: 0;
+}
+.scenario,
+.scenario.is-active {
+  border: none;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  padding: 12px 0 12px 12px;
+  margin-left: -12px;
+  border-left: 3px solid transparent;
+}
+.scenario:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+.scenario.is-active {
+  border-left-color: var(--active, #9db7ff);
+  background: linear-gradient(90deg, rgba(157, 183, 255, 0.05), transparent 70%);
+}
+.scenario__shift button {
+  background: none;
+  color: var(--muted);
+  padding: 4px 6px;
+}
+.scenario__shift button:hover:not(:disabled) {
+  color: var(--text);
+}
+.app .icon {
+  background: none;
+  color: var(--muted);
+}
+.app .scenario__add {
+  border: none;
+  background: none;
+  color: #9db7ff;
+  padding-left: 0;
+  margin-top: 6px;
+  text-align: left;
+}
+.scenario__point {
+  margin-top: 8px;
+}
+
+/* Result: three open columns, colour only as a thin top rule */
+.results {
+  gap: 24px;
+}
+.result {
+  background: none;
+  border: none;
+  border-top: 3px solid;
+  border-radius: 0;
+  padding: 14px 2px 4px;
+}
+.meters {
+  border-top: none;
+  padding-top: 4px;
+}
+.comparison__more {
+  margin-top: 14px;
+}
+
+/* "See why": underline tabs, no frame */
+.tabs {
+  background: none;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  gap: 4px;
+  box-shadow: inset 0 -1px 0 var(--line);
+}
+.app .tabs button {
+  background: none;
+  border-radius: 0;
+  padding: 8px 12px 10px;
+  border-bottom: 2px solid transparent;
+}
+.app .tabs button.is-on {
+  background: none;
+  border-bottom-color: #9db7ff;
+}
+.app .tabs button:hover:not(:disabled) {
+  background: none;
+  color: var(--text);
+}
+.explore__head {
+  margin-bottom: 16px;
+}
+.app .chip {
+  background: none;
+  border: none;
+  min-width: 28px;
+  padding: 3px 6px;
+  border-radius: 999px;
+}
+.app .chip.is-on {
+  background: var(--chip);
+}
+.explore__panel .timebar {
+  background: none;
+  border: none;
+  padding: 4px 0;
+}
+.explore__panel h3 {
+  margin-top: 26px;
+}
+
+/* Map layer switch: quiet pills */
+.app .segmented button {
+  background: none;
+  color: var(--muted);
+  border-radius: 999px;
+}
+.app .segmented button.is-on {
+  background: var(--control-hover);
+  color: var(--text);
+  border-color: transparent;
+}
+
+@media (max-width: 760px) {
+  .results {
+    gap: 18px;
+  }
+  .result {
+    border-top-width: 0;
+    border-left: 3px solid;
+    padding-left: 14px;
+  }
+}
+@media (max-width: 600px) {
+  .tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    max-width: 100%;
+  }
+  .tabs::-webkit-scrollbar {
+    display: none;
+  }
+  .app .tabs button {
+    flex: none;
+  }
+}

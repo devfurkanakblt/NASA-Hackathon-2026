@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import type { CSSProperties } from 'react'
 import type { SiteData, SitesDoc } from '../data/contract.ts'
 import { MAX_SCENARIOS } from '../sim/evaluate.ts'
 import { fromInputUtc, shiftUtc, toInputUtc } from './format.ts'
@@ -57,7 +58,7 @@ export function ScenarioList({ sites, scenarios, outcomes, colors, activeKey, on
         const error = outcomes[i]?.error
         const loading = outcomes[i]?.loading
         return (
-          <div key={s.key} className={`scenario${s.key === activeKey ? ' is-active' : ''}`} style={{ borderColor: s.key === activeKey ? colors[i] : undefined }}>
+          <div key={s.key} className={`scenario${s.key === activeKey ? ' is-active' : ''}`} style={{ '--active': colors[i] } as CSSProperties}>
             <div className="scenario__head">
               <button type="button" className="scenario__letter" style={{ background: colors[i] }} onClick={() => onActivate(s.key)} title="Show this place in the charts below">
                 {LETTERS[i]}

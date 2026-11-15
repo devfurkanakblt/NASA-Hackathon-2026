@@ -91,7 +91,7 @@ export function Comparison({ outcomes, settings, bySite, colors }: Props) {
     <div className="comparison">
       <div className="results">
         {outcomes.map((o, i) => (
-          <article key={o.scenario.key} className="result" style={{ borderTopColor: colors[i] }}>
+          <article key={o.scenario.key} className="result" style={{ borderColor: colors[i] }}>
             <header className="result__head">
               <span className="result__letter" style={{ background: colors[i] }}>
                 {o.letter}
