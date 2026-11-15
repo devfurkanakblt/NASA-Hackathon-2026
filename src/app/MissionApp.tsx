@@ -1,30 +1,30 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
-import type { LoadedData, SiteData } from '../data/contract.ts'
+import type { LoadedData, SiteData, SiteEntry } from '../data/contract.ts'
 import { loadCells, loadYear } from '../data/extended.ts'
 import { loadAllData } from '../data/load.ts'
 import { MissionScene3D } from '../scene3d/index.ts'
 import { SceneMissionControls } from '../scene3d/SceneMissionControls.tsx'
 import type { BodyState, PanelState } from '../scene3d/index.ts'
+import type { TerrainGrid } from '../scene3d/types.ts'
 import { earthOrientationAt, earthOrientationCoverageWarning, earthSunDirectionAt } from '../scene3d/appearance.ts'
 import { DEFAULT_SETTINGS, validateSettings } from '../sim/evaluate.ts'
 import type { MissionSettings } from '../sim/evaluate.ts'
 import { nextTransition } from '../sim/visibility.ts'
 import type { VisibilityWindow } from '../sim/visibility.ts'
 import { LineChart } from './charts/LineChart.tsx'
-import { Panorama } from './charts/Panorama.tsx'
+import { SkyVisibilityChart } from './charts/SkyVisibilityChart.tsx'
 import { SeasonChart } from './charts/SeasonChart.tsx'
 import { SiteMap } from './charts/SiteMap.tsx'
 import { RimlightMark } from './Brand.tsx'
 import { Comparison } from './Comparison.tsx'
 import { Landing } from './Landing.tsx'
-import { placeTitle } from './placeName.ts'
+import { mapPointWhere, placeTitle } from './placeName.ts'
 import { errorMessage, fmtDuration, fmtHours, fmtUtc } from './format.ts'
-import { ScenarioList } from './ScenarioList.tsx'
-import { cellId, isKnownSiteId, parseCellId, resolveSiteData, sitesNeeded, snapToCell } from './extendedSites.ts'
+import { cellId, isKnownSiteId, parseCellId, resolveSiteData, sitesNeeded } from './extendedSites.ts'
 import type { ExtendedState } from './extendedSites.ts'
 import { cellAt } from './mapGrid.ts'
-import { defaultScenarios, evaluateAll, isEvaluated, targetScenarioKey } from './scenarios.ts'
+import { defaultScenarios, evaluateAll, isEvaluated, newKey, targetScenarioKey } from './scenarios.ts'
 import type { Scenario } from './scenarios.ts'
 import { SettingsForm } from './SettingsForm.tsx'
 import { decodeShare, encodeShare } from './share.ts'
@@ -35,7 +35,11 @@ import type { TourStep } from './Tour.tsx'
 import { MissionFooter } from './MissionFooter.tsx'
 import { PageNavigation } from './PageNavigation.tsx'
 import type { View } from './PageNavigation.tsx'
+import type { MoonFlight } from './MoonGlobe.tsx'
+import { prepareSceneTerrain } from '../scene3d/terrainCache.ts'
 import './app.css'
+
+const MoonGlobe = lazy(() => import('./MoonGlobe.tsx'))
 
 type Tab = 'sky' | 'power' | 'map' | 'year' | 'sources'
 const TABS: { key: Tab; label: string }[] = [
@@ -63,8 +67,6 @@ function cellOffset(map: Parameters<typeof cellAt>[0], row: number, col: number)
   if (c.distanceM === 0) return 'the same point'
   return `${fmtM(Math.abs(c.eastM))} ${c.eastM >= 0 ? 'east' : 'west'}, ${fmtM(Math.abs(c.northM))} ${c.northM >= 0 ? 'north' : 'south'} of it`
 }
-const yearEndUtc = (y: { startUtc: string; stepS: number; count: number }) =>
-  new Date(Date.parse(y.startUtc) + (y.count - 1) * y.stepS * 1000).toISOString().replace('.000Z', 'Z')
 const fmtM = (m: number) => (Math.abs(m) < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(1)} km`)
 
 /** "in view, sets in 5 d 20 h" / "hidden for the rest of the mission". */
@@ -88,6 +90,29 @@ export function MissionApp() {
   const [step, setStep] = useState(0)
   const [playing, setPlaying] = useState(false)
   const [view, setView] = useState<View>(viewFromLocation)
+  const [simulationStage, setSimulationStage] = useState<'pick' | 'watch'>('pick')
+  const [simulationStarted, setSimulationStarted] = useState(false)
+  const [preparedPickKey, setPreparedPickKey] = useState('')
+  const [readyTerrain, setReadyTerrain] = useState<TerrainGrid | null>(null)
+  const [picked, setPicked] = useState<Scenario[]>([])
+  const [flight, setFlight] = useState<(MoonFlight & { targetKey: string }) | null>(null)
+  const [transitionId, setTransitionId] = useState(0)
+  const transitionAction = useRef<(() => void) | null>(null)
+  const [covered, setCovered] = useState(false)
+  useEffect(() => {
+    if (!transitionId) return
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const swap = window.setTimeout(() => transitionAction.current?.(), reduced ? 80 : 320)
+    const finish = window.setTimeout(() => setCovered(false), reduced ? 200 : 800)
+    return () => { clearTimeout(swap); clearTimeout(finish) }
+  }, [transitionId])
+  const darken = (action: () => void) => {
+    setPlaying(false)
+    transitionAction.current = action
+    setCovered(true)
+    setTransitionId(id => id + 1)
+  }
+  const [mapUpdate, setMapUpdate] = useState<{ key: string; siteId: string; previous: string } | null>(null)
   const [tab, setTab] = useState<Tab>('sky')
   const [tourOpen, setTourOpen] = useState(false)
   const diagnostics = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('diagnostics') === '1'
@@ -95,6 +120,24 @@ export function MissionApp() {
   const [copyResult, setCopyResult] = useState<{ hash: string; ok: boolean } | null>(null)
   // One-year series and map-point horizons, fetched per site after the first render.
   const [ext, setExt] = useState<ExtendedState>({ years: {}, cells: {} })
+
+  const pickKey = picked.map(place => `${place.key}:${place.siteId}`).join(',')
+  useEffect(() => {
+    if (!loaded || !picked.length || view !== 'simulation' || simulationStage !== 'pick') return
+    let cancelled = false
+    void import('../scene3d/SceneCanvas.tsx').catch(() => { /* The scene boundary offers retry on failure. */ })
+    void Promise.all(picked.map(place => {
+      const data = loaded.bySite[place.siteId]
+      return data?.terrain ? prepareSceneTerrain(data.terrain, data.terrainFar, data.site.observerHeightM) : Promise.resolve()
+    })).then(() => {
+      if (cancelled) return
+      setScenarios(picked)
+      setActiveKey(picked[0].key)
+      setPreparedPickKey(pickKey)
+      setSimulationStarted(true)
+    })
+    return () => { cancelled = true }
+  }, [loaded, picked, pickKey, view, simulationStage])
 
   useEffect(() => {
     let cancelled = false
@@ -183,15 +226,12 @@ export function MissionApp() {
       loaded ? resolveSiteData(id, startUtc, loaded.sites.coverage.endUtc, loaded.bySite, ext, settings.durationDays) : { error: 'Site data not loaded.' },
     [loaded, ext, settings.durationDays],
   )
-  /** Latest start the date picker offers for a site: the year end once its one-year file is in. */
-  const maxStartFor = useCallback(
-    (siteId: string) => {
-      const y = ext.years[parseCellId(siteId)?.siteId ?? siteId]
-      return y && y !== 'loading' && y !== 'error' ? yearEndUtc(y) : (loaded?.sites.coverage.endUtc ?? '')
-    },
-    [ext, loaded],
-  )
-
+  const maxStartFor = useCallback((siteId: string) => {
+    const year = ext.years[parseCellId(siteId)?.siteId ?? siteId]
+    return year && year !== 'loading' && year !== 'error'
+      ? new Date(Date.parse(year.startUtc) + (year.count - 1) * year.stepS * 1000).toISOString()
+      : loaded?.sites.coverage.endUtc ?? ''
+  }, [ext, loaded])
   const issues = useMemo(() => validateSettings(settings), [settings])
   const outcomes = useMemo(() => (loaded && issues.length === 0 ? evaluateAll(scenarios, settings, resolve) : []), [loaded, scenarios, settings, issues, resolve])
   const shownBySite = useMemo(() => {
@@ -201,7 +241,7 @@ export function MissionApp() {
   }, [loaded, outcomes])
   const evaluated = useMemo(() => outcomes.filter(isEvaluated), [outcomes])
   const activeIndex = Math.max(0, scenarios.findIndex((s) => s.key === activeKey))
-  const active = outcomes[activeIndex] && isEvaluated(outcomes[activeIndex]) ? outcomes[activeIndex] : evaluated[0]
+  const active = outcomes[activeIndex] && isEvaluated(outcomes[activeIndex]) ? outcomes[activeIndex] : view === 'simulation' && simulationStage === 'watch' ? undefined : evaluated[0]
   const activeColor = COLORS[active ? outcomes.indexOf(active) : 0]
   const activeData = active?.data ?? null
   const activeCell = activeData ? parseCellId(activeData.site.id) : null
@@ -215,7 +255,15 @@ export function MissionApp() {
     setStep(0)
     setScenarios(list => list.map(s => s.key === chosenKey ? { ...s, ...patch } : s))
   }
-  const setActiveSite = (siteId: string) => setScenarios((list) => list.map((s) => (s.key === chosenKey ? { ...s, siteId } : s)))
+  const setActiveSite = (siteId: string) => {
+    const previous = scenarios.find(s => s.key === chosenKey)
+    if (!previous) return
+    setMapUpdate({ key: previous.key, siteId, previous: placeTitle(previous.siteId, shownBySite) })
+    setPlaying(false)
+    setScenarios(list => list.map(s => s.key === previous.key ? { ...s, siteId } : s))
+  }
+  const mapUpdateOutcome = mapUpdate && outcomes.find(o => o.scenario.key === mapUpdate.key && o.scenario.siteId === mapUpdate.siteId)
+
   const colorsOfEvaluated = evaluated.map((o) => COLORS[outcomes.indexOf(o)])
 
   const lastStep = evaluated.length ? evaluated[0].result.count - 1 : 0
@@ -272,7 +320,7 @@ export function MissionApp() {
       title: 'Find the light before you land.',
       body: "Near the Moon's south pole the Sun and Earth stay low on the horizon, so a hill or a crater rim can hide them. The light is on the rim. Rimlight checks two things for a landing spot: does the lander get enough sunlight for power, and can it see Earth to send data home?",
     },
-    { target: 'places', title: '1. Pick places to compare', body: 'Choose up to three landing spots and any start date within a year. Each one keeps its letter and colour (A, B, C) on every page.', before: () => go('simulation') },
+    { target: 'places', title: '1. Pick places to compare', body: 'Choose up to three labelled locations on the Moon, then press Show in simulation. Use the arrows to visit them in selection order.', before: () => go('simulation') },
     { target: 'scene', title: '2. Watch the simulation', body: 'The 3D view shows the real terrain around the lander, with the Sun and Earth where they really are. Drag to look around.', before: () => go('simulation') },
     { target: 'timebar', title: 'Move through time', body: 'Press Play or drag the slider to move through the mission. The line under the view says whether the Sun and Earth are in sight.', before: () => go('simulation') },
     {
@@ -355,7 +403,22 @@ export function MissionApp() {
       </div>
     )
 
+  const travelTo = (index: number) => {
+    const target = scenarios[index]
+    const from = activeData?.site
+    const to = target && shownBySite[target.siteId]?.site
+    if (!target || !from || !to || flight) return
+    setPlaying(false)
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      darken(() => setActiveKey(target.key))
+      return
+    }
+    setFlight({ from, to, targetKey: target.key })
+  }
+
   const days = `${settings.durationDays} ${settings.durationDays === 1 ? 'day' : 'days'}`
+  const firstTerrain = picked[0] && loaded.bySite[picked[0].siteId]?.terrain
+  const selectionReady = preparedPickKey === pickKey && (!active || !firstTerrain || readyTerrain === firstTerrain)
   const settingsSummary = `${days}, ${settings.panelAreaM2} m² solar panel, ${settings.batteryCapacityWh / 1000} kWh battery`
   const timebar = active && now && (
     <div className="timebar" data-tour="timebar">
@@ -380,7 +443,6 @@ export function MissionApp() {
   )
   const placeChips = evaluated.length > 1 && (
     <div className="explore__which" role="group" aria-label="Place shown">
-      <span className="muted small">Showing</span>
       {evaluated.map((o) => (
         <button
           key={o.scenario.key}
@@ -390,44 +452,59 @@ export function MissionApp() {
           aria-pressed={o === active}
           onClick={() => setActiveKey(o.scenario.key)}
         >
-          {o.letter}
+          {o.letter} {placeTitle(o.scenario.siteId, shownBySite)}
         </button>
       ))}
     </div>
   )
-  const places = (
-    <section className="card" data-tour={view === 'results' ? 'places' : undefined}>
-      <h2>
-        <span className="step">1</span> Pick places to compare
-      </h2>
-      <ScenarioList
-        sites={loaded.sites}
-        scenarios={scenarios}
-        outcomes={outcomes}
-        colors={COLORS}
-        activeKey={chosenKey}
-        busy={chosenLoading}
-        maxStartFor={maxStartFor}
-        snap={(lat, lon) => snapToCell(lat, lon, loaded.bySite)}
-        cellId={cellId}
-        bySite={loaded.bySite}
-        onChange={(next) => {
-          setScenarios(next)
-          if (!next.some((s) => s.key === activeKey)) setActiveKey(next[0]?.key ?? null)
-        }}
-        onActivate={setActiveKey}
-      />
-    </section>
-  )
+  const updateLocations = (next: Scenario[]) => {
+    setPicked(next)
+    setScenarios(next)
+    setActiveKey(current => next.some(place => place.key === current) ? current : next[0]?.key ?? null)
+  }
 
   return (
     <div className="app">
       {header}
+      {covered && <div key={transitionId} className="mission-blackout" aria-hidden="true" />}
       <Tour steps={tourSteps} open={tourOpen} onClose={() => setTourOpen(false)} />
       {view === 'simulation' && (
-        <div className="app__layout app__layout--simulation">
+        <div className="simulation-layout">
           <main className="app__main">
-            <section className="card sim">
+            <section className="card moon-picker" data-mode={flight ? 'flight' : simulationStage} aria-hidden={simulationStage !== 'pick' && !flight || undefined} inert={simulationStage !== 'pick' && !flight || undefined} data-tour="places">
+              <div className="card__head"><div><h2>Choose your landing locations</h2>
+                <p className="card__tagline">Choose up to 3 locations, in flight order.</p></div></div>
+              <div className="moon-picker__globe"><Suspense fallback={<p role="status">Loading the Moon&hellip;</p>}>
+                <MoonGlobe active={simulationStage === 'pick' || !!flight} flight={flight ?? undefined} onComplete={() => { if (flight) { setActiveKey(flight.targetKey); setFlight(null) } }} sites={loaded.sites.sites} selected={(flight ? scenarios : picked).flatMap((s, i) => {
+                  const site = shownBySite[s.siteId]?.site ?? loaded.sites.sites.find(site => site.id === s.siteId)
+                  return site ? [{ key: s.key, site, letter: String.fromCharCode(65 + i), color: COLORS[i] }] : []
+                })} onSelect={(site: SiteEntry) => updateLocations(picked.some(s => s.siteId === site.id)
+                  ? picked.filter(s => s.siteId !== site.id)
+                  : picked.length < 3 ? [...picked, { key: newKey(), siteId: site.id, startUtc: scenarios[0]?.startUtc ?? loaded.sites.coverage.startUtc }] : picked)} />
+              </Suspense></div>
+              {flight && <p className="sim__flight-label" role="status">{flight.from.name} <span aria-hidden="true">&rarr;</span> {flight.to.name}</p>}
+              <div className="moon-picker__selection" aria-live="polite">
+                {picked.length === 0 && <p className="muted">Choose your first location on the globe.</p>}
+                {picked.map((s, i) => <div key={s.key} className="moon-choice" style={{ '--place-color': COLORS[i] } as CSSProperties}>
+                  <span className="moon-choice__letter">{String.fromCharCode(65 + i)}</span>
+                  <span>{placeTitle(s.siteId, loaded.bySite)}</span>
+                  <button type="button" aria-label={`Remove ${placeTitle(s.siteId, loaded.bySite)}`} onClick={() => updateLocations(picked.filter(p => p.key !== s.key))}>&times;</button>
+                </div>)}
+              </div>
+              <div className="moon-picker__actions"><span className="muted small">{picked.length} / 3 locations</span>
+                <button type="button" className="primary" disabled={!picked.length || covered || !selectionReady} onClick={() => darken(() => {
+                  setScenarios(picked); setActiveKey(picked[0].key); setStep(0); setSimulationStarted(true); setSimulationStage('watch')
+                })}>{picked.length > 0 && !selectionReady ? 'Preparing terrain…' : 'Show in simulation'} <span aria-hidden="true">&nearr;</span></button></div>
+            </section>
+            {simulationStarted && <section className="card sim" hidden={simulationStage === 'pick'} inert={simulationStage === 'pick' || undefined}>
+              <div className="sim__route">
+                <button type="button" disabled={!!flight || covered} onClick={() => darken(() => { setPicked(scenarios); setActiveKey(scenarios[0]?.key ?? null); setSimulationStage('pick') })}>&larr; Edit locations</button>
+                <div className="sim__route-nav" aria-label="Selected location navigation">
+                  <button type="button" aria-label="Previous location" disabled={activeIndex === 0 || !!flight || covered} onClick={() => travelTo(activeIndex - 1)}>&larr;</button>
+                  <span role="status" style={{ color: COLORS[activeIndex] }}>{String.fromCharCode(65 + activeIndex)} &middot; {placeTitle(scenarios[activeIndex]?.siteId ?? '', shownBySite)} <small>{activeIndex + 1} / {scenarios.length}</small></span>
+                  <button type="button" aria-label="Next location" disabled={activeIndex >= scenarios.length - 1 || !!flight || covered} onClick={() => travelTo(activeIndex + 1)}>&rarr;</button>
+                </div>
+              </div>
               <div className="card__head">
                 <div>
                   <h2>
@@ -449,7 +526,7 @@ export function MissionApp() {
                 onPatch={patchSceneScenario}
                 onDuration={durationDays => { setPlaying(false); setStep(0); setSettings(previous => ({ ...previous, durationDays })) }}
               />
-              {issues.length > 0 && <p className="bad">Some lander settings are out of range. Fix them on the results page to run the simulation.</p>}
+              {issues.length > 0 && <p className="bad">Check the mission duration here or the lander settings on Results to run the simulation.</p>}
               {active?.scenario.key === chosenKey && now && activeData && tracks ? (
                 <>
                   {activeCell && activeData.map ? (
@@ -459,6 +536,8 @@ export function MissionApp() {
                   ) : (
                     <div className="scene-box scene-box--large" data-tour="scene">
                       <MissionScene3D
+                        onReady={() => { if (activeData.terrain) setReadyTerrain(activeData.terrain) }}
+                        animateArrival={simulationStage === 'watch' && !flight}
                         terrain={activeData.terrain}
                         farTerrain={activeData.terrainFar}
                         horizon={activeData.horizon}
@@ -493,38 +572,52 @@ export function MissionApp() {
               ) : (
                 !issues.length && <p className="muted">{chosenOutcome?.error ?? 'Preparing the simulation…'}</p>
               )}
-            </section>
-            <details className="scene-mission__compare">
-              <summary>Compare other places or dates · enter coordinates</summary>
-              {places}
-            </details>
+            </section>}
           </main>
         </div>
       )}
 
+      {view === 'results' && mapUpdate && mapUpdateOutcome && (
+        <aside className={`map-update${mapUpdateOutcome.error && !mapUpdateOutcome.loading ? ' map-update--error' : ''}`} aria-label="Landing location update">
+          <button type="button" className="map-update__close" aria-label="Dismiss location update" onClick={() => setMapUpdate(null)}>&times;</button>
+          <div role={mapUpdateOutcome.error && !mapUpdateOutcome.loading ? 'alert' : 'status'} aria-live="polite" aria-atomic="true">
+            <strong>{mapUpdateOutcome.loading ? `Updating location ${mapUpdateOutcome.letter}...` : isEvaluated(mapUpdateOutcome) ? `Location ${mapUpdateOutcome.letter} updated` : 'Could not test this spot'}</strong>
+            <p>{isEvaluated(mapUpdateOutcome)
+              ? `${mapUpdate.previous} updated to ${mapPointWhere(mapUpdate.siteId, shownBySite) ?? placeTitle(mapUpdate.siteId, shownBySite)}`
+              : mapUpdateOutcome.error ?? 'Recalculating power and Earth contact for this spot.'}</p>
+            {isEvaluated(mapUpdateOutcome) && <p>Power and Earth contact recalculated. Map colors stay the same.</p>}
+          </div>
+          {isEvaluated(mapUpdateOutcome) && <div className="map-update__actions">
+            <button type="button" onClick={() => {
+              setActiveKey(mapUpdate.key)
+              setMapUpdate(null)
+              document.querySelector('[data-tour="result"]')?.scrollIntoView({ block: 'start', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' })
+            }}>View updated results</button>
+            <button type="button" onClick={() => { setActiveKey(mapUpdate.key); setTab('sky'); setMapUpdate(null) }}>View sky chart</button>
+          </div>}
+        </aside>
+      )}
+
       {view === 'results' && (
-        <div className="app__layout">
-          <aside className="app__side">
-            {places}
+        <div className="results-layout">
+          <main className="app__main">
             <section className="card" data-tour="settings">
               <details className="settings-box" open={issues.length > 0 || undefined}>
                 <summary>
                   <span className="settings-box__title">
-                    Lander settings <span className="muted small">(optional)</span>
+                    Lander settings
                   </span>
                   <span className="muted small">{settingsSummary}</span>
                 </summary>
                 <SettingsForm settings={settings} issues={issues} onChange={(patch) => setSettings((s) => ({ ...s, ...patch }))} onReset={() => setSettings(DEFAULT_SETTINGS)} />
               </details>
             </section>
-          </aside>
 
-          <main className="app__main">
             <section className="card" data-tour="result">
               <div className="card__head">
                 <div>
                   <h2>
-                    <span className="step">3</span> Result
+                    Results
                   </h2>
                 </div>
                 <button type="button" onClick={copyLink} data-tour="share" title="Copy a link that opens this comparison (places, dates and lander settings)">
@@ -533,15 +626,17 @@ export function MissionApp() {
               </div>
               {copied === 'failed' && <p className="small muted">This browser blocked copying. Copy the address bar instead; it already holds this comparison.</p>}
               {issues.length > 0 ? (
-                <p className="bad">Some lander settings are out of range. Fix them in step 2 to see the result.</p>
+                <p className="bad">Some lander settings are out of range. Open Lander settings above to fix them.</p>
               ) : (
-                <Comparison outcomes={outcomes} settings={settings} bySite={shownBySite} colors={COLORS} />
+                scenarios.length ? <Comparison outcomes={outcomes} settings={settings} bySite={shownBySite} colors={COLORS} /> : (
+                  <div className="results-empty"><p>Choose locations to see your results.</p><button type="button" className="primary" onClick={() => go('simulation')}>Choose locations</button></div>
+                )
               )}
             </section>
 
             {active && now && activeData && tracks && (
               <section className="card explore">
-                <h2>See why</h2>
+                <h2>Explore the results</h2>
                 <div className="explore__head">
                   <div className="tabs" role="tablist" aria-label="See why" data-tour="tabs">
                     {TABS.map((t) => (
@@ -559,20 +654,20 @@ export function MissionApp() {
                       </button>
                     ))}
                   </div>
-                  {tab !== 'power' && placeChips}
+                  {placeChips}
                 </div>
 
                 <div id="tabpanel" role="tabpanel" aria-labelledby={`tab-${tab}`} className="explore__panel">
                   {tab === 'sky' && (
                     <>
                       <p className="explain">
-                        Grey is the real skyline. Behind it: no <b className="sun">Sun</b>, no <b className="earth">Earth</b>.
+                        Above the line: in view. Below it: hidden by the Moon.
                       </p>
                       {timebar}
                       <h3>
-                        Skyline at <span style={{ color: activeColor }}>{active.letter}</span>, {placeTitle(activeData.site.id, shownBySite)}
+                        Sun &amp; Earth visibility
                       </h3>
-                      <Panorama horizon={activeData.horizon} sun={tracks.sunPath} earth={tracks.earthPath} k={now.kk} />
+                      <SkyVisibilityChart horizon={activeData.horizon} sun={tracks.sunPath} earth={tracks.earthPath} stepH={active.result.stepS / 3600} k={now.kk} />
                       {status}
                       <h3>In view during the mission</h3>
                       <Timelines outcomes={evaluated} colors={colorsOfEvaluated} k={k} />
@@ -622,6 +717,7 @@ export function MissionApp() {
                           sites={loaded.sites.sites}
                           selected={activeCell ?? undefined}
                           onSimulate={(siteId, row, col) => setActiveSite(cellId(siteId, row, col))}
+                          scenarioLabel={chosenOutcome?.letter}
                           busy={chosenLoading ? (chosenOutcome?.error ?? 'Loading…') : undefined}
                         />
                       ) : (

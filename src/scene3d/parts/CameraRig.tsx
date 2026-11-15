@@ -2,7 +2,7 @@ import { OrbitControls } from '@react-three/drei'
 import { useFrame, useThree } from '@react-three/fiber'
 import { useCallback, useEffect, useRef } from 'react'
 import type { ComponentRef, RefObject } from 'react'
-import { MOUSE, TOUCH } from 'three'
+import { MOUSE, TOUCH, Vector3 } from 'three'
 import type { PerspectiveCamera } from 'three'
 import { azElToUnitVector, normalizeAzimuth } from '../coords.ts'
 import { overviewHeightAboveTerrain, overviewStartPosition } from '../cameraPlacement.ts'
@@ -23,6 +23,7 @@ const PITCH_MAX = 89.9
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
 
 export interface CameraRigProps {
+  animateArrival?: boolean
   mode: CameraMode
   /** Half the terrain patch width (m) — sets camera distances. */
   halfExtentM: number
@@ -46,10 +47,11 @@ export interface CameraRigProps {
  *  - lander: stand at the observer point (2 m above ground) and look at the horizon.
  *    Drag to look around, wheel to zoom. While a look target is set the view follows it.
  */
-export function CameraRig({ mode, halfExtentM, farPlaneM, eyeHeightM, lookTarget, sun, earth, onUserLook, terrainMesh, regionalMesh, mapScale }: CameraRigProps) {
+export function CameraRig({ animateArrival = false, mode, halfExtentM, farPlaneM, eyeHeightM, lookTarget, sun, earth, onUserLook, terrainMesh, regionalMesh, mapScale }: CameraRigProps) {
   const camera = useThree((s) => s.camera) as PerspectiveCamera
   const gl = useThree((s) => s.gl)
   const invalidate = useThree((s) => s.invalidate)
+  const arrival = useRef<{ target: Vector3; start: Vector3; elapsed: number } | null>(null)
   const look = useRef({ yawDeg: 0, pitchDeg: 2, fov: LANDER_FOV })
   const controls = useRef<ComponentRef<typeof OrbitControls>>(null)
   // Azimuth of the Sun when the overview is (re)entered: the camera starts out facing it.
@@ -72,6 +74,7 @@ export function CameraRig({ mode, halfExtentM, farPlaneM, eyeHeightM, lookTarget
     // A north-up map needs north (-Z), rather than height (+Y), at the top of the image.
     camera.up.set(0, mode === 'map' ? 0 : 1, mode === 'map' ? -1 : 0)
     if (mode === 'map') {
+      arrival.current = null
       camera.near = 5
       camera.fov = OVERVIEW_FOV
       camera.position.set(0, Math.max(halfExtentM * 3.2, (terrainMesh?.maxY ?? 0) + halfExtentM * 2.2), 0)
@@ -85,19 +88,27 @@ export function CameraRig({ mode, halfExtentM, farPlaneM, eyeHeightM, lookTarget
       camera.fov = OVERVIEW_FOV
       // Low and behind the lander, looking towards the Sun, so the horizon and the sky are in frame.
       camera.position.set(...overviewStartPosition(halfExtentM, sunAzDeg.current, terrainMesh, regionalMesh))
+      arrival.current = null
+      if (animateArrival && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        const target = camera.position.clone()
+        const start = target.clone().multiplyScalar(2.2)
+        camera.position.copy(start)
+        arrival.current = { target, start, elapsed: 0 }
+      }
       camera.lookAt(0, 0, 0)
       controls.current?.target.set(0, 0, 0)
       camera.updateProjectionMatrix()
       invalidate()
     } else {
+      arrival.current = null
       camera.near = 1
       applyLook()
     }
-  }, [mode, halfExtentM, farPlaneM, camera, invalidate, applyLook, terrainMesh, regionalMesh])
+  }, [mode, halfExtentM, farPlaneM, camera, invalidate, applyLook, terrainMesh, regionalMesh, animateArrival])
 
   // OrbitControls runs before this frame callback. Keep its camera above measured terrain,
   // including after a user orbit/zoom, without changing the scientific lander viewpoint.
-  useFrame(state => {
+  useFrame((state, delta) => {
     if (mode === 'map') {
       const p = camera.position, target = controls.current?.target
       if (!target) return
@@ -122,6 +133,15 @@ export function CameraRig({ mode, halfExtentM, farPlaneM, eyeHeightM, lookTarget
       return
     }
     if (mode !== 'overview') return
+    if (arrival.current) {
+      const motion = arrival.current
+      motion.elapsed += Math.min(delta, .05)
+      const t = Math.min(1, motion.elapsed / .65)
+      camera.position.lerpVectors(motion.start, motion.target, 1 - Math.pow(1 - t, 3))
+      camera.lookAt(0, 0, 0)
+      if (t === 1) arrival.current = null
+      invalidate()
+    }
     const p = camera.position
     const y = overviewHeightAboveTerrain(p.x, p.y, p.z, Math.max(5, halfExtentM * 0.01), terrainMesh, regionalMesh)
     if (y > p.y) {
@@ -131,6 +151,16 @@ export function CameraRig({ mode, halfExtentM, farPlaneM, eyeHeightM, lookTarget
       invalidate()
     }
   })
+
+  useEffect(() => {
+    const cancelArrival = () => { arrival.current = null }
+    gl.domElement.addEventListener('pointerdown', cancelArrival)
+    gl.domElement.addEventListener('wheel', cancelArrival, { passive: true })
+    return () => {
+      gl.domElement.removeEventListener('pointerdown', cancelArrival)
+      gl.domElement.removeEventListener('wheel', cancelArrival)
+    }
+  }, [gl])
 
   // Selecting a body starts with an inspection zoom. Target motion is deliberately
   // absent from these dependencies, so playback does not undo a manual wheel zoom.

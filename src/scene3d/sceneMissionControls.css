@@ -1,4 +1,3 @@
-.app__layout.app__layout--simulation { display: block; max-width: 1440px; }
 .scene-mission { padding: 14px; margin-bottom: 18px; background: #141820; border: 1px solid #343a47; border-radius: 12px; }
 .scene-mission__scenarios, .scene-mission__shifts { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font-size: 12px; }
 .scene-mission__scenarios { margin-bottom: 12px; }
@@ -13,9 +12,6 @@
 .scene-mission__facts dt { font-size: 12px; color: #c0c6d3; }
 .scene-mission__facts dd { margin: 5px 0 0; font-size: 16px; }
 .scene-mission__facts small { display: block; margin-top: 6px; color: #b0b6c5; font-size: 11px; }
-.scene-mission__compare { margin-top: 18px; }
-.scene-mission__compare > summary { cursor: pointer; padding: 10px 0; }
-.scene-mission__compare .card { margin-top: 10px; }
 @media(max-width: 760px) {
   .scene-mission__fields { grid-template-columns: minmax(0, 1fr) 100px; }
   .scene-mission__fields label:first-child { grid-column: 1 / -1; }

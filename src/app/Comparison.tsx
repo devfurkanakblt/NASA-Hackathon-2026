@@ -24,12 +24,11 @@ const fmtDay = (iso: string) => new Date(iso).toLocaleDateString('en-GB', { day:
 
 function Answer({ question, verdict }: { question: string; verdict: Verdict }) {
   return (
-    <div className={`answer ${verdict.ok ? 'answer--ok' : 'answer--bad'}`}>
+    <div aria-label={question} className={`answer ${verdict.ok ? 'answer--ok' : 'answer--bad'}`}>
       <span className="answer__icon" aria-hidden>
         {verdict.ok ? '✓' : '✗'}
       </span>
       <div>
-        <span className="answer__q">{question}</span>
         <b className="answer__title">{verdict.title}</b>
         <span className="answer__detail">{verdict.detail}</span>
       </div>
@@ -122,7 +121,7 @@ export function Comparison({ outcomes, settings, bySite, colors }: Props) {
         ))}
       </div>
       <details className="comparison__more">
-        <summary>All numbers</summary>
+        <summary>Detailed comparison</summary>
       <div className="table-wrap">
         <table>
           <thead>

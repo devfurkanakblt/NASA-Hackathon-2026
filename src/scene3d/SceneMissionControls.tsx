@@ -60,7 +60,7 @@ export function SceneMissionControls({ sites, scenarios, chosenKey, durationDays
       <div className="scene-mission__shifts" role="group" aria-label="Shift selected landing date">
         <span>Move this start</span>
         {[-1, 1, 5].map(days => <button key={days} type="button" disabled={!canShift(days)} onClick={() => onPatch({ startUtc: shiftUtc(chosen.startUtc, days * 24) })}>{days > 0 ? '+' : '−'}{Math.abs(days)} {Math.abs(days) === 1 ? 'day' : 'days'}</button>)}
-        <span className="scene-mission__hint">Duration is shared by A, B and C. Compare copies below.</span>
+        <span className="scene-mission__hint">Duration is shared by all selected scenarios.</span>
       </div>
     </div>
   )
