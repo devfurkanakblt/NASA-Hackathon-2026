@@ -14,7 +14,7 @@ import { LineChart } from './charts/LineChart.tsx'
 import { Panorama } from './charts/Panorama.tsx'
 import { SeasonChart } from './charts/SeasonChart.tsx'
 import { SiteMap } from './charts/SiteMap.tsx'
-import { HorizonRule, RimlightMark } from './Brand.tsx'
+import { RimlightMark } from './Brand.tsx'
 import { Comparison } from './Comparison.tsx'
 import { Landing } from './Landing.tsx'
 import { placeTitle } from './placeName.ts'
@@ -298,13 +298,19 @@ export function MissionApp() {
           </span>
         </button>
         <PageNavigation view={view} onChange={go} />
-        {view !== 'home' && (
-          <button type="button" className="app__help" onClick={() => setTourOpen(true)}>
-            <span aria-hidden>?</span> How it works
-          </button>
-        )}
+        {/* Rendered on home too (hidden) so the page links keep the same position on every page. */}
+        <button
+          type="button"
+          className={view === 'home' ? 'app__help is-placeholder' : 'app__help'}
+          onClick={() => setTourOpen(true)}
+          aria-label="How it works"
+          title="How it works"
+          aria-hidden={view === 'home' || undefined}
+          tabIndex={view === 'home' ? -1 : undefined}
+        >
+          <span aria-hidden>?</span>
+        </button>
       </div>
-      {view !== 'home' && <HorizonRule horizon={activeData?.horizon} siteName={activeData ? placeTitle(activeData.site.id, shownBySite) : undefined} />}
     </header>
   )
   const footer = (
@@ -498,7 +504,6 @@ export function MissionApp() {
                   <h2>
                     <span className="step">3</span> Result
                   </h2>
-                  <p className="card__tagline">No hidden score. Just conditions.</p>
                 </div>
                 <button type="button" onClick={copyLink} data-tour="share" title="Copy a link that opens this comparison (places, dates and lander settings)">
                   {copied === 'done' ? 'Link copied' : 'Copy link'}
@@ -539,7 +544,7 @@ export function MissionApp() {
                   {tab === 'sky' && (
                     <>
                       <p className="explain">
-                        The grey shape is the real skyline around the lander. Behind it, the <b className="sun">Sun</b> gives no power and <b className="earth">Earth</b> cannot be reached.
+                        Grey is the real skyline. Behind it: no <b className="sun">Sun</b>, no <b className="earth">Earth</b>.
                       </p>
                       {timebar}
                       <h3>
@@ -549,19 +554,12 @@ export function MissionApp() {
                       {status}
                       <h3>In view during the mission</h3>
                       <Timelines outcomes={evaluated} colors={colorsOfEvaluated} k={k} />
-                      <p className="small muted">
-                        For the 3D view of this moment, open the{' '}
-                        <button type="button" className="link" onClick={() => go('simulation')}>
-                          simulation
-                        </button>
-                        .
-                      </p>
                     </>
                   )}
 
                   {tab === 'power' && (
                     <>
-                      <p className="explain">The panel charges the battery while the Sun is up. Below the red dashed line the lander is into its safety reserve.</p>
+                      <p className="explain">Below the red dashed line the lander is into its safety reserve.</p>
                       {timebar}
                       <h3>Battery charge</h3>
                       <LineChart
@@ -595,10 +593,7 @@ export function MissionApp() {
 
                   {tab === 'map' && (
                     <>
-                      <p className="explain">
-                        Every spot within {activeData.map ? activeData.map.grid.halfSizeM / 1000 : 3} km. Brighter means more time in view. Click a spot to read it, then test it as a
-                        landing place.
-                      </p>
+                      <p className="explain">Brighter means more time in view. Click a spot to test it.</p>
                       {activeData.map ? (
                         <SiteMap
                           map={activeData.map}
@@ -617,7 +612,7 @@ export function MissionApp() {
 
                   {tab === 'year' && (
                     <>
-                      <p className="explain">Sunlight at the pole changes a lot with the season. One point per month.</p>
+                      <p className="explain">One point per month.</p>
                       {activeData.season ? (
                         <SeasonChart season={activeData.season} missionStartUtc={active.result.alignedStartUtc} />
                       ) : (

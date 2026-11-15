@@ -185,7 +185,7 @@ export function SiteMap({ map, sites, selected, onSimulate, busy }: Props) {
               {busy ?? (isSimulated ? 'This spot is in the comparison' : 'Test this spot as a landing place')}
             </button>
           )}
-          <p className="small muted">Share of time from {periodLabel}. Spots every {spacingM} m. Testing a spot runs the full mission there with a coarser (1°) skyline.</p>
+          <p className="small muted" title={`Testing a spot runs the full mission there with a coarser (1°) skyline.`}>{periodLabel} · spots every {spacingM} m</p>
         </div>
       </div>
     </div>
