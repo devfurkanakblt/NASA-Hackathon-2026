@@ -37,6 +37,14 @@ export function placeTitle(id: string, bySite: Record<string, SiteData>): string
   return bySite[id]?.site.name ?? id
 }
 
+/** Latitude and longitude of a free point or catalogue site; null for a map point (no own entry). */
+export function placeLatLon(id: string, bySite: Record<string, SiteData>): { latDeg: number; lonDeg: number } | null {
+  const free = parseFreePointId(id)
+  if (free) return free
+  const site = bySite[id]?.site
+  return site ? { latDeg: site.latDeg, lonDeg: site.lonDeg } : null
+}
+
 /** "15 Nov 2026 06:00" (UTC); minutes only when not midnight. */
 function shortUtc(iso: string): string {
   const d = new Date(iso)
