@@ -21,7 +21,7 @@ import { Comparison } from './Comparison.tsx'
 import { Landing } from './Landing.tsx'
 import { mapPointWhere, placeTitle } from './placeName.ts'
 import { errorMessage, fmtDuration, fmtHours, fmtUtc } from './format.ts'
-import { cellId, isKnownSiteId, parseCellId, resolveSiteData, sitesNeeded } from './extendedSites.ts'
+import { cellId, isKnownSiteId, parseCellId, resolveSiteData, sitesNeeded, snapToCell } from './extendedSites.ts'
 import type { ExtendedState } from './extendedSites.ts'
 import { cellAt } from './mapGrid.ts'
 import { defaultScenarios, evaluateAll, isEvaluated, newKey, targetScenarioKey } from './scenarios.ts'
@@ -89,6 +89,7 @@ export function MissionApp() {
   const [activeKey, setActiveKey] = useState<string | null>(null)
   const [step, setStep] = useState(0)
   const [playing, setPlaying] = useState(false)
+  const [coordinateNotice, setCoordinateNotice] = useState('')
   const [view, setView] = useState<View>(viewFromLocation)
   const [simulationStage, setSimulationStage] = useState<'pick' | 'watch'>('pick')
   const [simulationStarted, setSimulationStarted] = useState(false)
@@ -458,10 +459,30 @@ export function MissionApp() {
     </div>
   )
   const updateLocations = (next: Scenario[]) => {
+    setCoordinateNotice('')
     setPicked(next)
     setScenarios(next)
     setActiveKey(current => next.some(place => place.key === current) ? current : next[0]?.key ?? null)
   }
+
+  const useCoordinates = (lat: number, lon: number, add = false) => {
+    const point = snapToCell(lat, lon, loaded.bySite)
+    if ('error' in point) return `${point.error} No result was generated for the requested coordinate.`
+    const id = cellId(point.siteId, point.row, point.col)
+    const map = loaded.bySite[point.siteId].map!
+    const index = point.row * map.grid.nx + point.col
+    if (add) {
+      if (picked.length >= 3) return 'Three locations are selected. Remove one to add your coordinate.'
+      updateLocations([...picked, { key: newKey(), siteId: id, startUtc: scenarios[0]?.startUtc ?? loaded.sites.coverage.startUtc }])
+    } else patchSceneScenario({ siteId: id })
+    return `Using ${map.latDeg[index].toFixed(6)}°, ${map.lonDeg[index].toFixed(6)}° E (${Math.round(point.distanceM)} m from your request). Sunlight, Earth visibility and battery are recalculated for this grid point.`
+  }
+  const missionControls = <SceneMissionControls
+    sites={loaded.sites} scenarios={scenarios} chosenKey={chosenKey}
+    durationDays={settings.durationDays} endUtc={maxStartFor(chosenScenario?.siteId ?? loaded.sites.sites[0].id)}
+    onChoose={key => { setPlaying(false); setStep(0); setActiveKey(key) }} onPatch={patchSceneScenario}
+    onDuration={durationDays => { setPlaying(false); setStep(0); setSettings(previous => ({ ...previous, durationDays })) }}
+    onCoordinate={(lat, lon) => useCoordinates(lat, lon)}    onCopy={() => { if (chosenScenario && scenarios.length < 3) { const copy = { ...chosenScenario, key: newKey() }; setScenarios([...scenarios, copy]); setActiveKey(copy.key); setPlaying(false); setStep(0) } }} />
 
   return (
     <div className="app">
@@ -475,13 +496,14 @@ export function MissionApp() {
               <div className="card__head"><div><h2>Choose your landing locations</h2>
                 <p className="card__tagline">Choose up to 3 locations, in flight order.</p></div></div>
               <div className="moon-picker__globe"><Suspense fallback={<p role="status">Loading the Moon&hellip;</p>}>
-                <MoonGlobe active={simulationStage === 'pick' || !!flight} flight={flight ?? undefined} onComplete={() => { if (flight) { setActiveKey(flight.targetKey); setFlight(null) } }} sites={loaded.sites.sites} selected={(flight ? scenarios : picked).flatMap((s, i) => {
+                <MoonGlobe onCoordinate={(lat, lon) => setCoordinateNotice(useCoordinates(lat, lon, true))} active={simulationStage === 'pick' || !!flight} flight={flight ?? undefined} onComplete={() => { if (flight) { setActiveKey(flight.targetKey); setFlight(null) } }} sites={loaded.sites.sites} selected={(flight ? scenarios : picked).flatMap((s, i) => {
                   const site = shownBySite[s.siteId]?.site ?? loaded.sites.sites.find(site => site.id === s.siteId)
                   return site ? [{ key: s.key, site, letter: String.fromCharCode(65 + i), color: COLORS[i] }] : []
                 })} onSelect={(site: SiteEntry) => updateLocations(picked.some(s => s.siteId === site.id)
                   ? picked.filter(s => s.siteId !== site.id)
                   : picked.length < 3 ? [...picked, { key: newKey(), siteId: site.id, startUtc: scenarios[0]?.startUtc ?? loaded.sites.coverage.startUtc }] : picked)} />
               </Suspense></div>
+              {coordinateNotice && <p role="status">{coordinateNotice}</p>}
               {flight && <p className="sim__flight-label" role="status">{flight.from.name} <span aria-hidden="true">&rarr;</span> {flight.to.name}</p>}
               <div className="moon-picker__selection" aria-live="polite">
                 {picked.length === 0 && <p className="muted">Choose your first location on the globe.</p>}
@@ -519,20 +541,15 @@ export function MissionApp() {
                   <p className="card__tagline">Choose a place and UTC start, then explore its terrain, sunlight and view of Earth.</p>
                 </div>
               </div>
-              <SceneMissionControls
-                sites={loaded.sites} scenarios={scenarios} chosenKey={chosenKey}
-                durationDays={settings.durationDays} endUtc={maxStartFor(chosenScenario?.siteId ?? loaded.sites.sites[0].id)}
-                onChoose={key => { setPlaying(false); setStep(0); setActiveKey(key) }}
-                onPatch={patchSceneScenario}
-                onDuration={durationDays => { setPlaying(false); setStep(0); setSettings(previous => ({ ...previous, durationDays })) }}
-              />
+              {missionControls}
               {issues.length > 0 && <p className="bad">Check the mission duration here or the lander settings on Results to run the simulation.</p>}
               {active?.scenario.key === chosenKey && now && activeData && tracks ? (
                 <>
                   {activeCell && activeData.map ? (
-                    <p className="muted sim__note">
-                      The 3D view shows catalogue points only. This map point is {cellOffset(activeData.map, activeCell.row, activeCell.col)}; its skyline and numbers are on the results page.
-                    </p>
+                    <div data-tour="scene">
+                      <p className="muted">This grid point is {cellOffset(activeData.map, activeCell.row, activeCell.col)}. Its own 1° terrain horizon drives the calculation. A registered 3D patch is not available here; the chart shows this point's calculated visibility.</p>
+                      <SkyVisibilityChart horizon={activeData.horizon} sun={tracks.sunPath} earth={tracks.earthPath} stepH={active.result.stepS / 3600} k={now.kk} />
+                    </div>
                   ) : (
                     <div className="scene-box scene-box--large" data-tour="scene">
                       <MissionScene3D
@@ -601,6 +618,7 @@ export function MissionApp() {
       {view === 'results' && (
         <div className="results-layout">
           <main className="app__main">
+            {missionControls}
             <section className="card" data-tour="settings">
               <details className="settings-box" open={issues.length > 0 || undefined}>
                 <summary>
@@ -731,10 +749,10 @@ export function MissionApp() {
                   {tab === 'year' && (
                     <>
                       <p className="explain">One point per month.</p>
-                      {activeData.season ? (
+                      {activeData.season && !activeCell ? (
                         <SeasonChart season={activeData.season} missionStartUtc={active.result.alignedStartUtc} />
                       ) : (
-                        <p className="muted">No one-year summary for this place.</p>
+                        <p className="muted">No monthly summary for this exact point. Mission results above use this point’s own horizon; the catalogue centre’s annual summary is not substituted.</p>
                       )}
                     </>
                   )}

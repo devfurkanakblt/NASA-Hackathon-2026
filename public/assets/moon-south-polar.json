@@ -1,0 +1,113 @@
+{
+  "version": 1,
+  "file": "moon-south-polar.jpg",
+  "sha256": "49760e39505bec86c895d44a8c347278a2870eedbbec67e1c6970de1edfbee89",
+  "width": 3072,
+  "height": 3072,
+  "source": [
+    {
+      "url": "https://wms.im-ldi.com/",
+      "layer": "luna_wac_global",
+      "query": {
+        "SERVICE": "WMS",
+        "VERSION": "1.1.1",
+        "REQUEST": "GetMap",
+        "LAYERS": "luna_wac_global",
+        "STYLES": "",
+        "SRS": "IAU2000:30120",
+        "BBOX": "-190875.401034396345,-190875.401034396316,190875.401034396345,190875.401034396375",
+        "WIDTH": "3072",
+        "HEIGHT": "3072",
+        "FORMAT": "image/tiff",
+        "TRANSPARENT": "TRUE"
+      },
+      "querySha256": "f7c088b142e31bd75ae9710af19954d2a7038b21efbed59e0a09f86a17e3bd7f",
+      "nativePixelM": 100,
+      "productPage": "https://data.lroc.im-ldi.com/lroc/view_rdr/WAC_GLOBAL",
+      "rawSha256": "f9c981fec1863b00ae1560d2979cf5660d7757394c8e03693b036f8608f8a294",
+      "rawBytes": 4881069,
+      "crs": "PROJCS[\"unknown\",GEOGCS[\"unknown\",DATUM[\"unknown\",SPHEROID[\"unknown\",1737400,0]],PRIMEM[\"Reference meridian\",0],UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",\"9122\"]]],PROJECTION[\"Polar_Stereographic\"],PARAMETER[\"latitude_of_origin\",-90],PARAMETER[\"central_meridian\",0],PARAMETER[\"false_easting\",0],PARAMETER[\"false_northing\",0],UNIT[\"metre\",1],AXIS[\"Easting\",NORTH],AXIS[\"Northing\",NORTH]]",
+      "transform": [
+        124.26783921510179,
+        0.0,
+        -190875.40103439635,
+        0.0,
+        -124.26783921510179,
+        190875.40103439637
+      ],
+      "dimensions": [
+        3072,
+        3072
+      ],
+      "bounds": [
+        -190875.40103439635,
+        -190875.40103439632,
+        190875.40103439635,
+        190875.40103439637
+      ],
+      "deliveredProjectedPixelSize": [
+        124.26783921510179,
+        124.26783921510179
+      ],
+      "deliveredProjectedUnits": "metres"
+    },
+    {
+      "url": "https://wms.im-ldi.com/",
+      "layer": "luna_nac_pole_control_south",
+      "query": {
+        "SERVICE": "WMS",
+        "VERSION": "1.1.1",
+        "REQUEST": "GetMap",
+        "LAYERS": "luna_nac_pole_control_south",
+        "STYLES": "",
+        "SRS": "IAU2000:30120",
+        "BBOX": "-190875.401034396345,-190875.401034396316,190875.401034396345,190875.401034396375",
+        "WIDTH": "3072",
+        "HEIGHT": "3072",
+        "FORMAT": "image/tiff",
+        "TRANSPARENT": "TRUE"
+      },
+      "querySha256": "2393a50d11b34265a0508baff731008441664aec536022bc16d323f69d4a73da",
+      "nativePixelM": 1,
+      "productPage": "https://data.lroc.im-ldi.com/lroc/view_rdr/NAC_POLE_SOUTH_CM_AVG",
+      "rawSha256": "4ec6934b32f170738e86e40918a9370a6b35c6a70f51cfcc796c16b87e0f9c8c",
+      "rawBytes": 5485539,
+      "crs": "PROJCS[\"unknown\",GEOGCS[\"unknown\",DATUM[\"unknown\",SPHEROID[\"unknown\",1737400,0]],PRIMEM[\"Reference meridian\",0],UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",\"9122\"]]],PROJECTION[\"Polar_Stereographic\"],PARAMETER[\"latitude_of_origin\",-90],PARAMETER[\"central_meridian\",0],PARAMETER[\"false_easting\",0],PARAMETER[\"false_northing\",0],UNIT[\"metre\",1],AXIS[\"Easting\",NORTH],AXIS[\"Northing\",NORTH]]",
+      "transform": [
+        124.26783921510179,
+        0.0,
+        -190875.40103439635,
+        0.0,
+        -124.26783921510179,
+        190875.40103439637
+      ],
+      "dimensions": [
+        3072,
+        3072
+      ],
+      "bounds": [
+        -190875.40103439635,
+        -190875.40103439632,
+        190875.40103439635,
+        190875.40103439637
+      ],
+      "deliveredProjectedPixelSize": [
+        124.26783921510179,
+        124.26783921510179
+      ],
+      "deliveredProjectedUnits": "metres"
+    }
+  ],
+  "bounds": [
+    -190875.40103439635,
+    -190875.40103439632,
+    190875.40103439635,
+    190875.40103439637
+  ],
+  "frame": "south polar stereographic R1737400, x east at 90E, y toward 0E",
+  "archiveShadows": true,
+  "limitations": [
+    "Archival NAC average lighting, not selected UTC",
+    "WAC fills missing NAC pixels; photographic detail is limited by delivered source grid"
+  ]
+}
