@@ -229,6 +229,23 @@ Written by `python -m preprocess.coverage` from `sites.json`, each site's `map.j
 - Longitude wraps at 180 degrees (one normalisation per language): 222.51 and -137.49 are the same point, as are 180 and -180.
 - TypeScript: `pointCoverage(lat, lon, cov, bySite)` in `src/data/coverage.ts` returns `catalogue`, `map-cell` (via `snapToCell`) or `outside`; the `outside` message names the nearest map and its distance.
 
+## Search data flow (A/D)
+
+`src/sim/moonFixed.ts` turns the one-year ephemeris of a data package into Moon-fixed Sun and Earth positions once, then projects any cell for any window of samples.
+
+```ts
+moonFixedKey({ dataHash, latDeg, lonDeg, eyeM, horizonResolutionDeg }): string
+moonFixedSeries(year: EphemerisDoc, centre: Observer, key: string): MoonFixedSeries   // cached by key
+projectWindow(mf: MoonFixedSeries, cell: Observer, i0: number, i1: number): EphemerisDoc // samples [i0, i1)
+```
+
+- `MoonFixedSeries.sun` / `.earth` are `Float64Array` of 3·`count` Moon-fixed metres (x, y, z per sample). The series also carries `meta` (siteId, source, ...) so a projected window is a normal `EphemerisDoc`.
+- The key is `dataHash|lat|lon|eyeM|horizonResolutionDeg` with `lat`/`lon` rounded to 1e-7°, `eyeM` rounded to 0.01 m and the horizon resolution as is. A different `dataHash` (`provenance.dataHash`, the year.bin SHA-256) never reuses an entry. The cache keeps the 8 most recently used series.
+- `projectWindow` returns samples `[i0, i1)` with `startUtc` advanced by `i0·stepS`; a window outside `[0, count]` throws `CoverageError`. Azimuth is normalised to [0°, 360°).
+- `cellEphemeris(eph, centre, cell)` keeps its signature and behaviour: an uncached series followed by `projectWindow(series, cell, 0, count)`. Caching happens only through `moonFixedSeries`.
+- `map.json` percentages (`sunPct`, `earthPct`, `bothPct`) are not used in this flow; every number of a search comes from the horizon and the projected ephemeris.
+- Measured in Node (Site01, 3721 cells, one window of 1008 samples each, series already built): about 0.52 s for the whole grid (three runs: 517, 510, 526 ms), well inside D's ~5 s budget.
+
 ## `{siteId}/terrain-far.json`, `earth-orientation.json` (3D only, visual; written by C)
 
 Optional display files for the 3D scene. They are not used for visibility or energy, and the loader treats a missing or invalid file as a visual warning only.
