@@ -27,7 +27,7 @@ direction (`el > horizonAt(az)`).
 | Independent ephemeris | Skyfield + DE421, `MOON_ME_DE421` frame | cross-check, 18.6-year runs |
 | External reference | PGDA *Lunar Polar Illumination* (Mazarico et al.), 85S 60 m maps, 2016-08 | comparison only |
 | Regional terrain in the 3D view | NASA Moon Trek, LOLA 30 m/px south-pole DEM (`LRO_LOLA_DEM_SPole75_30mp_v04`) | display only; not used for visibility |
-| Earth texture in the 3D view | NASA Earth Observatory, *Blue Marble: Next Generation* (November 2004) | display only |
+| Earth image in the 3D view | Archive composite (Blue Marble Next Generation, Nov 2004), NASA Earth Observatory; not live imagery or weather | display only |
 
 ## Method
 
@@ -93,6 +93,12 @@ direction (`el > horizonAt(az)`).
   sites. Custom coordinates are limited to ±3 km around the 7 polar map sites (none around the
   contrast points); the rest of the Moon is out of scope. Slope is a terrain descriptor, not a
   landing-safety assessment.
+- **Good illumination does not mean flat or safe terrain for landing.** Sun and Earth visibility says
+  nothing about slope at the lander scale, rocks, or hazards; slope shown is a coarse terrain descriptor.
+- **Map-point horizon is a regional screening estimate.** The 1° cell horizon (`cells.bin`) is a screening
+  estimate for a region, not the 0.1° catalogue horizon. Only the few finalist cells in `refined.json`
+  are recomputed at 0.1° (they differ from the 1° result by at most 0.10 percentage points,
+  `validation.md` §7); every other cell stays a screening estimate.
 - **Not a landing-site certification.** Sites are research region centres from the Data Book.
 
 ## Seasons

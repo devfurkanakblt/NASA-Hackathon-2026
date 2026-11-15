@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest'
 import { cellId, isKnownSiteId, needsYear, parseCellId, resolveSiteData, sitesNeeded, snapToCell, type ExtendedState } from '../src/app/extendedSites.ts'
 import type { MapDoc, SiteData, SitesDoc } from '../src/data/contract.ts'
 import { parseCells, parseYear, type ExtendedHeader } from '../src/data/extended.ts'
+import { CoverageError, DEFAULT_SETTINGS, evaluateScenario } from '../src/sim/evaluate.ts'
 
 const DATA_DIR = fileURLToPath(new URL('../public/data/', import.meta.url))
 const read = <T>(path: string): T => JSON.parse(readFileSync(DATA_DIR + path, 'utf8')) as T
@@ -161,5 +162,36 @@ describe('snapToCell', () => {
     expect(snapToCell(ce6.latDeg, ce6.lonDeg, bySite)).toEqual({ error: 'Outside the ±3 km maps around the polar sites.' })
     expect('error' in snapToCell(Number.NaN, 0, bySite)).toBe(true)
     expect('error' in snapToCell(-95, 0, bySite)).toBe(true)
+  })
+})
+
+describe('acceptance: coverage limits and failure modes', () => {
+  const settings = { ...DEFAULT_SETTINGS, durationDays: 1 }
+  const yearData = () => {
+    const r = resolveSiteData('Site01', '2027-10-31T00:00:00Z', END, bySite, { years: { Site01: yearOf('Site01') }, cells: {} }, 1)
+    if (!('data' in r)) throw new Error('year data expected')
+    return r.data
+  }
+
+  it('start + duration exactly at 2027-11-01T00:00:00Z is accepted', () => {
+    const r = evaluateScenario(yearData(), '2027-10-31T00:00:00Z', settings)
+    expect(r.count).toBe(145)
+    expect(r.startIndex + r.count - 1).toBe(yearData().ephemeris.count - 1)
+  })
+
+  it('600 s later throws CoverageError naming 2027-11-01', () => {
+    const run = () => evaluateScenario(yearData(), '2027-10-31T00:10:00Z', settings)
+    expect(run).toThrow(CoverageError)
+    expect(run).toThrow(/2027-11-01/)
+  })
+
+  it('snapToCell(-89.4632, 180.0001) and (-89.4632, -179.9999) agree', () => {
+    expect(snapToCell(-89.4632, 180.0001, bySite)).toEqual(snapToCell(-89.4632, -179.9999, bySite))
+  })
+
+  it('missing cells.bin shows an error, not a zero horizon', () => {
+    const missing: ExtendedState = { years: { Site01: yearOf('Site01') }, cells: { Site01: 'error' }, headers: { Site01: header('Site01') } }
+    expect(resolveSiteData('Site01:r36c32', '2026-11-15T00:00:00Z', END, bySite, missing)).toEqual({ error: 'Map point data not available.' })
+    expect(() => parseCells(header('Site01'), new ArrayBuffer(0))).toThrow(/Site01\/cells\.bin/)
   })
 })

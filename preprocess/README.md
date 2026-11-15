@@ -11,6 +11,8 @@ python -m preprocess.build_all         # ephemeris + horizon + terrain + sites.j
 python -m preprocess.reference         # -> docs/reference/visibility.{json,md} (expected values for the web app's tests)
 python -m preprocess.season            # -> {site}/season.json (1 year, monthly summary; needs reference first)
 python -m preprocess.regional_map      # -> {site}/map.json (per-cell horizon, Sun/Earth %, slope; ~30 min/site)
+python -m preprocess.refine_cells   # -> {site}/refined.json (finalist map cells recomputed with the 0.1° catalogue horizon; not wired into the app yet)
+python -m preprocess.coverage        # -> public/data/coverage.json (where each kind of point is accepted)
 python -m preprocess.validate          # -> docs/validation.md §1-4 (Skyfield, horizon, Horizons re-query, rise/set timing)
 python -m preprocess.external          # -> docs/validation.md §5 (Mazarico et al. illumination products; data_raw/illum)
 python -m preprocess.map_check         # -> docs/validation.md §6 (map cells vs full-resolution horizon)
