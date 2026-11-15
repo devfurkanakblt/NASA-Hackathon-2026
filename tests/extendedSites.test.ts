@@ -189,6 +189,24 @@ describe('acceptance: coverage limits and failure modes', () => {
     expect(snapToCell(-89.4632, 180.0001, bySite)).toEqual(snapToCell(-89.4632, -179.9999, bySite))
   })
 
+  it('±180° wrap: a synthetic map centred on the seam snaps both sides to the same cell', () => {
+    // 3x3 map, lat -89.46, columns at lon 179.65, 180 and -179.65 (about 100 m apart at this latitude)
+    const lons = [179.65, 180, -179.65]
+    const latDeg: number[] = []
+    const lonDeg: number[] = []
+    for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) { latDeg.push(-89.46 + (r - 1) * 0.0009); lonDeg.push(lons[c]) }
+    const base = bySite.Site01
+    const seam = { ...base, site: { ...base.site, id: 'Seam' }, map: { ...base.map!, siteId: 'Seam', grid: { nx: 3, ny: 3, spacingM: 100, halfSizeM: 100 }, latDeg, lonDeg } } as SiteData
+    const only = { Seam: seam }
+    const a = snapToCell(-89.46, 180.0001, only)
+    const b = snapToCell(-89.46, -179.9999, only)
+    expect(a).toMatchObject({ siteId: 'Seam', row: 1, col: 1 })
+    expect(b).toMatchObject({ siteId: 'Seam', row: 1, col: 1 })
+    expect(snapToCell(-89.46, 180.3, only)).toMatchObject({ row: 1, col: 2 })
+    expect(snapToCell(-89.46, -179.7, only)).toMatchObject({ row: 1, col: 2 })
+    expect(snapToCell(-89.46, 179.7, only)).toMatchObject({ row: 1, col: 0 })
+  })
+
   it('missing cells.bin shows an error, not a zero horizon', () => {
     const missing: ExtendedState = { years: { Site01: yearOf('Site01') }, cells: { Site01: 'error' }, headers: { Site01: header('Site01') } }
     expect(resolveSiteData('Site01:r36c32', '2026-11-15T00:00:00Z', END, bySite, missing)).toEqual({ error: 'Map point data not available.' })
