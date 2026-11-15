@@ -30,7 +30,6 @@ import type { ExtendedState } from './extendedSites.ts'
 import { cellAt } from './mapGrid.ts'
 import { defaultScenarios, evaluateAll, isEvaluated, newKey, targetScenarioKey } from './scenarios.ts'
 import type { Scenario } from './scenarios.ts'
-import { PlaceList } from './PlaceList.tsx'
 import { ResearchView } from './ResearchView.tsx'
 import { SettingsForm } from './SettingsForm.tsx'
 import { decodeShare, encodeShare } from './share.ts'
@@ -481,9 +480,6 @@ export function MissionApp() {
       ))}
     </div>
   )
-  const togglePlace = (site: SiteEntry) => updateLocations(picked.some(s => s.siteId === site.id)
-    ? picked.filter(s => s.siteId !== site.id)
-    : picked.length < 3 ? [...picked, { key: newKey(), siteId: site.id, startUtc: scenarios[0]?.startUtc ?? loaded.sites.coverage.startUtc }] : picked)
   const updateLocations = (next: Scenario[]) => {
     setPicked(next)
     setScenarios(next)

@@ -1,5 +1,8 @@
 /** Place globe helpers: where labels sit and how places are grouped in the picker list. */
 
+/** Northernmost latitude drawn: the southern hemisphere plus a margin that keeps Apollo 11 (0.67° N) on the surface. */
+export const GLOBE_NORTH_EDGE_DEG = 3
+
 /**
  * Where the i-th place label sits relative to its pin (px). Rows alternate above and below the
  * pole cluster, so labels stay inside the globe view as the catalogue grows.
