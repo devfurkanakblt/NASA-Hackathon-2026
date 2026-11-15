@@ -32,6 +32,26 @@ function PoleCamera({ request }: { request: number }) {
   return null
 }
 
+/** A place to face: each new `request` turns the camera to look straight down at it. */
+export interface MoonFocus { latDeg: number; lonDeg: number; request: number }
+
+/** Jumps (under the screen blackout) to a view centred on the focused place, close enough to read its label. */
+function FocusCamera({ focus }: { focus?: MoonFocus }) {
+  const { camera, controls, invalidate } = useThree()
+  useEffect(() => {
+    if (!focus) return
+    const direction = moonPosition(focus).normalize()
+    camera.position.copy(direction.clone().multiplyScalar(1.6))
+    // The globe's cameras keep -z up; a place near that axis would leave "up" undefined.
+    if (Math.abs(direction.z) > 0.95) camera.up.set(0, -1, 0)
+    else camera.up.set(0, 0, -1)
+    camera.lookAt(0, 0, 0)
+    ;(controls as { update?: () => void } | null)?.update?.()
+    invalidate()
+  }, [focus, camera, controls, invalidate])
+  return null
+}
+
 function GlobeClipPlanes({ terrain }: { terrain: GlobalTerrain | null }) {
   useFrame(({ camera }) => {
     // Keep the camera above the measured terrain, including positive elevations.
@@ -113,13 +133,15 @@ function FlightCamera({ flight, onComplete }: { flight: MoonFlight; onComplete: 
   return null
 }
 
-export default function MoonGlobe({ sites, selected, onSelect, onPickPoint, researchFor, flight, onComplete, active = true }: {
+export default function MoonGlobe({ sites, selected, onSelect, onPickPoint, researchFor, flight, onComplete, focus, active = true }: {
   sites: SiteEntry[]; selected: MoonPlace[]; onSelect?: (site: SiteEntry) => void
   /** Short Research-tab summary of a catalogue place for the label's info window (computed on open). */
   researchFor?: (siteId: string) => ResearchSummary | null
   /** A click on the surface itself (not a label, not a drag): the clicked latitude / longitude. */
   onPickPoint?: (latDeg: number, lonDeg: number) => void
   active?: boolean; flight?: MoonFlight; onComplete?: () => void
+  /** Turn the view to this place (a location opened from a results list). */
+  focus?: MoonFocus
 }) {
   const moon = useRef<Mesh>(null!)
   const occluder = useRef<Mesh>(null!)
@@ -147,6 +169,7 @@ export default function MoonGlobe({ sites, selected, onSelect, onPickPoint, rese
     <Canvas frameloop={active ? 'demand' : 'never'} camera={{ position: [0, -2.8, .65], up: [0, 0, -1], fov: 42, near: .05, far: 30 }} dpr={[1, 1.75]}>
       <color attach="background" args={['#070a0f']} />
       <PoleCamera request={poleRequest} />
+      {!flight && <FocusCamera focus={focus} />}
       <GlobeClipPlanes terrain={terrain} />
       <ambientLight intensity={1.3} />
       <directionalLight position={[3, -4, 5]} intensity={2.5} />
