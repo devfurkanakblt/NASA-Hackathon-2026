@@ -4,7 +4,7 @@
  * picks defaults, keeps each scenario's error with that scenario and words the comparison.
  */
 import type { SiteData, SiteEntry } from '../data/contract.ts'
-import { MAX_SCENARIOS, evaluateScenario } from '../sim/evaluate.ts'
+import { evaluateScenario } from '../sim/evaluate.ts'
 import type { MissionSettings, ScenarioResult } from '../sim/evaluate.ts'
 import { errorMessage, fmtDuration, fmtHours, shiftUtc } from './format.ts'
 
@@ -34,7 +34,21 @@ export type EvaluatedOutcome = ScenarioOutcome & { result: ScenarioResult }
 
 /** Default mission start in the plan. */
 export const DEFAULT_START_UTC = '2026-11-15T00:00:00Z'
-export const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F'] as const
+/** Stable spreadsheet-style labels, including scenarios after Z. */
+export function scenarioLabel(index: number): string {
+  let n = index + 1, label = ''
+  while (n > 0) { n--; label = String.fromCharCode(65 + n % 26) + label; n = Math.floor(n / 26) }
+  return label
+}
+export function scenarioIndex(label: string): number {
+  if (!/^[A-Z]+$/.test(label)) return 0
+  let n = 0
+  for (const c of label) { n = n * 26 + c.charCodeAt(0) - 64; if (!Number.isSafeInteger(n)) return 0 }
+  return n - 1
+}
+export function scenarioColor(index: number): string {
+  return ['#7a5be0', '#3a9468', '#cc6cbb', '#d08a2e', '#3b8fc4', '#c9504f'][index] ?? `hsl(${(index * 137.508) % 360} 60% 65%)`
+}
 
 let nextKey = 1
 export const newKey = () => `s${nextKey++}`
@@ -55,8 +69,8 @@ export function defaultScenarios(siteIds: string[]): Scenario[] {
 
 /** Evaluates every scenario with the same settings; an error stays with its own scenario. */
 export function evaluateAll(scenarios: Scenario[], settings: MissionSettings, resolve: SiteResolver): ScenarioOutcome[] {
-  return scenarios.slice(0, MAX_SCENARIOS).map((scenario, i) => {
-    const letter = LETTERS[i]
+  return scenarios.map((scenario, i) => {
+    const letter = scenarioLabel(i)
     const r = resolve(scenario.siteId, scenario.startUtc)
     if ('loading' in r) return { scenario, letter, result: null, error: r.loading, loading: true, data: null }
     if ('error' in r) return { scenario, letter, result: null, error: r.error, loading: false, data: null }

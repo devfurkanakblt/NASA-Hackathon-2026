@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react'
 import type { SiteEntry } from '../data/contract.ts'
 import { placeGroups } from './globeView.ts'
+import { scenarioLabel } from './scenarios.ts'
 
 /**
  * Every catalogue place as a toggle, grouped like the research alternatives: the pole is too
@@ -13,7 +14,6 @@ export function PlaceList({ sites, chosen, colors, onToggle }: {
   colors: readonly string[]
   onToggle: (site: SiteEntry) => void
 }) {
-  const full = chosen.length >= 3
   return (
     <div className="place-list">
       {placeGroups(sites).map((group) => (
@@ -24,11 +24,11 @@ export function PlaceList({ sites, chosen, colors, onToggle }: {
               const index = chosen.indexOf(site.id)
               const on = index >= 0
               return (
-                <button key={site.id} type="button" aria-pressed={on} disabled={!on && full}
+                <button key={site.id} type="button" aria-pressed={on}
                   style={on ? ({ '--place-color': colors[index] } as CSSProperties) : undefined}
-                  title={on ? 'Remove this place from the comparison' : full ? 'Three places are chosen; remove one first' : 'Add this place to the comparison'}
+                  title={on ? 'Remove this place from the comparison' : 'Add this place to the comparison'}
                   onClick={() => onToggle(site)}>
-                  {on && `${String.fromCharCode(65 + index)} · `}{site.name}
+                  {on && `${scenarioLabel(index)} · `}{site.name}
                 </button>
               )
             })}

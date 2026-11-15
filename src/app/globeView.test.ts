@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { LABEL_FRAME_PAD, keepLabelInFrame, labelOffset, placeGroups } from './globeView.ts'
+import { LABEL_FRAME_PAD, keepLabelInFrame, labelOffset, placeGroups, separateGlobeLabel } from './globeView.ts'
 
 describe('labelOffset', () => {
   it('alternates label rows above and below and keeps them within two rows of the pins', () => {
@@ -46,5 +46,24 @@ describe('places in the picker list', () => {
     expect(groups.map((g) => g.id)).toEqual(['pole', 'elsewhere'])
     expect(groups[0].sites.map((s) => s.id)).toEqual(['Site01', 'IM2'])
     expect(groups.flatMap((g) => g.sites)).toHaveLength(sites.length)
+  })
+})
+
+describe('selected globe labels', () => {
+  it.each([{ w: 1200, h: 600 }, { w: 520, h: 190 }])('keeps four clustered labels apart inside $w by $h', frame => {
+    const boxes: ReturnType<typeof separateGlobeLabel>[] = []
+    for (let i = 0; i < 4; i++) {
+      const box = separateGlobeLabel({ x: frame.w / 2, y: frame.h / 2 }, { x: 0, y: 0 }, { w: 145, h: 48 }, frame, boxes)
+      expect(box.x - box.w / 2).toBeGreaterThanOrEqual(8)
+      expect(box.x + box.w / 2).toBeLessThanOrEqual(frame.w - 8)
+      expect(box.y - box.h / 2).toBeGreaterThanOrEqual(8)
+      expect(box.y + box.h / 2).toBeLessThanOrEqual(frame.h - 64)
+      for (const p of boxes) expect(Math.abs(box.x - p.x) >= (box.w + p.w) / 2 || Math.abs(box.y - p.y) >= (box.h + p.h) / 2).toBe(true)
+      boxes.push(box)
+    }
+  })
+  it('returns finite placement when the frame cannot fit a label', () => {
+    const b = separateGlobeLabel({ x: 0, y: 0 }, { x: -190, y: 45 }, { w: 175, h: 50 }, { w: 80, h: 80 }, [])
+    expect(Number.isFinite(b.x) && Number.isFinite(b.y)).toBe(true)
   })
 })
