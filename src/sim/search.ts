@@ -54,7 +54,7 @@ export interface CandidateMetrics {
 }
 
 /** `refined`: a map cell revalidated with the 0.1° catalogue horizon (refined.json). */
-export type Precision = 'catalogue' | 'cell' | 'refined'
+export type Precision = 'catalogue' | 'cell' | 'refined' | 'free'
 
 export interface SearchCandidate {
   siteId: string
@@ -192,7 +192,7 @@ const yieldNow = () => new Promise<void>((resolve) => setTimeout(resolve, 0))
 
 const CATALOGUE_PRECISION = 'Catalogue site: 0.1° terrain horizon'
 const CELL_PRECISION = CELL_LABEL
-const LABELS: Record<Precision, string> = { catalogue: CATALOGUE_PRECISION, cell: CELL_PRECISION, refined: REFINED_CELL_LABEL }
+const LABELS: Record<Precision, string> = { catalogue: CATALOGUE_PRECISION, cell: CELL_PRECISION, refined: REFINED_CELL_LABEL, free: 'Free coordinate: screening estimate' }
 
 /** Precision of the data actually used, from its provenance when it has one. */
 export function precisionOf(data: SiteData, fallback: Precision): { precision: Precision; label: string } {
@@ -200,6 +200,7 @@ export function precisionOf(data: SiteData, fallback: Precision): { precision: P
   if (!p) return { precision: fallback, label: LABELS[fallback] }
   if (p.horizonSource === 'refined-cell') return { precision: 'refined', label: REFINED_CELL_LABEL }
   if (p.horizonSource === 'map-cell') return { precision: 'cell', label: CELL_PRECISION }
+  if (p.horizonSource === 'global-dem' || p.horizonSource === 'regional-dem') return { precision: 'free', label: data.site.label }
   const kind = data.site.category === 'custom' ? `Scientific package ${data.site.id}` : 'Catalogue site'
   const warn = p.coverageWarnings.length > 0 ? `; ${p.coverageWarnings.length} coverage warning(s)` : ''
   return { precision: 'catalogue', label: `${kind}: ${p.horizonResolutionDeg}° terrain horizon${warn}` }

@@ -11,7 +11,8 @@
 import type { SiteData } from '../data/contract.ts'
 import { loadHeader, loadYear } from '../data/extended.ts'
 import { loadGlobalDemAround } from '../data/globalDem.ts'
-import { FREE_RANGE_M, freePointId, freePointSiteData, parseFreePointId } from '../sim/freePoint.ts'
+import { loadPolarDemAround } from '../data/polarDem.ts'
+import { FREE_RANGE_M, POLAR_NEAR_RANGE_M, freePointId, freePointSiteData, parseFreePointId } from '../sim/freePoint.ts'
 import { arcDistanceM } from '../sim/research.ts'
 import { cellId, normalizeLon, snapToCell } from './extendedSites.ts'
 import { mapPointWhere } from './placeName.ts'
@@ -40,7 +41,9 @@ export function placeForCoordinate(latDeg: number, lonDeg: number, bySite: Recor
   return {
     siteId: freePointId(latDeg, lon),
     kind: 'free',
-    message: 'Computed for this exact coordinate from the global LOLA terrain (~1.9 km per pixel): a screening estimate. Small hills and crater walls are not resolved.',
+    message: latDeg <= -75
+      ? 'Computed for this exact coordinate from the 80 m south-polar LOLA terrain where it reaches (else the ~1.9 km global terrain): a screening estimate, not catalogue precision.'
+      : 'Computed for this exact coordinate from the global LOLA terrain (~1.9 km per pixel): a screening estimate. Small hills and crater walls are not resolved.',
   }
 }
 
@@ -50,6 +53,8 @@ export async function computeFreePoint(id: string, bySite: Record<string, SiteDa
   if (!p) throw new RangeError(`${id} is not a free coordinate.`)
   const ref = bySite[REFERENCE_YEAR_SITE]
   if (!ref) throw new Error(`Reference site ${REFERENCE_YEAR_SITE} is not loaded.`)
-  const [header, year, dem] = await Promise.all([loadHeader(REFERENCE_YEAR_SITE), loadYear(REFERENCE_YEAR_SITE), loadGlobalDemAround(p.latDeg, p.lonDeg, FREE_RANGE_M, { signal })])
-  return freePointSiteData({ latDeg: p.latDeg, lonDeg: p.lonDeg, dem, year, yearSite: ref.site, yearSha256: header.year.sha256 })
+  // The south-polar 80 m grid reaches ~75.8° S at its corners; `freePointSiteData` checks the point lies on it.
+  const polar = p.latDeg <= -75 ? loadPolarDemAround(p.latDeg, p.lonDeg, POLAR_NEAR_RANGE_M, { signal }).catch(() => null) : Promise.resolve(null)
+  const [header, year, dem, polarDem] = await Promise.all([loadHeader(REFERENCE_YEAR_SITE), loadYear(REFERENCE_YEAR_SITE), loadGlobalDemAround(p.latDeg, p.lonDeg, FREE_RANGE_M, { signal }), polar])
+  return freePointSiteData({ latDeg: p.latDeg, lonDeg: p.lonDeg, dem, polar: polarDem, year, yearSite: ref.site, yearSha256: header.year.sha256 })
 }
