@@ -1,0 +1,148 @@
+{
+  "version": 1,
+  "siteId": "ArtemisMouton",
+  "file": "lunar-imagery.jpg",
+  "sizeM": 10000.0,
+  "width": 2048,
+  "height": 2048,
+  "frame": "local-east-north-metres-image-north-up",
+  "archiveShadows": true,
+  "sha256": "71f1314c9addf3129c3c628e7bfbe55d951c3212e362e98adb34f771f231b7fb",
+  "source": {
+    "url": "https://wms.im-ldi.com/",
+    "name": "LROC controlled NAC south-pole average mosaic with WAC gap fallback",
+    "nativePixelM": 1,
+    "acquisition": "NAC polar composite: images acquired 2009\u20132013; WAC global composite: November 2009\u2013February 2011. No mission-time lighting claim.",
+    "site": {
+      "latitudeDeg": -85.416,
+      "longitudeDeg": 31.851,
+      "surfaceElevationM": 6446.17,
+      "observerHeightM": 2.0
+    },
+    "crs": "PROJCS[\"unknown\",GEOGCS[\"unknown\",DATUM[\"unknown\",SPHEROID[\"unknown\",1737400,0]],PRIMEM[\"Reference meridian\",0],UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",\"9122\"]]],PROJECTION[\"Polar_Stereographic\"],PARAMETER[\"latitude_of_origin\",-90],PARAMETER[\"central_meridian\",0],PARAMETER[\"false_easting\",0],PARAMETER[\"false_northing\",0],UNIT[\"metre\",1],AXIS[\"Easting\",NORTH],AXIS[\"Northing\",NORTH]]",
+    "transform": [
+      4.501742954167876,
+      0.0,
+      66478.1272206009,
+      0.0,
+      -4.501742940214868,
+      125049.7432744767
+    ],
+    "resampling": "Each target pixel centre in observer-centred spherical ENU -> lon/lat -> actual WMS Moon CRS -> bilinear source pixels; north-first output",
+    "queries": [
+      {
+        "url": "https://wms.im-ldi.com/",
+        "layer": "luna_wac_global",
+        "query": {
+          "SERVICE": "WMS",
+          "VERSION": "1.1.1",
+          "REQUEST": "GetMap",
+          "LAYERS": "luna_wac_global",
+          "STYLES": "",
+          "SRS": "IAU2000:30120",
+          "BBOX": "66478.127220600902,111220.388962136625,80307.481575804617,125049.743274476699",
+          "WIDTH": "3072",
+          "HEIGHT": "3072",
+          "FORMAT": "image/tiff",
+          "TRANSPARENT": "TRUE"
+        },
+        "querySha256": "25e16efe6970ee3e8fe2a4bfb564788486ac664ce626082ee3e9b42a74259293",
+        "nativePixelM": 100,
+        "productPage": "https://data.lroc.im-ldi.com/lroc/view_rdr/WAC_GLOBAL",
+        "rawSha256": "5c01e148e091ba3a2cb5bd39fdccf9ff7afa5bf303e4bed97bdcc929e543e1e3",
+        "rawBytes": 1004621,
+        "crs": "PROJCS[\"unknown\",GEOGCS[\"unknown\",DATUM[\"unknown\",SPHEROID[\"unknown\",1737400,0]],PRIMEM[\"Reference meridian\",0],UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",\"9122\"]]],PROJECTION[\"Polar_Stereographic\"],PARAMETER[\"latitude_of_origin\",-90],PARAMETER[\"central_meridian\",0],PARAMETER[\"false_easting\",0],PARAMETER[\"false_northing\",0],UNIT[\"metre\",1],AXIS[\"Easting\",NORTH],AXIS[\"Northing\",NORTH]]",
+        "transform": [
+          4.501742954167876,
+          0.0,
+          66478.1272206009,
+          0.0,
+          -4.501742940214868,
+          125049.7432744767
+        ],
+        "dimensions": [
+          3072,
+          3072
+        ],
+        "bounds": [
+          66478.1272206009,
+          111220.38896213663,
+          80307.48157580462,
+          125049.7432744767
+        ],
+        "deliveredProjectedPixelSize": [
+          4.501742954167876,
+          4.501742940214868
+        ],
+        "deliveredProjectedUnits": "metres"
+      },
+      {
+        "url": "https://wms.im-ldi.com/",
+        "layer": "luna_nac_pole_control_south",
+        "query": {
+          "SERVICE": "WMS",
+          "VERSION": "1.1.1",
+          "REQUEST": "GetMap",
+          "LAYERS": "luna_nac_pole_control_south",
+          "STYLES": "",
+          "SRS": "IAU2000:30120",
+          "BBOX": "66478.127220600902,111220.388962136625,80307.481575804617,125049.743274476699",
+          "WIDTH": "3072",
+          "HEIGHT": "3072",
+          "FORMAT": "image/tiff",
+          "TRANSPARENT": "TRUE"
+        },
+        "querySha256": "01faff6d0816ed2e4d383d37d8d0ae312179c1d694831746fd0443f2dc4738b5",
+        "nativePixelM": 1,
+        "productPage": "https://data.lroc.im-ldi.com/lroc/view_rdr/NAC_POLE_SOUTH_CM_AVG",
+        "rawSha256": "af7649a4af7fc45c45756fe96bbae8a7800269ad7250ef335320c58cdd7206b3",
+        "rawBytes": 8490071,
+        "crs": "PROJCS[\"unknown\",GEOGCS[\"unknown\",DATUM[\"unknown\",SPHEROID[\"unknown\",1737400,0]],PRIMEM[\"Reference meridian\",0],UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",\"9122\"]]],PROJECTION[\"Polar_Stereographic\"],PARAMETER[\"latitude_of_origin\",-90],PARAMETER[\"central_meridian\",0],PARAMETER[\"false_easting\",0],PARAMETER[\"false_northing\",0],UNIT[\"metre\",1],AXIS[\"Easting\",NORTH],AXIS[\"Northing\",NORTH]]",
+        "transform": [
+          4.501742954167876,
+          0.0,
+          66478.1272206009,
+          0.0,
+          -4.501742940214868,
+          125049.7432744767
+        ],
+        "dimensions": [
+          3072,
+          3072
+        ],
+        "bounds": [
+          66478.1272206009,
+          111220.38896213663,
+          80307.48157580462,
+          125049.7432744767
+        ],
+        "deliveredProjectedPixelSize": [
+          4.501742954167876,
+          4.501742940214868
+        ],
+        "deliveredProjectedUnits": "metres"
+      }
+    ],
+    "validFractionsByLayer": [
+      1.0,
+      1.0
+    ],
+    "photographicCoverageFraction": 1.0,
+    "outputPixelM": 4.8828125,
+    "references": [
+      "https://data.lroc.im-ldi.com/lroc/view_rdr/NAC_POLE_SOUTH_CM_AVG",
+      "https://pds.lroc.im-ldi.com/data/LRO-L-LROC-5-RDR-V1.0/LROLRC_2001/DATA/BDR/NAC_POLE/NAC_POLE_SOUTH_CM_AVG/NAC_POLE_SOUTH_CM_AVG_README.TXT",
+      "https://data.lroc.im-ldi.com/lroc/view_rdr/WAC_GLOBAL",
+      "https://wms.im-ldi.com/?SERVICE=WMS&REQUEST=GetCapabilities",
+      "https://data.lroc.im-ldi.com/config/lunaserv.yml"
+    ],
+    "limitations": [
+      "Archival photographic mosaic with baked shadows, not albedo or current illumination",
+      "Controlled polar average combines observations and does not represent a single realistic lighting condition",
+      "The NAC mosaic extends to 84 degrees south; its control network extends only to 85 degrees south",
+      "Source pixel spacing is not absolute spatial accuracy; delivered crop may be coarser than native source",
+      "WAC gap fallback is 100 m/pixel even in a NAC photographic crop",
+      "Transparent pixels, if present, are genuine missing source coverage; no synthetic surface fill"
+    ]
+  }
+}

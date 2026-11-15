@@ -74,7 +74,7 @@ export function SettingsForm({ settings: s, issues, onChange, onReset }: Props) 
         <NumberField label="System factor" unit="%" value={s.systemFactor} scale={0.01} min={0} max={100} onValue={(v) => onChange({ systemFactor: v })} />
         <label className="field field--check">
           <input type="checkbox" checked={s.sunDiskModel === 'partial'} onChange={(e) => onChange({ sunDiskModel: e.target.checked ? 'partial' : 'centre' })} />
-          <span>Partial Sun disk (scale output by the visible share of the disk)</span>
+          <span>Partial Sun disk</span>
         </label>
       </fieldset>
       <fieldset>
@@ -98,7 +98,7 @@ export function SettingsForm({ settings: s, issues, onChange, onReset }: Props) 
         </ul>
       )}
       <button type="button" className="link" onClick={onReset} disabled={JSON.stringify(s) === JSON.stringify(DEFAULT_SETTINGS)}>
-        Reset to example defaults
+        Reset settings
       </button>
     </div>
   )

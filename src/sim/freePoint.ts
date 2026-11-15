@@ -184,6 +184,10 @@ export function localTerrainGrid(heightAt: (latDeg: number, lonDeg: number) => n
 }
 
 export interface FreePointInput {
+  /** Screening searches can project only the requested mission window. */
+  window?: { startIndex: number; count: number }
+  azStepDeg?: number
+  skipSeason?: boolean
   latDeg: number
   lonDeg: number
   dem: GlobalDem
@@ -214,8 +218,8 @@ export function freePointSiteData(input: FreePointInput): SiteData {
   const point: Observer = { latDeg, lonDeg, eyeM }
   const centre: Observer = { latDeg: yearSite.latDeg, lonDeg: yearSite.lonDeg, eyeM: yearSite.surfaceElevationM + yearSite.observerHeightM }
   const mf = moonFixedSeries(year, centre, moonFixedKey({ dataHash: input.yearSha256, ...centre, horizonResolutionDeg: 0.1 }))
-  const ephemeris = { ...projectWindow(mf, point, 0, mf.count), siteId: id }
-  const horizon = polar ? polarHorizon(polar, dem, latDeg, lonDeg, eyeM) : globalHorizon(dem, latDeg, lonDeg, eyeM)
+  const ephemeris = { ...projectWindow(mf, point, input.window?.startIndex ?? 0, input.window ? input.window.startIndex + input.window.count : mf.count), siteId: id }
+  const horizon = polar ? polarHorizon(polar, dem, latDeg, lonDeg, eyeM, input.azStepDeg) : globalHorizon(dem, latDeg, lonDeg, eyeM, input.azStepDeg)
   const fmt = (v: number, pos: string, neg: string) => `${Math.abs(v).toFixed(4)}°${v >= 0 ? pos : neg}`
   const warnings = [
     ...horizon.warnings!,
@@ -236,7 +240,7 @@ export function freePointSiteData(input: FreePointInput): SiteData {
     warnings,
     category: 'free',
   }
-  return {
+  const data: SiteData = {
     site,
     ephemeris,
     horizon,
@@ -247,13 +251,14 @@ export function freePointSiteData(input: FreePointInput): SiteData {
       lonDeg,
       observerHeightM: OBSERVER_HEIGHT_M,
       eyeM,
-      horizonResolutionDeg: FREE_AZ_STEP_DEG,
+      horizonResolutionDeg: input.azStepDeg ?? FREE_AZ_STEP_DEG,
       horizonSource: polar ? 'regional-dem' : 'global-dem',
       ephemerisSource: `${year.source} (Moon-fixed vectors of ${yearSite.id} re-projected to this point)`,
       dataHash: input.yearSha256,
       precision: polar ? 'regional screening estimate' : 'global screening estimate',
       coverageWarnings: warnings,
     },
-    season: { ...seasonFromSeries(ephemeris, horizon), siteId: id },
   }
+  // Screening searches skip the season table; a scenario gets the point's own one.
+  return input.skipSeason ? data : { ...data, season: { ...seasonFromSeries(ephemeris, horizon), siteId: id } }
 }

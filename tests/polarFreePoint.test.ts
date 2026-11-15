@@ -111,7 +111,7 @@ describe('free point on the polar DEM vs the regional80 catalogue horizons', () 
       const ms = Date.now() - t0
       expect(d.site.label).toBe(FREE_POINT_POLAR_LABEL)
       expect(d.provenance).toMatchObject({ horizonSource: 'regional-dem', precision: 'regional screening estimate' })
-      expect(precisionOf(d, 'catalogue')).toEqual({ precision: 'free', label: FREE_POINT_POLAR_LABEL })
+      expect(precisionOf(d, 'catalogue')).toEqual({ precision: 'global', label: 'Regional screening estimate: 0.1° horizon sampling; 80 m south-polar terrain' })
       expect(d.terrain).toMatchObject({ n: 128, sizeM: 10000 })
       expect(Math.abs(d.site.surfaceElevationM - s.surfaceElevationM), `${id} surface`).toBeLessThan(1)
       const cat = read<SeasonDoc>(`${id}/season.json`).year

@@ -1,0 +1,196 @@
+{
+  "version": 1,
+  "siteId": "Apollo14",
+  "file": "lunar-imagery.jpg",
+  "sizeM": 10000.0,
+  "width": 2048,
+  "height": 2048,
+  "frame": "local-east-north-metres-image-north-up",
+  "archiveShadows": true,
+  "sha256": "134b880b380b6f4ec5c0d9c29cc9774d656014efb2163ebb6c7c85470d0c159c",
+  "source": {
+    "url": "https://wms.im-ldi.com/",
+    "name": "LROC NAC landing-site mosaics with WAC fallback outside their coverage",
+    "nativePixelM": 100,
+    "acquisition": "NAC landing-site mosaic (LROC); WAC global composite: November 2009\u2013February 2011. No mission-time lighting claim.",
+    "site": {
+      "latitudeDeg": -3.64589,
+      "longitudeDeg": -17.47194,
+      "surfaceElevationM": -1062.17,
+      "observerHeightM": 2.0
+    },
+    "crs": "GEOGCS[\"unknown\",DATUM[\"unknown\",SPHEROID[\"unknown\",1737400,0]],PRIMEM[\"Reference meridian\",0],UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",\"9122\"]],AXIS[\"Latitude\",NORTH],AXIS[\"Longitude\",EAST]]",
+    "transform": [
+      0.00010786779483203113,
+      0.0,
+      -17.637624932862,
+      0.0,
+      -0.00010763430598111975,
+      -3.480556262055
+    ],
+    "resampling": "Each target pixel centre in observer-centred spherical ENU -> lon/lat -> actual WMS Moon CRS -> bilinear source pixels; north-first output",
+    "queries": [
+      {
+        "url": "https://wms.im-ldi.com/",
+        "layer": "luna_wac_global",
+        "query": {
+          "SERVICE": "WMS",
+          "VERSION": "1.1.1",
+          "REQUEST": "GetMap",
+          "LAYERS": "luna_wac_global",
+          "STYLES": "",
+          "SRS": "IAU2000:30100",
+          "BBOX": "-17.637624932862,-3.811208850029,-17.306255067138,-3.480556262055",
+          "WIDTH": "3072",
+          "HEIGHT": "3072",
+          "FORMAT": "image/tiff",
+          "TRANSPARENT": "TRUE"
+        },
+        "querySha256": "c87ab2c95ee6841462e04fae4fb9b639d8d1e8b83f1f294f83697fef29fba032",
+        "nativePixelM": 100,
+        "productPage": "https://data.lroc.im-ldi.com/lroc/view_rdr/WAC_GLOBAL",
+        "rawSha256": "0b29f3c3c8c0c3e51401d745cc1460f132f07d3ebe4eb7fb04028db9614c31d0",
+        "rawBytes": 182959,
+        "crs": "GEOGCS[\"unknown\",DATUM[\"unknown\",SPHEROID[\"unknown\",1737400,0]],PRIMEM[\"Reference meridian\",0],UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",\"9122\"]],AXIS[\"Latitude\",NORTH],AXIS[\"Longitude\",EAST]]",
+        "transform": [
+          0.00010786779483203113,
+          0.0,
+          -17.637624932862,
+          0.0,
+          -0.00010763430598111975,
+          -3.480556262055
+        ],
+        "dimensions": [
+          3072,
+          3072
+        ],
+        "bounds": [
+          -17.63762493286235,
+          -3.8112088500294616,
+          -17.30625506713765,
+          -3.4805562620549653
+        ],
+        "deliveredProjectedPixelSize": [
+          0.00010786779483203113,
+          0.00010763430598111975
+        ],
+        "deliveredProjectedUnits": "degrees"
+      },
+      {
+        "url": "https://wms.im-ldi.com/",
+        "layer": "luna_apollo_14_moderate_sun_nac_mosaic",
+        "query": {
+          "SERVICE": "WMS",
+          "VERSION": "1.1.1",
+          "REQUEST": "GetMap",
+          "LAYERS": "luna_apollo_14_moderate_sun_nac_mosaic",
+          "STYLES": "",
+          "SRS": "IAU2000:30100",
+          "BBOX": "-17.637624932862,-3.811208850029,-17.306255067138,-3.480556262055",
+          "WIDTH": "3072",
+          "HEIGHT": "3072",
+          "FORMAT": "image/tiff",
+          "TRANSPARENT": "TRUE"
+        },
+        "querySha256": "70350ac532ff43b5e3632d0297f1ed6917b2188a04385e3d0acef04724026304",
+        "nativePixelM": 1,
+        "productPage": "https://wms.im-ldi.com/?SERVICE=WMS&REQUEST=GetCapabilities",
+        "rawSha256": "a2227251e4f6aa0ba1d59715ad3472a75d1fe586c1c22bd665fecd9bdb997304",
+        "rawBytes": 3715161,
+        "crs": "GEOGCS[\"unknown\",DATUM[\"unknown\",SPHEROID[\"unknown\",1737400,0]],PRIMEM[\"Reference meridian\",0],UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",\"9122\"]],AXIS[\"Latitude\",NORTH],AXIS[\"Longitude\",EAST]]",
+        "transform": [
+          0.00010786779483203113,
+          0.0,
+          -17.637624932862,
+          0.0,
+          -0.00010763430598111975,
+          -3.480556262055
+        ],
+        "dimensions": [
+          3072,
+          3072
+        ],
+        "bounds": [
+          -17.63762493286235,
+          -3.8112088500294616,
+          -17.30625506713765,
+          -3.4805562620549653
+        ],
+        "deliveredProjectedPixelSize": [
+          0.00010786779483203113,
+          0.00010763430598111975
+        ],
+        "deliveredProjectedUnits": "degrees"
+      },
+      {
+        "url": "https://wms.im-ldi.com/",
+        "layer": "luna_apollo_14_high_resolution_nac_mosaic",
+        "query": {
+          "SERVICE": "WMS",
+          "VERSION": "1.1.1",
+          "REQUEST": "GetMap",
+          "LAYERS": "luna_apollo_14_high_resolution_nac_mosaic",
+          "STYLES": "",
+          "SRS": "IAU2000:30100",
+          "BBOX": "-17.637624932862,-3.811208850029,-17.306255067138,-3.480556262055",
+          "WIDTH": "3072",
+          "HEIGHT": "3072",
+          "FORMAT": "image/tiff",
+          "TRANSPARENT": "TRUE"
+        },
+        "querySha256": "97e9cfc581d81f1f360fb46b2275ed24ea368ff038fe7df80c26314c92ab9677",
+        "nativePixelM": 1,
+        "productPage": "https://wms.im-ldi.com/?SERVICE=WMS&REQUEST=GetCapabilities",
+        "rawSha256": "9a71cca228f714ef43a8ddcb266958c5a48be45b9c7b9e9e3f8ecc83699064c0",
+        "rawBytes": 365379,
+        "crs": "GEOGCS[\"unknown\",DATUM[\"unknown\",SPHEROID[\"unknown\",1737400,0]],PRIMEM[\"Reference meridian\",0],UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",\"9122\"]],AXIS[\"Latitude\",NORTH],AXIS[\"Longitude\",EAST]]",
+        "transform": [
+          0.00010786779483203113,
+          0.0,
+          -17.637624932862,
+          0.0,
+          -0.00010763430598111975,
+          -3.480556262055
+        ],
+        "dimensions": [
+          3072,
+          3072
+        ],
+        "bounds": [
+          -17.63762493286235,
+          -3.8112088500294616,
+          -17.30625506713765,
+          -3.4805562620549653
+        ],
+        "deliveredProjectedPixelSize": [
+          0.00010786779483203113,
+          0.00010763430598111975
+        ],
+        "deliveredProjectedUnits": "degrees"
+      }
+    ],
+    "validFractionsByLayer": [
+      1.0,
+      0.41527295112609863,
+      0.04023289680480957
+    ],
+    "photographicCoverageFraction": 1.0,
+    "outputPixelM": 4.8828125,
+    "references": [
+      "https://data.lroc.im-ldi.com/lroc/view_rdr/NAC_POLE_SOUTH_CM_AVG",
+      "https://pds.lroc.im-ldi.com/data/LRO-L-LROC-5-RDR-V1.0/LROLRC_2001/DATA/BDR/NAC_POLE/NAC_POLE_SOUTH_CM_AVG/NAC_POLE_SOUTH_CM_AVG_README.TXT",
+      "https://data.lroc.im-ldi.com/lroc/view_rdr/WAC_GLOBAL",
+      "https://wms.im-ldi.com/?SERVICE=WMS&REQUEST=GetCapabilities",
+      "https://data.lroc.im-ldi.com/config/lunaserv.yml"
+    ],
+    "limitations": [
+      "Archival photographic mosaic with baked shadows, not albedo or current illumination",
+      "Controlled polar average combines observations and does not represent a single realistic lighting condition",
+      "The NAC mosaic extends to 84 degrees south; its control network extends only to 85 degrees south",
+      "Source pixel spacing is not absolute spatial accuracy; delivered crop may be coarser than native source",
+      "WAC gap fallback is 100 m/pixel even in a NAC photographic crop",
+      "Transparent pixels, if present, are genuine missing source coverage; no synthetic surface fill",
+      "NAC source covers 4.02% of this crop; remaining covered pixels use WAC"
+    ]
+  }
+}

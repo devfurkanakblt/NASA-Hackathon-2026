@@ -2,7 +2,7 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { loadAllData } from './load.ts'
+import { loadAllData, loadSiteVisuals } from './load.ts'
 import { EARTH_TEXTURE_FRAME, TERRAIN_FRAME } from './validate.ts'
 
 const startUtc = '2026-11-01T00:00:00Z'
@@ -478,5 +478,23 @@ describe('measured surface display extension', () => {
     expect(data.terrain?.normalDetail).toBeUndefined()
     expect(data.visualWarnings?.join(' ')).toMatch(/invalid terrain normal/)
     expect(data.horizon).toEqual(f.horizon)
+  })
+})
+
+describe('display files on demand', () => {
+  it('visuals: false loads the scientific files only; loadSiteVisuals adds the 3D files later', async () => {
+    const f = fixture()
+    const fetch = mockFiles(f.docs)
+    const loaded = await loadAllData('/data', { visuals: false })
+    const site = loaded.bySite.Site01
+    expect(site.terrain).toBeUndefined()
+    expect(site.earthOrientation).toBeUndefined()
+    expect(site.horizon.elevDeg).toEqual(f.horizon.elevDeg)
+    const urls = fetch.mock.calls.map(([u]) => String(u))
+    expect(urls.some(u => /terrain|earth-orientation|imagery/.test(u))).toBe(false)
+
+    const shown = await loadSiteVisuals(site.site, site.ephemeris, '/data')
+    expect(shown.terrain?.zM).toEqual(f.terrain.zM)
+    expect(shown.earthOrientation?.count).toBe(3)
   })
 })
