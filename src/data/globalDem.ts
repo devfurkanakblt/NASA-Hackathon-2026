@@ -1,3 +1,4 @@
+import { appBase } from './appBase.ts'
 /**
  * Global DEM tiles for free coordinates (`public/data/global-dem/`, written by
  * `python -m preprocess.global_tiles`): LOLA LDEM_64, by default as its 4 × 4 block mean
@@ -104,7 +105,7 @@ export function tilesAround(m: GlobalDemManifest, latDeg: number, lonDeg: number
 // ---------------------------------------------------------------------------------------------
 // Loading (same-origin files only)
 
-const defaultBase = () => `${import.meta.env.BASE_URL}data/global-dem`
+const defaultBase = () => `${appBase()}data/global-dem`
 
 async function getBytes(url: string, signal?: AbortSignal): Promise<ArrayBuffer> {
   const r = await fetch(url, { signal })
