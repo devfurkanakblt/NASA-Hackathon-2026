@@ -51,9 +51,10 @@ describe('regional map', () => {
   })
 
   it('maps values onto the ramp ends', () => {
-    expect(rampColor(rampFor('sunPct'), 0)).toEqual([13, 31, 58])
-    expect(rampColor(rampFor('sunPct'), 1)).toEqual([205, 226, 251])
-    expect(rampColor(rampFor('sunPct'), Number.NaN)).toEqual([13, 31, 58])
+    expect(rampColor(rampFor('sunPct'), 0)).toEqual([22, 20, 15])
+    expect(rampColor(rampFor('sunPct'), 1)).toEqual([255, 231, 168])
+    expect(rampColor(rampFor('earthPct'), 1)).toEqual([205, 219, 255])
+    expect(rampColor(rampFor('sunPct'), Number.NaN)).toEqual([22, 20, 15])
   })
 })
 

@@ -1,13 +1,49 @@
+@font-face {
+  font-family: 'Archivo';
+  font-style: normal;
+  font-weight: 400 900;
+  font-stretch: 62% 125%;
+  font-display: swap;
+  src: url('./fonts/archivo-latin.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'IBM Plex Sans';
+  font-style: normal;
+  font-weight: 400 600;
+  font-display: swap;
+  src: url('./fonts/plex-sans-latin.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./fonts/plex-mono-400-latin.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('./fonts/plex-mono-500-latin.woff2') format('woff2');
+}
+
 .app {
-  --bg: #0b0e14;
-  --card: #121722;
-  --line: #263044;
-  --text: #e8ecf3;
-  --muted: #8f99aa;
-  --ok: #5fd38d;
-  --bad: #ff7a7a;
+  /* Rimlight brand: colour carries meaning (Sun = power, Earth = contact, red = a broken rule) */
+  --bg: #0b0e14; /* night */
+  --card: #121722; /* basin */
+  --line: #1e2636;
+  --text: #e8ecf3; /* white */
+  --muted: #aab3c2; /* dust */
+  --ok: #e8ecf3; /* a met goal is plain, not green */
+  --bad: #ff5a4f; /* reserve: violations only */
   --sun: #ffd166;
-  --earth: #5aa9ff;
+  --earth: #9db7ff;
+  --accent: #e8ecf3;
+  --f-display: 'Archivo', 'Arial Narrow', system-ui, sans-serif;
+  --f-body: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --f-mono: 'IBM Plex Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-family: var(--f-body);
   min-height: 100%;
   background: var(--bg);
   color: var(--text);
@@ -132,7 +168,7 @@
 .app button.link {
   background: none;
   border: none;
-  color: #9db7ff;
+  color: var(--accent);
   padding: 0;
   text-decoration: underline;
 }
@@ -276,7 +312,7 @@
   margin: 0 0 12px;
   padding: 10px 12px 10px 28px;
   background: #0d1320;
-  border-left: 3px solid #9db7ff;
+  border-left: 3px solid var(--accent);
   border-radius: 4px;
   font-size: 15px;
 }
@@ -306,11 +342,11 @@
   font-size: 13px;
 }
 .pill--ok {
-  background: rgba(95, 211, 141, 0.15);
+  background: rgba(232, 236, 243, 0.15);
   color: var(--ok);
 }
 .pill--bad {
-  background: rgba(255, 122, 122, 0.15);
+  background: rgba(255, 90, 79, 0.15);
   color: var(--bad);
 }
 .tag {
@@ -565,10 +601,10 @@
 }
 .tag-line {
   margin: 0;
-  color: #ffcf99;
+  color: var(--text);
 }
 .warnings {
-  color: #ffcf99;
+  color: var(--text);
 }
 
 /* Segmented control (map layers) */
@@ -583,7 +619,7 @@
 }
 .app .segmented button.is-on {
   background: #2b3550;
-  border-color: #9db7ff;
+  border-color: var(--accent);
 }
 
 /* Regional map */
@@ -826,18 +862,18 @@
   font-size: 13px;
 }
 .app button.primary {
-  background: #9db7ff;
-  border-color: #9db7ff;
+  background: var(--accent);
+  border-color: var(--accent);
   color: #0b0e14;
   font-weight: 600;
 }
 .app button.primary:hover:not(:disabled) {
-  background: #b9cbff;
+  background: #ffffff;
 }
 .app button:focus-visible,
 .app summary:focus-visible,
 .sitemap__plot:focus-visible {
-  outline: 2px solid #9db7ff;
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
@@ -901,11 +937,11 @@
   font-size: 14px;
 }
 .answer--ok .answer__icon {
-  background: rgba(95, 211, 141, 0.18);
+  background: rgba(232, 236, 243, 0.18);
   color: var(--ok);
 }
 .answer--bad .answer__icon {
-  background: rgba(255, 122, 122, 0.18);
+  background: rgba(255, 90, 79, 0.18);
   color: var(--bad);
 }
 .answer__q {
@@ -971,7 +1007,7 @@
 .comparison__more summary,
 .season details summary {
   cursor: pointer;
-  color: #9db7ff;
+  color: var(--accent);
   font-size: 13px;
 }
 .comparison__more .table-wrap {
@@ -1086,7 +1122,7 @@
   position: fixed;
   border-radius: 10px;
   box-shadow: 0 0 0 9999px rgba(3, 5, 10, 0.72);
-  outline: 2px solid #9db7ff;
+  outline: 2px solid var(--accent);
   pointer-events: none;
   transition: left 0.25s, top 0.25s, width 0.25s, height 0.25s;
 }
@@ -1135,7 +1171,7 @@
   background: #2b3550;
 }
 .tour__progress i.is-on {
-  background: #9db7ff;
+  background: var(--accent);
 }
 .tour__actions {
   display: flex;
@@ -1188,7 +1224,7 @@
 
 .scenario__point summary {
   cursor: pointer;
-  color: #9db7ff;
+  color: var(--accent);
 }
 .scenario__point[open] summary {
   margin-bottom: 4px;
@@ -1196,10 +1232,10 @@
 
 /* ==== Calm surfaces: fewer frames, one level of grouping ==== */
 .app {
-  --line: #1c2433;
-  --surface: #10151e;
-  --control: #161c28;
-  --control-hover: #1f2738;
+  --line: #1e2636;
+  --surface: #121722;
+  --control: #1a2130;
+  --control-hover: #263044; /* slate */
   line-height: 1.5;
 }
 .app__layout {
@@ -1266,7 +1302,7 @@
   padding-top: 0;
 }
 .scenario.is-active {
-  border-left-color: var(--active, #9db7ff);
+  border-left-color: var(--active, var(--accent));
   background: linear-gradient(90deg, rgba(157, 183, 255, 0.05), transparent 70%);
 }
 .scenario__shift button {
@@ -1284,7 +1320,7 @@
 .app .scenario__add {
   border: none;
   background: none;
-  color: #9db7ff;
+  color: var(--accent);
   padding-left: 0;
   margin-top: 6px;
   text-align: left;
@@ -1329,7 +1365,7 @@
 }
 .app .tabs button.is-on {
   background: none;
-  border-bottom-color: #9db7ff;
+  border-bottom-color: var(--accent);
 }
 .app .tabs button:hover:not(:disabled) {
   background: none;
@@ -1392,4 +1428,149 @@
   .app .tabs button {
     flex: none;
   }
+}
+
+/* ==== Rimlight brand: type, header, horizon rule ==== */
+.app h1,
+.app h2,
+.app h3,
+.tour__card h2 {
+  font-family: var(--f-display);
+  font-weight: 700;
+  letter-spacing: 0;
+}
+.app__header {
+  display: block;
+  padding-block: 18px 6px;
+}
+.app__bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.brand__mark {
+  flex: none;
+}
+.brand__text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+.brand__word {
+  font-family: var(--f-display);
+  font-stretch: 125%;
+  font-weight: 850;
+  font-size: 19px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.brand__desc {
+  font-size: 12px;
+  color: var(--muted);
+}
+.app__title {
+  margin-top: 26px;
+}
+.app .app__title h1 {
+  font-stretch: 125%;
+  font-weight: 800;
+  font-size: clamp(24px, 3.4vw, 38px);
+  line-height: 1.1;
+  letter-spacing: 0.01em;
+  max-width: 22ch;
+}
+.app__title p {
+  margin: 10px 0 0;
+  max-width: 60ch;
+  font-size: 16px;
+  color: var(--muted);
+}
+.horizon-rule {
+  position: relative;
+  margin-top: 22px;
+  margin-bottom: 14px;
+}
+.horizon-rule svg {
+  display: block;
+}
+.horizon-rule__ground {
+  fill: #121722;
+}
+.horizon-rule__line {
+  fill: none;
+  stroke: #34405a;
+  stroke-width: 1.5;
+}
+.horizon-rule__label {
+  position: absolute;
+  right: 0;
+  top: -16px;
+  font-family: var(--f-mono);
+  font-size: 11px;
+  color: #6f7889;
+}
+.card__tagline {
+  margin: -8px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+.app__footer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 28px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* Numbers: mono, tabular, units always shown */
+.meter__value,
+.timebar__time,
+.sitemap__cell dd,
+.season__tip,
+.sitemap__tip,
+.comparison td,
+.season__table td,
+.pano__hover-read,
+.horizon-rule__label,
+.pano svg text,
+.chart svg text,
+.app input[type='number'],
+.scenario__time input {
+  font-family: var(--f-mono);
+  font-variant-numeric: tabular-nums;
+}
+.pano svg,
+.chart svg {
+  font-size: 11px;
+}
+.answer__title {
+  font-family: var(--f-display);
+  font-weight: 700;
+}
+.app button.primary {
+  color: #0b0e14;
+}
+@media (max-width: 600px) {
+  .app__title {
+    margin-top: 18px;
+  }
+  .horizon-rule__label {
+    display: none;
+  }
+}
+.app .app__title h1 {
+  max-width: none;
+  text-wrap: balance;
+}
+.card__tagline {
+  margin-bottom: 14px;
 }

@@ -93,12 +93,14 @@ type Rgb = [number, number, number]
 const hex = (h: string): Rgb => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16)) as Rgb
 
 /** Single-hue ramps for the dark card: low values sink toward the surface, high values are light. */
-const RAMPS: Record<'blue' | 'orange', Rgb[]> = {
-  blue: ['#0d1f3a', '#0d366b', '#184f95', '#256abf', '#3987e5', '#6da7ec', '#9ec5f4', '#cde2fb'].map(hex),
-  orange: ['#2a160d', '#5a2610', '#8f3714', '#c24a1c', '#eb6834', '#f29066', '#f7b898', '#fbdccb'].map(hex),
+const RAMPS: Record<'sun' | 'earth' | 'neutral', Rgb[]> = {
+  // Brand meaning: Sun shares in the Sun's yellow, Earth shares in Earth's blue, the rest neutral.
+  sun: ['#16140f', '#2e240c', '#4f3a0a', '#7a5306', '#a86a00', '#d99a2b', '#ffd166', '#ffe7a8'].map(hex),
+  earth: ['#0f1526', '#15224a', '#1d3373', '#2f56c9', '#5274d6', '#7895e8', '#9db7ff', '#cddbff'].map(hex),
+  neutral: ['#14181f', '#232a36', '#363f4e', '#4c5668', '#677184', '#8a93a4', '#aab3c2', '#e8ecf3'].map(hex),
 }
 
-export const rampFor = (layer: MapLayer) => (layer === 'slopeDeg' ? RAMPS.orange : RAMPS.blue)
+export const rampFor = (layer: MapLayer) => (layer === 'sunPct' ? RAMPS.sun : layer === 'earthPct' ? RAMPS.earth : RAMPS.neutral)
 
 /** Colour of `t` in 0–1 on a ramp (linear between stops). */
 export function rampColor(ramp: Rgb[], t: number): Rgb {
