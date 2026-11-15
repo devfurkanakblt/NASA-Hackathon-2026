@@ -3,12 +3,13 @@ import { Html, OrbitControls } from '@react-three/drei'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMoonSurfaceTexture } from '../scene3d/moonSurfaceTexture.ts'
 import { PolarMoonCap } from '../scene3d/PolarMoonCap.tsx'
-import { ComputedAreas } from '../scene3d/ComputedAreas.tsx'
 import { globeNearPlane } from '../scene3d/globeClip.ts'
+import { Vector3 } from 'three'
 import type { Mesh } from 'three'
+import { GLOBE_NORTH_EDGE_DEG, keepLabelInFrame, labelOffset, southernCameraPosition } from './globeView.ts'
 import { createMoonRoute, moonPosition, sampleMoonRoute } from './moonFlight.ts'
 import type { CSSProperties } from 'react'
-import type { LunarImageryDetail, MapDoc, SiteEntry } from '../data/contract.ts'
+import type { SiteEntry } from '../data/contract.ts'
 
 export interface MoonPlace { key: string; site: SiteEntry; color: string; letter: string }
 export interface MoonFlight { from: SiteEntry; to: SiteEntry }
@@ -25,6 +26,20 @@ function PoleCamera({ request }: { request: number }) {
   return null
 }
 
+/** Keeps the whole-globe camera over the southern hemisphere, so the far side cannot be turned into view. */
+function SouthernView() {
+  useFrame(({ camera, invalidate }) => {
+    const p = camera.position
+    const [x, y, z] = southernCameraPosition([p.x, p.y, p.z])
+    if (x !== p.x || y !== p.y || z !== p.z) {
+      p.set(x, y, z)
+      camera.lookAt(0, 0, 0)
+      invalidate()
+    }
+  })
+  return null
+}
+
 function GlobeClipPlanes() {
   useFrame(({ camera }) => {
     // A constant 0.0001 near plane loses depth precision when viewing the whole globe:
@@ -35,15 +50,42 @@ function GlobeClipPlanes() {
   return null
 }
 
-function PointCamera({ target }: { target: { latDeg: number; lonDeg: number } | null }) {
-  const { camera, invalidate } = useThree()
-  useEffect(() => {
-    if (!target) return
-    camera.position.copy(moonPosition(target).multiplyScalar(1.008))
-    const lat = target.latDeg * Math.PI / 180, lon = target.lonDeg * Math.PI / 180
-    camera.up.set(-Math.sin(lat) * Math.cos(lon), Math.cos(lat), Math.sin(lat) * Math.sin(lon))
-    camera.lookAt(0, 0, 0); invalidate()
-  }, [target, camera, invalidate])
+function FirstFrame({ onFrame }: { onFrame: () => void }) {
+  const done = useRef(false)
+  useFrame(() => { if (!done.current) { done.current = true; onFrame() } })
+  return null
+}
+
+interface LabelRefs { label: HTMLDivElement | null; line: SVGLineElement | null }
+
+/**
+ * Pulls each place label back inside the globe frame when its usual offset would put it off
+ * screen, and points its leader line at the moved label. Runs on every drawn frame.
+ */
+function KeepLabelsInFrame({ positions, refs }: { positions: Vector3[]; refs: { current: LabelRefs[] } }) {
+  const projected = useMemo(() => new Vector3(), [])
+  const frames = useRef(0)
+  useFrame(({ camera, size, invalidate }) => {
+    const mobile = window.matchMedia('(max-width: 640px)').matches
+    // Labels mount in their own roots a few frames after this; the canvas only draws on
+    // demand, so keep drawing briefly until they can be measured. Labels hidden behind
+    // the rim measure 0 and are skipped; turning the globe draws new frames anyway.
+    let unmeasured = false
+    positions.forEach((position, i) => {
+      const { label, line } = refs.current[i] ?? {}
+      if (!label?.offsetWidth) { unmeasured = true; return }
+      const offset = labelOffset(i)
+      const pin = mobile ? { x: offset.mobileX, y: offset.mobileY } : { x: offset.x, y: offset.y }
+      projected.copy(position).project(camera)
+      const anchor = { x: (projected.x + 1) / 2 * size.width, y: (1 - projected.y) / 2 * size.height }
+      const shift = keepLabelInFrame(anchor, pin, { w: label.offsetWidth, h: label.offsetHeight }, { w: size.width, h: size.height })
+      label.style.setProperty('--pin-shift-x', `${shift.x}px`)
+      label.style.setProperty('--pin-shift-y', `${shift.y}px`)
+      line?.setAttribute('x2', String(pin.x + shift.x))
+      line?.setAttribute('y2', String(pin.y + shift.y))
+    })
+    if (unmeasured && frames.current++ < 120) invalidate()
+  })
   return null
 }
 
@@ -71,51 +113,50 @@ function FlightCamera({ flight, onComplete }: { flight: MoonFlight; onComplete: 
   return null
 }
 
-export default function MoonGlobe({ sites, maps = [], images, selected, onCoordinate, pickedCoordinate, flight, onComplete, active = true }: {
+export default function MoonGlobe({ sites, selected, onSelect, flight, onComplete, active = true }: {
   sites: SiteEntry[]; selected: MoonPlace[]; onSelect?: (site: SiteEntry) => void
   active?: boolean; flight?: MoonFlight; onComplete?: () => void
-  onCoordinate?: (latitude: number, longitude: number) => void
-  pickedCoordinate?: { latDeg: number; lonDeg: number }
-  maps?: MapDoc[]
-  images?: Record<string, LunarImageryDetail>
 }) {
   const moon = useRef<Mesh>(null!)
   const [poleRequest, setPoleRequest] = useState(0)
-  const [focus, setFocus] = useState<{ latDeg: number; lonDeg: number; siteId?: string } | null>(null)
+  // drei <Html> roots created while the canvas is still being set up can come out empty
+  // (the first place label went missing). Mount the labels on the first frame after setup.
+  const [labelsReady, setLabelsReady] = useState(false)
+  const labelSites = flight ? selected.map(p => p.site) : sites
+  const labelPositions = useMemo(() => labelSites.map(site => moonPosition(site).multiplyScalar(1.0007)), [labelSites])
+  const labelRefs = useRef<LabelRefs[]>([])
   const { texture, failed } = useMoonSurfaceTexture()
   return <div className="moon-globe" aria-label={flight ? 'Travelling between selected lunar locations' : 'Interactive Moon location selector'}>
     <Canvas frameloop={active ? 'demand' : 'never'} camera={{ position: [0, -2.8, .65], up: [0, 0, -1], fov: 42, near: .05, far: 30 }} dpr={[1, 1.75]}>
       <color attach="background" args={['#070a0f']} />
       <PoleCamera request={poleRequest} />
-      <PointCamera target={focus} />
       <GlobeClipPlanes />
+      {!flight && <SouthernView />}
       <ambientLight intensity={1.3} />
       <directionalLight position={[3, -4, 5]} intensity={2.5} />
-      <group onClick={e => { if (!flight && e.delta < 5) { e.stopPropagation(); const p = e.point.clone().normalize(); onCoordinate?.(Math.asin(p.y) * 180 / Math.PI, Math.atan2(-p.z, p.x) * 180 / Math.PI) } }}>
-      <mesh ref={moon}><sphereGeometry args={[1, 128, 96]} />
+      {/* Places are chosen by name only; the surface itself is not clickable. */}
+      <group>
+      {/* Southern hemisphere only (theta is measured from the north pole, +Y). */}
+      <mesh ref={moon}><sphereGeometry args={[1, 128, 64, 0, Math.PI * 2, (90 - GLOBE_NORTH_EDGE_DEG) * Math.PI / 180, (90 + GLOBE_NORTH_EDGE_DEG) * Math.PI / 180]} />
         {texture ? <meshBasicMaterial map={texture} toneMapped={false} /> : <meshStandardMaterial color="#898985" roughness={1} />}
       </mesh>
       <PolarMoonCap />
-      <ComputedAreas maps={maps} images={images} focusId={focus?.siteId} />
       </group>
-      {pickedCoordinate && !flight && <group position={moonPosition(pickedCoordinate).multiplyScalar(1.001)}>
-        <mesh renderOrder={30}><sphereGeometry args={[.00007, 12, 12]} /><meshBasicMaterial color="#ffcb62" depthTest={false} /></mesh>
-        <Html center occlude={[moon]} zIndexRange={[24, 21]} style={{ pointerEvents: 'none' }}>
-          <span style={{ display: 'block', transform: 'translateY(24px)', background: '#151a24', color: '#ffdf99', padding: '6px 9px', border: '1px solid #ffcb62', borderRadius: 6, fontSize: 11, whiteSpace: 'nowrap' }}>Your point: {pickedCoordinate.latDeg.toFixed(5)}°, {pickedCoordinate.lonDeg.toFixed(5)}° E</span>
-        </Html>
-      </group>}
-      {(flight ? selected.map(p => p.site) : sites).map((site, i) => {
+      {!labelsReady && <FirstFrame onFrame={() => setLabelsReady(true)} />}
+      {labelsReady && <KeepLabelsInFrame positions={labelPositions} refs={labelRefs} />}
+      {labelsReady && labelSites.map((site, i) => {
         const picks = selected.filter(p => p.site.id === site.id)
         const color = picks[0]?.color ?? '#ddd8cc'
-        const position = moonPosition(site).multiplyScalar(1.0007)
+        const position = labelPositions[i]
+        const pin = labelOffset(i)
+        const refs = (labelRefs.current[i] ??= { label: null, line: null })
         return <group key={`${site.id}-${i}`} position={position}>
           <mesh><sphereGeometry args={[.002, 12, 12]} /><meshBasicMaterial color={color} depthTest={false} /></mesh>
           <Html center occlude={[moon]} zIndexRange={[20, 0]} style={{ pointerEvents: flight ? 'none' : 'auto' }}>
-            <svg className="moon-leader moon-leader--desktop" width="1" height="1" aria-hidden="true" style={{ color }}><line x1="0" y1="0" x2={(i % 3 - 1) * 190} y2={-45 - Math.floor(i / 3) * 50} /></svg>
-            <svg className="moon-leader moon-leader--mobile" width="1" height="1" aria-hidden="true" style={{ color }}><line x1="0" y1="0" x2={(i % 2 ? 1 : -1) * 79} y2={-40 - Math.floor(i / 2) * 49} /></svg>
-            <div className="moon-label" style={{ color, '--pin-x': `${(i % 3 - 1) * 190}px`, '--pin-y': `${-45 - Math.floor(i / 3) * 50}px`, '--pin-mobile-x': `${(i % 2 ? 1 : -1) * 79}px`, '--pin-mobile-y': `${-40 - Math.floor(i / 2) * 49}px` } as CSSProperties}>
+            <svg className="moon-leader" width="1" height="1" aria-hidden="true" style={{ color }}><line ref={el => { refs.line = el }} x1="0" y1="0" x2={pin.x} y2={pin.y} /></svg>
+            <div ref={el => { refs.label = el }} className="moon-label" style={{ color, '--pin-x': `${pin.x}px`, '--pin-y': `${pin.y}px`, '--pin-mobile-x': `${pin.mobileX}px`, '--pin-mobile-y': `${pin.mobileY}px` } as CSSProperties}>
             <button type="button" className="moon-pin" style={{ color }}
-              onClick={() => setFocus({ latDeg: site.latDeg, lonDeg: site.lonDeg, siteId: site.id })} disabled={!!flight} title="Zoom to this area, then click your own point on the surface" aria-pressed={picks.length > 0}>
+              onClick={() => onSelect?.(site)} disabled={!!flight} title={picks.length ? 'Remove this place from the comparison' : 'Add this place to the comparison'} aria-pressed={picks.length > 0}>
               <span className="moon-pin__dot" />{picks.map(p => p.letter).join(' / ')}{picks.length ? ' · ' : ''}{site.name}
             </button></div>
           </Html>
@@ -128,7 +169,7 @@ export default function MoonGlobe({ sites, maps = [], images, selected, onCoordi
       {flight && onComplete ? <FlightCamera flight={flight} onComplete={onComplete} /> : <OrbitControls makeDefault enablePan={false} minDistance={1.001} maxDistance={4} enableDamping dampingFactor={.12} />}
     </Canvas>
     {!flight && <button type="button" style={{ position: 'absolute', left: 12, bottom: 50, zIndex: 25 }} onClick={() => setPoleRequest(n => n + 1)}>Focus south pole</button>}
-    {!flight && <span className="moon-globe__hint">Click a name to zoom · Click the surface to choose a point · Green areas have calculation data</span>}
+    {!flight && <span className="moon-globe__hint">Southern hemisphere · Click a name to add or remove it (up to three)</span>}
     <span className="moon-globe__credit">{texture ? 'NASA/LROC WAC archive · Catalogue coordinates' : failed ? 'Image unavailable · Untextured catalogue locator' : 'Loading NASA/LROC imagery · Untextured globe'}</span>
   </div>
 }

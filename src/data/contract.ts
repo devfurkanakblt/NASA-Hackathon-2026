@@ -240,9 +240,20 @@ export interface CoverageDoc {
   freePoints: string
 }
 
+/** One south-pole permanently shadowed region from NASA Moon Trek (`psr-south.json`). */
+export interface Psr {
+  id: string
+  name: string | null
+  latDeg: number
+  lonDeg: number
+  areaKm2: number
+}
+
 export interface LoadedData {
   sites: SitesDoc
   bySite: Record<string, SiteData>
+  /** South-pole PSRs for the research view; absent if the file is missing (research still shows the rest). */
+  psrs?: Psr[]
   /** Supported area and time range; absent when `coverage.json` has not been generated. */
   coverage?: CoverageDoc
 }

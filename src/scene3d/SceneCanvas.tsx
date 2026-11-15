@@ -26,7 +26,7 @@ import { Diagnostics } from './parts/Diagnostics.tsx'
 import { CompassPoints, HorizonCurtain, HorizonLines } from './parts/HorizonOverlay.tsx'
 import { LabelProjector } from './parts/Labels.tsx'
 import type { LabelBinding } from './parts/Labels.tsx'
-import { Lander } from './parts/Lander.tsx'
+import { LANDER_MODEL_RADIUS_M, Lander } from './parts/Lander.tsx'
 import { DirectionArrow, SkyBody, SkyFollow, SkyTrack } from './parts/SkyBodies.tsx'
 import { ReferenceSphere, Terrain } from './parts/Terrain.tsx'
 import './scene3d.css'
@@ -70,6 +70,10 @@ export interface MissionScene3DProps {
 
 /** Scene distances in units of half the terrain patch: sky sphere and camera far plane. */
 const SKY_RADIUS = 75
+/** Lander display scale as a fraction of half the terrain patch (150x for a 10 km patch). */
+const LANDER_SCALE_PER_HALF_EXTENT = 0.03
+/** Night-side brightness of the Earth view aid; the sunlit part stays about twice as bright. */
+const EARTH_FILL_VIEW_AID = 0.45
 const FAR_PLANE = 82
 
 /** Signal only after the first draw has uploaded buffers and compiled the scene's shaders. */
@@ -152,6 +156,7 @@ export default function SceneCanvas({
   const [contextLost, setContextLost] = useState(false)
   const [showAnnotations, setShowAnnotations] = useState(true)
   const [reliefLighting, setReliefLighting] = useState(true)
+  const [earthFill, setEarthFill] = useState(true)
   const [showImagery, setShowImagery] = useState(true)
   const [canvasKey, setCanvasKey] = useState(0)
   const diagnosticOutput = useRef<HTMLOutputElement | null>(null)
@@ -171,6 +176,10 @@ export default function SceneCanvas({
 
   const { meshData, farMesh } = useMemo(() => getPreparedTerrain(terrain, farTerrain, observerHeightM), [terrain, farTerrain, observerHeightM])
   const half = meshData.halfExtentM
+  // One fixed enlargement of the lander (about 360 m across on a 10 km patch); the orbit
+  // camera keeps a matching minimum distance so it never ends up inside the model.
+  const landerScale = half * LANDER_SCALE_PER_HALF_EXTENT
+  const minOrbitDistanceM = LANDER_MODEL_RADIUS_M * landerScale * 2.5
   const overviewRadius = half * 0.9
   // Keep the full-resolution horizon silhouette beyond the measured regional mesh.
   const curtainRadius = Math.max(half * 2.2, (farTerrain?.sizeM ?? 0) * 0.75)
@@ -247,7 +256,7 @@ export default function SceneCanvas({
         {cameraMode === 'overview' && surfaceElevationM !== undefined && (
           <ReferenceSphere data={farMesh ?? meshData} siteElevationM={surfaceElevationM} outerRadiusM={half * (SKY_RADIUS - 5)} />
         )}
-        {cameraMode === 'overview' && <Lander panelNormal={normal} panelLit={lit} panelAreaM2={panel.areaM2} northLabelAnchor={northLabel.anchor} />}
+        {cameraMode === 'overview' && <Lander panelNormal={normal} panelLit={lit} panelAreaM2={panel.areaM2} northLabelAnchor={northLabel.anchor} displayScale={landerScale} />}
 
         <group position={[0, observerHeightM, 0]}>
           {!lander ? (
@@ -290,6 +299,7 @@ export default function SceneCanvas({
             angularDiameterDeg={earthAngularDiameterDeg(earth.distanceM)}
             sunDirection={earthSunDirection ?? sunDirection}
             earthOrientation={earthOrientation}
+            earthFill={earthFill ? EARTH_FILL_VIEW_AID : 0}
             showAnnotations={showAnnotations}
             xray={lander && showTerrainEffect}
             labelAnchor={lander ? earthLabel.anchor : undefined}
@@ -300,6 +310,7 @@ export default function SceneCanvas({
           animateArrival={animateArrival}
           mode={cameraMode}
           halfExtentM={half}
+          minOrbitDistanceM={minOrbitDistanceM}
           farPlaneM={half * FAR_PLANE}
           eyeHeightM={observerHeightM}
           lookTarget={lookTarget}
@@ -367,6 +378,10 @@ export default function SceneCanvas({
             </button>
           </div>
         )}
+        {cameraMode === 'lander' && <label className="scene3d__check" title="Brightens Earth's night side so the disc can be found; the true phase stays visible as the brighter part">
+          <input type="checkbox" checked={earthFill} onChange={e => setEarthFill(e.target.checked)} />
+          Earth fill light (view aid)
+        </label>}
         <label className="scene3d__check" title={hasImagery ? 'Show the georegistered NASA archive photograph' : 'Archive imagery is not available for this site'}>
           <input type="checkbox" checked={showImagery && hasImagery} disabled={!hasImagery} onChange={e => setShowImagery(e.target.checked)} />
           NASA imagery
@@ -414,6 +429,7 @@ export default function SceneCanvas({
         {!earthOrientation ? ` ${earthDisplayWarning ?? 'Earth map hidden: registered orientation is unavailable.'}`
           : earthMapFailed ? ' Earth map unavailable; an untextured illuminated sphere is shown.'
           : !earthMap ? ' Earth texture loading.' : ' Earth: NASA November 2004 composite, UTC-registered rotation; not live weather.'}
+        {lander && earthFill && ' Earth fill light (view aid) brightens its night side; the brighter part is the true phase.'}
         {imageryActive ? ' Surface photographs are NASA archival composites; their combined lighting does not depict the selected UTC. Switch NASA imagery off for modelled Sun-direction shading.'
           : reliefLighting && ' Relief fill light is enabled for readability; switch it off to inspect Sun-only shading.'}
         {!imageryActive && terrain.normalDetail && (detailNormalFailed ? ' Measured surface detail unavailable; mesh shading is used.'

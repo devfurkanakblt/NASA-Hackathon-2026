@@ -22,11 +22,12 @@ import { Comparison } from './Comparison.tsx'
 import { Landing } from './Landing.tsx'
 import { mapPointWhere, placeTitle } from './placeName.ts'
 import { errorMessage, fmtDuration, fmtHours, fmtUtc } from './format.ts'
-import { cellId, isKnownSiteId, parseCellId, resolveSiteData, sitesNeeded, snapToCell } from './extendedSites.ts'
+import { cellId, isKnownSiteId, parseCellId, resolveSiteData, sitesNeeded } from './extendedSites.ts'
 import type { ExtendedState } from './extendedSites.ts'
 import { cellAt } from './mapGrid.ts'
 import { defaultScenarios, evaluateAll, isEvaluated, newKey, targetScenarioKey } from './scenarios.ts'
 import type { Scenario } from './scenarios.ts'
+import { ResearchView } from './ResearchView.tsx'
 import { SettingsForm } from './SettingsForm.tsx'
 import { decodeShare, encodeShare } from './share.ts'
 import { Sources } from './Sources.tsx'
@@ -42,9 +43,10 @@ import './app.css'
 
 const MoonGlobe = lazy(() => import('./MoonGlobe.tsx'))
 
-type Tab = 'sky' | 'power' | 'map' | 'year' | 'sources'
+type Tab = 'sky' | 'research' | 'power' | 'map' | 'year' | 'sources'
 const TABS: { key: Tab; label: string }[] = [
   { key: 'sky', label: 'Sky view' },
+  { key: 'research', label: 'Research' },
   { key: 'power', label: 'Battery' },
   { key: 'map', label: 'Area map' },
   { key: 'year', label: 'Through the year' },
@@ -90,10 +92,6 @@ export function MissionApp() {
   const [activeKey, setActiveKey] = useState<string | null>(null)
   const [step, setStep] = useState(0)
   const [playing, setPlaying] = useState(false)
-  const [coordinateNotice, setCoordinateNotice] = useState('')
-  const [surfacePoint, setSurfacePoint] = useState<{ latDeg: number; lonDeg: number } | null>(null)
-  const globeImages = useMemo(() => Object.fromEntries(Object.entries(loaded?.bySite ?? {}).flatMap(([id, d]) => d.terrain?.imagery ? [[id, d.terrain.imagery]] : [])), [loaded])
-  const globeMaps = useMemo(() => Object.values(loaded?.bySite ?? {}).flatMap(d => d.map ? [d.map] : []), [loaded])
   const [view, setView] = useState<View>(viewFromLocation)
   const [simulationStage, setSimulationStage] = useState<'pick' | 'watch'>('pick')
   const [simulationStarted, setSimulationStarted] = useState(false)
@@ -464,35 +462,16 @@ export function MissionApp() {
     </div>
   )
   const updateLocations = (next: Scenario[]) => {
-    setCoordinateNotice('')
     setPicked(next)
     setScenarios(next)
     setActiveKey(current => next.some(place => place.key === current) ? current : next[0]?.key ?? null)
   }
 
-  const useCoordinates = (lat: number, lon: number, add = false) => {
-    const point = snapToCell(lat, lon, loaded.bySite)
-    if ('error' in point) return `${point.error} No result was generated for the requested coordinate.`
-    const id = cellId(point.siteId, point.row, point.col)
-    const map = loaded.bySite[point.siteId].map!
-    const index = point.row * map.grid.nx + point.col
-    if (map.surfaceElevationM[index] === null) return 'Terrain data is missing at this point; choose another green-grid point.'
-    if (add) {
-      if (picked.some(p => p.siteId === id)) return 'This computed grid point is already in the comparison. Click another point.'
-      if (picked.length >= 3) return 'Three locations are selected. Remove one to add your coordinate.'
-      updateLocations([...picked, { key: newKey(), siteId: id, startUtc: scenarios[0]?.startUtc ?? loaded.sites.coverage.startUtc }])
-    } else patchSceneScenario({ siteId: id })
-    return `Using ${map.latDeg[index].toFixed(6)}°, ${map.lonDeg[index].toFixed(6)}° E (${Math.round(point.distanceM)} m from your request). Sunlight, Earth visibility and battery are recalculated for this grid point.`
-  }
-  const pointCandidate = surfacePoint ? snapToCell(surfacePoint.latDeg, surfacePoint.lonDeg, loaded.bySite) : null
-  const pointSupported = pointCandidate !== null && !('error' in pointCandidate) &&
-    loaded.bySite[pointCandidate.siteId].map!.surfaceElevationM[pointCandidate.row * loaded.bySite[pointCandidate.siteId].map!.grid.nx + pointCandidate.col] !== null
   const missionControls = <SceneMissionControls
     sites={loaded.sites} scenarios={scenarios} chosenKey={chosenKey}
     durationDays={settings.durationDays} endUtc={maxStartFor(chosenScenario?.siteId ?? loaded.sites.sites[0].id)}
     onChoose={key => { setPlaying(false); setStep(0); setActiveKey(key) }} onPatch={patchSceneScenario}
     onDuration={durationDays => { setPlaying(false); setStep(0); setSettings(previous => ({ ...previous, durationDays })) }}
-    onCoordinate={(lat, lon) => useCoordinates(lat, lon)}
     onCopy={() => { if (chosenScenario && scenarios.length < 3) { const copy = { ...chosenScenario, key: newKey() }; setScenarios([...scenarios, copy]); setActiveKey(copy.key); setPlaying(false); setStep(0) } }} />
 
   return (
@@ -504,25 +483,19 @@ export function MissionApp() {
         <div className="simulation-layout">
           <main className="app__main">
             <section className="card moon-picker" data-mode={flight ? 'flight' : simulationStage} aria-hidden={simulationStage !== 'pick' && !flight || undefined} inert={simulationStage !== 'pick' && !flight || undefined} data-tour="places">
-              <div className="card__head"><div><h2>Choose a point on the Moon</h2>
-                <p className="card__tagline">Click anywhere on the globe to choose your research point. You can compare up to three supported points.</p></div></div>
+              <div className="card__head"><div><h2>Choose places on the Moon</h2>
+                <p className="card__tagline">Click a place name on the globe to add it. You can compare up to three places.</p></div></div>
               <div className="moon-picker__globe"><Suspense fallback={<p role="status">Loading the Moon&hellip;</p>}>
-                <MoonGlobe maps={globeMaps} images={globeImages} pickedCoordinate={surfacePoint ?? undefined} onCoordinate={(lat, lon) => { setSurfacePoint({ latDeg: lat, lonDeg: lon }); setCoordinateNotice('') }} active={simulationStage === 'pick' || !!flight} flight={flight ?? undefined} onComplete={() => { if (flight) { setActiveKey(flight.targetKey); setFlight(null) } }} sites={loaded.sites.sites} selected={(flight ? scenarios : picked).flatMap((s, i) => {
+                <MoonGlobe active={simulationStage === 'pick' || !!flight} flight={flight ?? undefined} onComplete={() => { if (flight) { setActiveKey(flight.targetKey); setFlight(null) } }} sites={loaded.sites.sites} selected={(flight ? scenarios : picked).flatMap((s, i) => {
                   const site = shownBySite[s.siteId]?.site ?? loaded.sites.sites.find(site => site.id === s.siteId)
                   return site ? [{ key: s.key, site, letter: String.fromCharCode(65 + i), color: COLORS[i] }] : []
                 })} onSelect={(site: SiteEntry) => updateLocations(picked.some(s => s.siteId === site.id)
                   ? picked.filter(s => s.siteId !== site.id)
                   : picked.length < 3 ? [...picked, { key: newKey(), siteId: site.id, startUtc: scenarios[0]?.startUtc ?? loaded.sites.coverage.startUtc }] : picked)} />
               </Suspense></div>
-              {surfacePoint && <section className="scene-mission" aria-label="Selected surface point">
-                <strong>Your point: {surfacePoint.latDeg.toFixed(6)}°, {surfacePoint.lonDeg.toFixed(6)}° E</strong>
-                <p>{pointSupported ? 'Calculation data is available here. Add this point, then choose another point to compare.' : 'No calculation data at this point. Click a named area to zoom, then choose your own point inside the green grid.'}</p>
-                <button type="button" disabled={!pointSupported || picked.length >= 3} onClick={() => setCoordinateNotice(useCoordinates(surfacePoint.latDeg, surfacePoint.lonDeg, true))}>Add point to comparison</button>
-              </section>}
-              {coordinateNotice && <p role="status">{coordinateNotice}</p>}
               {flight && <p className="sim__flight-label" role="status">{flight.from.name} <span aria-hidden="true">&rarr;</span> {flight.to.name}</p>}
               <div className="moon-picker__selection" aria-live="polite">
-                {picked.length === 0 && <p className="muted">Click the surface to select your own point; named locations are optional references.</p>}
+                {picked.length === 0 && <p className="muted">No place chosen yet. Click a name on the globe.</p>}
                 {picked.map((s, i) => <div key={s.key} className="moon-choice" style={{ '--place-color': COLORS[i] } as CSSProperties}>
                   <span className="moon-choice__letter">{String.fromCharCode(65 + i)}</span>
                   <span>{placeTitle(s.siteId, shownBySite)}</span>
@@ -709,6 +682,35 @@ export function MissionApp() {
                       <h3>In view during the mission</h3>
                       <Timelines outcomes={evaluated} colors={colorsOfEvaluated} k={k} />
                     </>
+                  )}
+
+                  {tab === 'research' && (
+                    <ResearchView
+                      data={activeData}
+                      result={active.result}
+                      startUtc={active.scenario.startUtc}
+                      settings={settings}
+                      catalogue={loaded.bySite}
+                      psrs={loaded.psrs ?? []}
+                      inScenarios={scenarios.map((s) => s.siteId)}
+                      canAdd={scenarios.length < 3}
+                      onCompare={(siteId) => {
+                        if (scenarios.length < 3) {
+                          const added = { key: newKey(), siteId, startUtc: active.scenario.startUtc }
+                          setScenarios([...scenarios, added])
+                          setPicked([...scenarios, added])
+                        } else setActiveSite(siteId)
+                      }}
+                      year={activeCell ? null : ext.years[activeData.site.id] ?? null}
+                      chosenDates={scenarios.filter((s) => s.siteId === active.scenario.siteId).map((s) => s.startUtc)}
+                      onUseDate={(startUtc) => {
+                        if (scenarios.length < 3) {
+                          const added = { key: newKey(), siteId: active.scenario.siteId, startUtc }
+                          setScenarios([...scenarios, added])
+                          setPicked([...scenarios, added])
+                        } else patchSceneScenario({ startUtc })
+                      }}
+                    />
                   )}
 
                   {tab === 'power' && (
