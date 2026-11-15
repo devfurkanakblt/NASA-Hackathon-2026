@@ -2,8 +2,10 @@ import { useId, useMemo } from 'react'
 import type { HorizonDoc } from '../data/contract.ts'
 
 /**
- * Rimlight symbol: the Moon's disc as a 360° horizon ring, lit only on the sunward edge, with the
- * Sun partly behind a ridge and Earth as a blue dot. Below 32 px the Earth dot is left out.
+ * Rimlight symbol (v2): the Moon's disc as a 360° horizon ring, lit only on the sunward edge.
+ * Two soft ridges give depth: the Sun sits behind the distant one (only its cap clears the
+ * horizon) and the near ridge's crest catches the light. Earth is the blue dot.
+ * Below 32 px a simpler single-ridge version is drawn and the Earth dot is left out.
  */
 export function RimlightMark({ size = 40 }: { size?: number }) {
   const clip = useId()
@@ -18,10 +20,21 @@ export function RimlightMark({ size = 40 }: { size?: number }) {
       <circle cx="48" cy="48" r="38" fill="none" stroke="#34405a" strokeWidth={small ? 8 : 5} />
       <path d="M41.4 10.6 A38 38 0 0 1 85.4 54.6" fill="none" stroke="#ffd166" strokeWidth={small ? 8 : 5} strokeLinecap="round" />
       <g clipPath={`url(#${clip})`}>
-        {!small && <circle cx="31" cy="31" r="4" fill="#9db7ff" />}
-        <circle cx="66" cy="49" r="7" fill="#ffd166" />
-        <path d="M4 63 L18 57 L27 60 L37 50 L45 55 L53 47 L61 53 L70 51 L80 57 L92 54 L92 96 L4 96 Z" fill="#263044" />
-        <path d="M4 63 L18 57 L27 60 L37 50 L45 55 L53 47 L61 53 L70 51 L80 57 L92 54" fill="none" stroke="#e8ecf3" strokeWidth="3" strokeLinejoin="round" />
+        {small ? (
+          <>
+            <circle cx="63" cy="56" r="11" fill="#ffd166" />
+            <path d="M4 63 C22 54 38 57 50 57 C62 57 76 52 92 57 L92 96 L4 96 Z" fill="#263044" />
+            <path d="M4 63 C22 54 38 57 50 57 C62 57 76 52 92 57" fill="none" stroke="#e8ecf3" strokeWidth="5" strokeLinecap="round" />
+          </>
+        ) : (
+          <>
+            <circle cx="31" cy="30" r="4" fill="#9db7ff" />
+            <circle cx="65" cy="53" r="8" fill="#ffd166" />
+            <path d="M4 56 C14 52 22 50 31 52 C40 54 45 47 53 46.5 C60 46 62 50.5 69 50.5 C77 50.5 83 46 92 48 L92 96 L4 96 Z" fill="#34405a" />
+            <path d="M4 67 C15 61 25 58.5 35 61.5 C45 64.5 52 59 61 58.5 C71 58 79 64 92 62 L92 96 L4 96 Z" fill="#1a2130" />
+            <path d="M4 67 C15 61 25 58.5 35 61.5 C45 64.5 52 59 61 58.5 C71 58 79 64 92 62" fill="none" stroke="#e8ecf3" strokeWidth="3" strokeLinecap="round" />
+          </>
+        )}
       </g>
     </svg>
   )

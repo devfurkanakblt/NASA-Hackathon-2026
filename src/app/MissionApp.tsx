@@ -31,6 +31,9 @@ import { Sources } from './Sources.tsx'
 import { Timelines } from './Timelines.tsx'
 import { Tour } from './Tour.tsx'
 import type { TourStep } from './Tour.tsx'
+import { MissionFooter } from './MissionFooter.tsx'
+import { PageNavigation } from './PageNavigation.tsx'
+import type { View } from './PageNavigation.tsx'
 import './app.css'
 
 type Tab = 'sky' | 'power' | 'map' | 'year' | 'sources'
@@ -42,13 +45,6 @@ const TABS: { key: Tab; label: string }[] = [
   { key: 'sources', label: 'Data & limits' },
 ]
 
-/** The three pages: introduction, 3D simulation, results with the numbers. */
-type View = 'home' | 'simulation' | 'results'
-const VIEWS: { key: View; label: string }[] = [
-  { key: 'home', label: 'Home' },
-  { key: 'simulation', label: 'Simulation' },
-  { key: 'results', label: 'Results' },
-]
 /** `?view=` in the address; a shared comparison link without it opens the results. */
 function viewFromLocation(): View {
   const v = new URLSearchParams(window.location.search).get('view')
@@ -301,13 +297,7 @@ export function MissionApp() {
             <span className="brand__desc">Lunar Landing Site Navigator</span>
           </span>
         </button>
-        <nav className="pages" aria-label="Pages">
-          {VIEWS.map((v) => (
-            <button key={v.key} type="button" className={view === v.key ? 'is-on' : undefined} aria-current={view === v.key ? 'page' : undefined} onClick={() => go(v.key)}>
-              {v.label}
-            </button>
-          ))}
-        </nav>
+        <PageNavigation view={view} onChange={go} />
         {view !== 'home' && (
           <button type="button" className="app__help" onClick={() => setTourOpen(true)}>
             <span aria-hidden>?</span> How it works
@@ -318,10 +308,12 @@ export function MissionApp() {
     </header>
   )
   const footer = (
-    <footer className="app__footer">
-      <RimlightMark size={20} />
-      <span>Research regions, not certified landing sites. Built on NASA data; not endorsed by NASA.</span>
-    </footer>
+    <MissionFooter
+      onHome={() => go('home')}
+      onSimulation={() => go('simulation')}
+      onResults={() => go('results')}
+      onSources={() => { setTab('sources'); go('results') }}
+    />
   )
 
   if (view === 'home')
@@ -641,7 +633,6 @@ export function MissionApp() {
           </main>
         </div>
       )}
-      {footer}
     </div>
   )
 }
