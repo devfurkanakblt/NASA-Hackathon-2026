@@ -2499,7 +2499,39 @@
 /* Free coordinate entry (D) */
 .moon-picker__coords { flex-basis: 100%; }
 .moon-picker__message { flex-basis: 100%; margin: 0; }
-.moon-picker__coords > summary { cursor: pointer; }
+.moon-picker__coords > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  list-style: none;
+  padding: 10px 18px;
+  border: 1px solid #5a6b90;
+  border-radius: 999px;
+  background: var(--control, #1a2130);
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+.moon-picker__coords > summary::-webkit-details-marker { display: none; }
+.moon-picker__coords > summary:hover { background: var(--control-hover, #263044); border-color: var(--text); }
+.moon-picker__coords > summary:focus-visible { outline: 2px solid var(--earth); outline-offset: 2px; }
+.moon-picker__coords[open] > summary { border-color: var(--earth); }
+.moon-picker__coords-icon { font-size: 20px; color: var(--earth); }
+.moon-picker__coords-hint { font-weight: 400; font-size: 13px; color: var(--muted); }
+.moon-picker__coords[open] .coordinate-form {
+  margin-top: 10px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface, #121722);
+}
+.moon-picker__coords .coordinate-form__row input { padding: 8px 10px; font-size: 15px; }
+.app .moon-picker__coords .coordinate-form__row button { padding: 9px 18px; font-weight: 600; }
+@media (max-width: 520px) {
+  .moon-picker__coords-hint { display: none; }
+}
 .coordinate-form { display: grid; gap: 8px; margin-top: 8px; }
 .coordinate-form__row { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
 .coordinate-form__row label { display: grid; gap: 4px; flex: 1 1 120px; min-width: 0; }

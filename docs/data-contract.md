@@ -275,13 +275,19 @@ Optional partial Sun disk: angular radius ≈ `0.2666 * 1.495978707e11 / distanc
 Blue Ghost 1, Chandrayaan-3, SLIM, Chang'e-3/4/5, the centre of Peregrine's historical
 target region, and nine published research candidates representing NASA's October 2024
 Artemis III candidate-region list. The original nine entries retain their data and identifiers.
+(The catalogue was later limited to the southern hemisphere.) **Future CLPS target (D, 15 Nov):**
+`VIPER`, the published centre of VIPER's Mons Mouton mission area (85.42088° S, 31.6218° E;
+Heldmann et al., NASA NTRS 20260005586, sec. 3.1.2), delivery by Blue Origin Blue Moon MK1 under
+CLPS task order CS-7 (NASA, 19 Sep 2025; a contract option, late 2027). `coordinateStatus:
+"planned-target"` means a published target of a future mission: not a landing and not a touchdown
+point. Near terrain: Site20 5 m tile (whole 7 km near range checked); far: 80 m DEM.
 
 Optional entry fields (preserve them when copying a site):
 
 | Field | Meaning |
 |---|---|
 | `program`, `mission` | Mission grouping and name; not a current operational-status feed |
-| `coordinateStatus` | `landed`, `region-representative`, or `research-candidate` |
+| `coordinateStatus` | `landed`, `region-representative`, `research-candidate`, or `planned-target` (future mission target) |
 | `regionSource` | Dated primary region-list URL, separate from the coordinate source |
 | `coordSource` | Primary URL or DOI and table/candidate identifier |
 

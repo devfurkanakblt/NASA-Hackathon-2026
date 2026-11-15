@@ -54,8 +54,30 @@ for sid, region, candidate, lat, lon in [
                     "Published research candidate represents one point, not the entire region or a NASA-approved landing site."]
     MISSION_SITES[sid] = s
 
+# Future CLPS target (planned, not landed). The coordinate is the published centre of VIPER's mission
+# area, not a touchdown point: Heldmann et al., "The Relevance of the VIPER mission to NASA's Artemis
+# human exploration of the Moon", NASA NTRS 20260005586, sec. 3.1.2 ("The mission area is centered at
+# 31.6218 E, 85.42088 S"). Delivery: Blue Origin Blue Moon MK1, CLPS task order CS-7, late 2027
+# (NASA news release, 19 Sep 2025; the delivery is a contract option). Griffin-1 (Astrobotic) and
+# Chang'e-7 have no published coordinate, so they are not listed.
+VIPER_SOURCE = ("https://ntrs.nasa.gov/citations/20260005586 (Heldmann et al., VIPER relevance to Artemis, "
+                "sec. 3.1.2: mission area centre)")
+VIPER_REGION_SOURCE = "https://www.nasa.gov/news-release/nasa-selects-blue-origin-to-deliver-viper-rover-to-moons-south-pole/"
+MISSION_SITES["VIPER"] = dict(
+    name="VIPER on Blue Moon MK1 (CLPS CS-7, planned): Mons Mouton",
+    lat=-85.42088, lon=31.6218, coordSource=VIPER_SOURCE, program="CLPS",
+    mission="VIPER / Blue Origin Blue Moon MK1 (CLPS task order CS-7)",
+    dem="regional80", category="mission", coordinateStatus="planned-target",
+    regionSource=VIPER_REGION_SOURCE,
+    label="Planned CLPS target (mission area centre) - not a landing yet, not an approved touchdown point",
+    notes=["Terrain uses the 80 m regional LOLA DEM; no local 5 m tile at this point.",
+           "Future mission: VIPER delivery by Blue Origin Blue Moon MK1 is a NASA CLPS option (task order CS-7), planned for late 2027.",
+           "The coordinate is the published centre of the VIPER mission area, not a touchdown point.",
+           "Good illumination does not imply flat or safe terrain for landing."],
+)
+
 # Verified that the complete 7 km near range fits the existing tile (not just the point).
-for sid, tile in [("ArtemisMalapert", "Site23"), ("ArtemisMouton", "Site20")]:
+for sid, tile in [("ArtemisMalapert", "Site23"), ("ArtemisMouton", "Site20"), ("VIPER", "Site20")]:
     MISSION_SITES[sid].pop("dem")
     MISSION_SITES[sid]["tile"] = tile
     MISSION_SITES[sid]["category"] = "mission"

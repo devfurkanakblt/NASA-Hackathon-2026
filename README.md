@@ -49,10 +49,14 @@ NASA data ──► Python preprocessing (offline) ──► public/data/*.json 
 
 ### Sites
 
-The catalogue contains **25 points**, all in the southern hemisphere. The original polar sites and
-the Chang'e-6 contrast point are listed below. The 17 additions cover Apollo 12/14/16, IM-1/IM-2,
-Chandrayaan-3, SLIM, Chang'e-4, and one published research candidate for each of NASA's nine
-October 2024 Artemis III candidate regions. Northern landing sites (Apollo 11/15/17, Blue Ghost 1,
+The catalogue contains **26 points**, all in the southern hemisphere. The original polar sites and
+the Chang'e-6 contrast point are listed below. The 18 additions cover Apollo 12/14/16, IM-1/IM-2,
+Chandrayaan-3, SLIM, Chang'e-4, one published research candidate for each of NASA's nine
+October 2024 Artemis III candidate regions, and one **future CLPS target**: VIPER's Mons Mouton
+mission area (85.42088° S, 31.6218° E, Heldmann et al., NASA NTRS 20260005586), planned for
+Blue Origin's Blue Moon MK1 under CLPS task order CS-7 in late 2027 (`coordinateStatus:
+"planned-target"`, not a landing). Griffin-1 and Chang'e-7 have no published coordinate yet and are
+not listed. Northern landing sites (Apollo 11/15/17, Blue Ghost 1,
 Chang'e-3/5, Peregrine) are left out on purpose: the tool is about the south pole, where the Sun and
 Earth skim the horizon and where Artemis III and current landers aim, and the globe shows only the
 southern hemisphere. Apollo 12 (3.0° S) takes Apollo 11's place as the near-side equatorial
