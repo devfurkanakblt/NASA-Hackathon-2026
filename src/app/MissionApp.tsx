@@ -32,6 +32,7 @@ import { SettingsForm } from './SettingsForm.tsx'
 import { decodeShare, encodeShare } from './share.ts'
 import { Sources } from './Sources.tsx'
 import { Timelines } from './Timelines.tsx'
+import { earthWobble } from './libration.ts'
 import { Tour } from './Tour.tsx'
 import type { TourStep } from './Tour.tsx'
 import { MissionFooter } from './MissionFooter.tsx'
@@ -291,6 +292,7 @@ export function MissionApp() {
     const earthPath = { azDeg: slice(earth.azDeg), elDeg: slice(earth.elDeg), visible: active.result.earthVisible }
     return { sunPath, earthPath, sunDist: slice(sun.distanceM), earthDist: slice(earth.distanceM) }
   }, [active, activeData])
+  const wobble = useMemo(() => (tracks ? earthWobble(tracks.earthPath.azDeg, tracks.earthPath.elDeg) : null), [tracks])
 
   const now = useMemo(() => {
     if (!active || !tracks) return null
@@ -336,7 +338,7 @@ export function MissionApp() {
     {
       target: 'tabs',
       title: 'See why',
-      body: 'These tabs show the reason behind the answer: the skyline the lander sees, the battery over time, a map of the area and how things change through the year.',
+      body: 'These tabs show the reason behind the answer: the skyline the lander sees, the battery over time, a map of the area and how things change through the year. The skyline tab also explains why Earth is not fixed in the sky: the Moon wobbles slightly (libration), so Earth draws a small loop and, near the pole, rises and sets.',
       before: () => {
         go('results')
         setTab('sky')
@@ -679,6 +681,18 @@ export function MissionApp() {
                       </h3>
                       <SkyVisibilityChart horizon={activeData.horizon} sun={tracks.sunPath} earth={tracks.earthPath} stepH={active.result.stepS / 3600} k={now.kk} />
                       {status}
+                      {wobble && (
+                        <p className="explain libration-note">
+                          <strong>Why <span className="earth">Earth</span> moves in the sky.</strong> The Moon always turns the same face to us, so
+                          Earth should hang still. It does not quite: the Moon&rsquo;s orbit is an ellipse and its axis is tilted, so it seems to
+                          rock by a few degrees (this wobble is called <em>libration</em>). Earth therefore draws a small loop in the sky about once
+                          every 27 days. During this mission it moved across {wobble.azSpanDeg.toFixed(1)}° of azimuth, between{' '}
+                          {wobble.elMinDeg.toFixed(1)}° and {wobble.elMaxDeg.toFixed(1)}° of elevation.{' '}
+                          {wobble.loop === 'crosses-horizon' && 'Here that loop crosses the level horizon, which is why Earth rises and sets at this place.'}
+                          {wobble.loop === 'always-up' && 'Here the whole loop stays above the level horizon, so Earth never sets.'}
+                          {wobble.loop === 'never-up' && 'Here the whole loop stays below the level horizon (far side), so Earth never rises.'}
+                        </p>
+                      )}
                       <h3>In view during the mission</h3>
                       <Timelines outcomes={evaluated} colors={colorsOfEvaluated} k={k} />
                     </>
