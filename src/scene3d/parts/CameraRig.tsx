@@ -1,20 +1,20 @@
 import { OrbitControls } from '@react-three/drei'
-import { useThree } from '@react-three/fiber'
+import { useFrame, useThree } from '@react-three/fiber'
 import { useCallback, useEffect, useRef } from 'react'
 import type { PerspectiveCamera } from 'three'
-import { DEG2RAD, azElToUnitVector, normalizeAzimuth } from '../coords.ts'
+import { azElToUnitVector, normalizeAzimuth } from '../coords.ts'
+import { overviewHeightAboveTerrain, overviewStartPosition } from '../cameraPlacement.ts'
+import type { TerrainMeshData } from '../terrainGeometry.ts'
 import type { BodyState, CameraMode, LookTarget } from '../types.ts'
 
 const OVERVIEW_FOV = 45
-/** Overview start position, in units of half the terrain patch: ~12° above the horizontal. */
-const OVERVIEW_DISTANCE = 2.3
-const OVERVIEW_HEIGHT = 0.5
-const OVERVIEW_SIDE_OFFSET_DEG = 12
 const LANDER_FOV = 55
+const EARTH_TARGET_FOV = 18
+const SUN_TARGET_FOV = 32
 const LANDER_FOV_MIN = 6
 const LANDER_FOV_MAX = 75
-const PITCH_MIN = -60
-const PITCH_MAX = 80
+const PITCH_MIN = -89.9
+const PITCH_MAX = 89.9
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
 
@@ -30,6 +30,8 @@ export interface CameraRigProps {
   earth: BodyState
   /** Called when the user drags the lander view, so the UI can drop "Look at Sun/Earth". */
   onUserLook: () => void
+  terrainMesh?: TerrainMeshData
+  regionalMesh?: TerrainMeshData
 }
 
 /**
@@ -38,7 +40,7 @@ export interface CameraRigProps {
  *  - lander: stand at the observer point (2 m above ground) and look at the horizon.
  *    Drag to look around, wheel to zoom. While a look target is set the view follows it.
  */
-export function CameraRig({ mode, halfExtentM, farPlaneM, eyeHeightM, lookTarget, sun, earth, onUserLook }: CameraRigProps) {
+export function CameraRig({ mode, halfExtentM, farPlaneM, eyeHeightM, lookTarget, sun, earth, onUserLook, terrainMesh, regionalMesh }: CameraRigProps) {
   const camera = useThree((s) => s.camera) as PerspectiveCamera
   const gl = useThree((s) => s.gl)
   const invalidate = useThree((s) => s.invalidate)
@@ -64,9 +66,7 @@ export function CameraRig({ mode, halfExtentM, farPlaneM, eyeHeightM, lookTarget
       camera.near = 5
       camera.fov = OVERVIEW_FOV
       // Low and behind the lander, looking towards the Sun, so the horizon and the sky are in frame.
-      const behind = (sunAzDeg.current + 180 + OVERVIEW_SIDE_OFFSET_DEG) * DEG2RAD
-      const distance = halfExtentM * OVERVIEW_DISTANCE
-      camera.position.set(Math.sin(behind) * distance, halfExtentM * OVERVIEW_HEIGHT, -Math.cos(behind) * distance)
+      camera.position.set(...overviewStartPosition(halfExtentM, sunAzDeg.current, terrainMesh, regionalMesh))
       camera.lookAt(0, 0, 0)
       camera.updateProjectionMatrix()
       invalidate()
@@ -74,9 +74,31 @@ export function CameraRig({ mode, halfExtentM, farPlaneM, eyeHeightM, lookTarget
       camera.near = 1
       applyLook()
     }
-  }, [mode, halfExtentM, farPlaneM, camera, invalidate, applyLook])
+  }, [mode, halfExtentM, farPlaneM, camera, invalidate, applyLook, terrainMesh, regionalMesh])
 
-  // Follow the selected body in the lander view.
+  // OrbitControls runs before this frame callback. Keep its camera above measured terrain,
+  // including after a user orbit/zoom, without changing the scientific lander viewpoint.
+  useFrame(() => {
+    if (mode !== 'overview') return
+    const p = camera.position
+    const y = overviewHeightAboveTerrain(p.x, p.y, p.z, Math.max(5, halfExtentM * 0.01), terrainMesh, regionalMesh)
+    if (y > p.y) {
+      p.y = y
+      camera.lookAt(0, 0, 0)
+      camera.updateMatrixWorld()
+      invalidate()
+    }
+  })
+
+  // Selecting a body starts with an inspection zoom. Target motion is deliberately
+  // absent from these dependencies, so playback does not undo a manual wheel zoom.
+  useEffect(() => {
+    if (mode !== 'lander' || lookTarget === 'free') return
+    look.current.fov = lookTarget === 'earth' ? EARTH_TARGET_FOV : SUN_TARGET_FOV
+    applyLook()
+  }, [mode, lookTarget, applyLook])
+
+  // Follow the selected body in the lander view, keeping the current field of view.
   const target = lookTarget === 'sun' ? sun : lookTarget === 'earth' ? earth : null
   const targetAz = target?.azDeg
   const targetEl = target?.elDeg

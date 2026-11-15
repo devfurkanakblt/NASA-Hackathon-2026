@@ -47,9 +47,6 @@ export function SeasonChart({ season, missionStartUtc }: Props) {
         {simMonths.length > 0 && (
           <g className="season__sim">
             <rect x={x(simMonths[0]) - band / 2} y={PAD.top} width={band * simMonths.length} height={plotH} />
-            <text x={x(simMonths[0]) - band / 2 + 4} y={PAD.top + 12}>
-              simulated period
-            </text>
           </g>
         )}
         {[0, 25, 50, 75, 100].map((v) => (
@@ -100,17 +97,21 @@ export function SeasonChart({ season, missionStartUtc }: Props) {
             {s.label}
           </span>
         ))}
+        {simMonths.length > 0 && (
+          <span>
+            <i className="season__legend-sim" />
+            mission data
+          </span>
+        )}
         {missionIdx >= 0 && (
           <span>
             <i className="season__legend-mission" />
-            month of the active mission start
+            mission start
           </span>
         )}
       </div>
       <p className="muted small">
-        Year {months[0] && monthName(months[0].month)} – {months[n - 1] && monthName(months[n - 1].month)}: Sun {yr.sunPct.toFixed(0)} %, Earth {yr.earthPct.toFixed(0)} %, both{' '}
-        {yr.bothPct.toFixed(0)} % of the time; longest without Sun {yr.longestNoSunS === 0 ? '—' : fmtDuration(yr.longestNoSunS)}. Monthly summaries from a one-year JPL Horizons run with the
-        same terrain horizon; the mission simulation itself covers only the shaded months.
+        Whole year: Sun {yr.sunPct.toFixed(0)} %, Earth {yr.earthPct.toFixed(0)} % of the time.
       </p>
       <details className="small">
         <summary>Table</summary>

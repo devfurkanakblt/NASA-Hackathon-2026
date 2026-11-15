@@ -1,0 +1,474 @@
+{
+  "version": 1,
+  "assets": [
+    {
+      "path": "public/assets/earth-blue-marble.jpg",
+      "sha256": "597eb89e825692cd4287880db438e77929fa569c7701953cc1c0d0b30b0c6fee",
+      "width": 2048,
+      "height": 1024,
+      "bytes": 867982,
+      "title": "NASA Blue Marble: Next Generation with Topography and Bathymetry, November 2004",
+      "credit": "NASA Earth Observatory, Blue Marble: Next Generation",
+      "sourcePage": "https://science.nasa.gov/earth/earth-observatory/blue-marble-next-generation/base-topography-bathymetry/",
+      "sourceUrl": "https://assets.science.nasa.gov/content/dam/science/esd/eo/images/bmng/bmng-topography-bathymetry/november/world.topo.bathy.200411.3x5400x2700.jpg",
+      "sourceSha256": "388422e3bfc62517af2a9d538989a2f859fc193e6f6cde72c3d230ef29c2e69f",
+      "sourceWidth": 5400,
+      "sourceHeight": 2700,
+      "sourceEpoch": "2004-11 monthly surface composite",
+      "projection": "equirectangular; west=-180, east=180, north=90, south=-90; north at image top",
+      "transformation": "Pillow 13.0.0: RGB, LANCZOS 2048x1024, JPEG quality95 subsampling0 optimize; no generative imagery",
+      "usage": "Public NASA imagery; attribution retained; not a NASA endorsement",
+      "usagePolicy": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+      "limitations": [
+        "Archival cloud-free monthly composite, not live clouds or 2026 weather",
+        "Baked topographic/bathymetric shading is part of the source image"
+      ],
+      "textureBodyFrame": "Three sphere: +X=ITRS Greenwich/equator, +Y=ITRS north pole, +Z=-ITRS 90E/equator; u=0 at longitude -180, u=0.5 at 0"
+    }
+  ],
+  "orientationFiles": "public/data/{siteId}/earth-orientation.json; regenerate from the site's own ephemeris grid and coordinates",
+  "orientationValidation": {
+    "method": "Independent JPL Horizons API Q14 (subobserver east longitude/geodetic latitude) and Q17 (north-pole position angle), three epochs per site",
+    "source": "https://ssd.jpl.nasa.gov/api/horizons.api",
+    "reference": "https://ssd.jpl.nasa.gov/horizons/manual.html#obsquan",
+    "toleranceDeg": 0.01,
+    "pass": true,
+    "maxAbsoluteDifferenceDeg": {
+      "subobserverLonDifferenceDeg": 0.0021519771821090217,
+      "subobserverGeodeticLatDifferenceDeg": 0.0009629329248141971,
+      "northPolePositionAngleDifferenceDeg": 6.490420486215953e-05
+    },
+    "samples": [
+      {
+        "siteId": "Site01",
+        "utc": "2026-11-01T00:00:00Z",
+        "subobserverLonDifferenceDeg": -0.0019712939308078603,
+        "subobserverGeodeticLatDifferenceDeg": 0.000551154473875215,
+        "northPolePositionAngleDifferenceDeg": -3.361252987588159e-05
+      },
+      {
+        "siteId": "Site01",
+        "utc": "2026-11-15T00:00:00Z",
+        "subobserverLonDifferenceDeg": 0.002099773332474797,
+        "subobserverGeodeticLatDifferenceDeg": 0.0006658274335258341,
+        "northPolePositionAngleDifferenceDeg": -4.8152102692711196e-05
+      },
+      {
+        "siteId": "Site01",
+        "utc": "2027-01-01T00:00:00Z",
+        "subobserverLonDifferenceDeg": 0.00015682903909919332,
+        "subobserverGeodeticLatDifferenceDeg": -0.0009082874216748138,
+        "northPolePositionAngleDifferenceDeg": -3.3235432482570104e-05
+      },
+      {
+        "siteId": "Site04",
+        "utc": "2026-11-01T00:00:00Z",
+        "subobserverLonDifferenceDeg": -0.0019839439214024424,
+        "subobserverGeodeticLatDifferenceDeg": 0.00046518700758468867,
+        "northPolePositionAngleDifferenceDeg": -6.490420486215953e-05
+      },
+      {
+        "siteId": "Site04",
+        "utc": "2026-11-15T00:00:00Z",
+        "subobserverLonDifferenceDeg": 0.00203665170243994,
+        "subobserverGeodeticLatDifferenceDeg": 0.0007045343179328256,
+        "northPolePositionAngleDifferenceDeg": 2.1484495789536595e-05
+      },
+      {
+        "siteId": "Site04",
+        "utc": "2027-01-01T00:00:00Z",
+        "subobserverLonDifferenceDeg": 0.00016494846988734935,
+        "subobserverGeodeticLatDifferenceDeg": -0.0008880555731298756,
+        "northPolePositionAngleDifferenceDeg": 2.793016551549954e-05
+      },
+      {
+        "siteId": "Site07",
+        "utc": "2026-11-01T00:00:00Z",
+        "subobserverLonDifferenceDeg": -0.001931973076864324,
+        "subobserverGeodeticLatDifferenceDeg": 0.00047141658544092024,
+        "northPolePositionAngleDifferenceDeg": -5.2067729171767496e-05
+      },
+      {
+        "siteId": "Site07",
+        "utc": "2026-11-15T00:00:00Z",
+        "subobserverLonDifferenceDeg": 0.0021519771821090217,
+        "subobserverGeodeticLatDifferenceDeg": 0.0006717343675504139,
+        "northPolePositionAngleDifferenceDeg": -1.2502235392730654e-05
+      },
+      {
+        "siteId": "Site07",
+        "utc": "2027-01-01T00:00:00Z",
+        "subobserverLonDifferenceDeg": 0.00014719750939207188,
+        "subobserverGeodeticLatDifferenceDeg": -0.0009321461791120811,
+        "northPolePositionAngleDifferenceDeg": 1.4019480971683151e-05
+      },
+      {
+        "siteId": "Site04R",
+        "utc": "2026-11-01T00:00:00Z",
+        "subobserverLonDifferenceDeg": -0.0019562082937341074,
+        "subobserverGeodeticLatDifferenceDeg": 0.00048040091138545904,
+        "northPolePositionAngleDifferenceDeg": 3.216670458527915e-05
+      },
+      {
+        "siteId": "Site04R",
+        "utc": "2026-11-15T00:00:00Z",
+        "subobserverLonDifferenceDeg": 0.002106995836555825,
+        "subobserverGeodeticLatDifferenceDeg": 0.000705737032610898,
+        "northPolePositionAngleDifferenceDeg": -9.88426336334669e-08
+      },
+      {
+        "siteId": "Site04R",
+        "utc": "2027-01-01T00:00:00Z",
+        "subobserverLonDifferenceDeg": 0.00021570996864284098,
+        "subobserverGeodeticLatDifferenceDeg": -0.0009006538326943314,
+        "northPolePositionAngleDifferenceDeg": 2.4194296202040277e-06
+      },
+      {
+        "siteId": "Site11",
+        "utc": "2026-11-01T00:00:00Z",
+        "subobserverLonDifferenceDeg": -0.0018931572356564175,
+        "subobserverGeodeticLatDifferenceDeg": 0.000491649167461361,
+        "northPolePositionAngleDifferenceDeg": -2.047163727070256e-05
+      },
+      {
+        "siteId": "Site11",
+        "utc": "2026-11-15T00:00:00Z",
+        "subobserverLonDifferenceDeg": 0.0021019142964178172,
+        "subobserverGeodeticLatDifferenceDeg": 0.0006566646963648282,
+        "northPolePositionAngleDifferenceDeg": 3.327937741914866e-05
+      },
+      {
+        "siteId": "Site11",
+        "utc": "2027-01-01T00:00:00Z",
+        "subobserverLonDifferenceDeg": 0.0002249767738931041,
+        "subobserverGeodeticLatDifferenceDeg": -0.0009629329248141971,
+        "northPolePositionAngleDifferenceDeg": -4.402039175488426e-05
+      },
+      {
+        "siteId": "Site20",
+        "utc": "2026-11-01T00:00:00Z",
+        "subobserverLonDifferenceDeg": -0.001928932549816409,
+        "subobserverGeodeticLatDifferenceDeg": 0.00044744517141737106,
+        "northPolePositionAngleDifferenceDeg": -4.8962385136519515e-05
+      },
+      {
+        "siteId": "Site20",
+        "utc": "2026-11-15T00:00:00Z",
+        "subobserverLonDifferenceDeg": 0.0020885654051596703,
+        "subobserverGeodeticLatDifferenceDeg": 0.0007083850646552037,
+        "northPolePositionAngleDifferenceDeg": 3.411767335137483e-05
+      },
+      {
+        "siteId": "Site20",
+        "utc": "2027-01-01T00:00:00Z",
+        "subobserverLonDifferenceDeg": 0.00019136617805770584,
+        "subobserverGeodeticLatDifferenceDeg": -0.0009437418239670592,
+        "northPolePositionAngleDifferenceDeg": -2.929583968125371e-05
+      },
+      {
+        "siteId": "Site23",
+        "utc": "2026-11-01T00:00:00Z",
+        "subobserverLonDifferenceDeg": -0.0019079554534755516,
+        "subobserverGeodeticLatDifferenceDeg": 0.0004982061662133219,
+        "northPolePositionAngleDifferenceDeg": 1.144538165931408e-05
+      },
+      {
+        "siteId": "Site23",
+        "utc": "2026-11-15T00:00:00Z",
+        "subobserverLonDifferenceDeg": 0.002067513216104544,
+        "subobserverGeodeticLatDifferenceDeg": 0.000657754399504995,
+        "northPolePositionAngleDifferenceDeg": -3.174504132630318e-05
+      },
+      {
+        "siteId": "Site23",
+        "utc": "2027-01-01T00:00:00Z",
+        "subobserverLonDifferenceDeg": 0.00016397926901845494,
+        "subobserverGeodeticLatDifferenceDeg": -0.0008830370390722209,
+        "northPolePositionAngleDifferenceDeg": 2.5809752116856544e-05
+      },
+      {
+        "siteId": "CE6",
+        "utc": "2026-11-01T00:00:00Z",
+        "subobserverLonDifferenceDeg": -0.0019552098551116615,
+        "subobserverGeodeticLatDifferenceDeg": 0.0005344112063383477,
+        "northPolePositionAngleDifferenceDeg": 1.9768661388752662e-05
+      },
+      {
+        "siteId": "CE6",
+        "utc": "2026-11-15T00:00:00Z",
+        "subobserverLonDifferenceDeg": 0.0020291802549081694,
+        "subobserverGeodeticLatDifferenceDeg": 0.0006992231936777671,
+        "northPolePositionAngleDifferenceDeg": 4.82944387272255e-05
+      },
+      {
+        "siteId": "CE6",
+        "utc": "2027-01-01T00:00:00Z",
+        "subobserverLonDifferenceDeg": 0.0001969124110132725,
+        "subobserverGeodeticLatDifferenceDeg": -0.0009032770188728279,
+        "northPolePositionAngleDifferenceDeg": 3.0486060637713308e-05
+      },
+      {
+        "siteId": "Apollo11",
+        "utc": "2026-11-01T00:00:00Z",
+        "subobserverLonDifferenceDeg": -0.0019319967302067198,
+        "subobserverGeodeticLatDifferenceDeg": 0.0005344195451968403,
+        "northPolePositionAngleDifferenceDeg": 3.107403671265274e-06
+      },
+      {
+        "siteId": "Apollo11",
+        "utc": "2026-11-15T00:00:00Z",
+        "subobserverLonDifferenceDeg": 0.002087463859595573,
+        "subobserverGeodeticLatDifferenceDeg": 0.0006812555724806657,
+        "northPolePositionAngleDifferenceDeg": 3.487608432806155e-05
+      },
+      {
+        "siteId": "Apollo11",
+        "utc": "2027-01-01T00:00:00Z",
+        "subobserverLonDifferenceDeg": 0.00021814348619386692,
+        "subobserverGeodeticLatDifferenceDeg": -0.0009016747629821964,
+        "northPolePositionAngleDifferenceDeg": -3.562643829013723e-05
+      }
+    ],
+    "queries": [
+      {
+        "siteId": "Site01",
+        "params": {
+          "format": "json",
+          "COMMAND": "'399'",
+          "OBJ_DATA": "'NO'",
+          "MAKE_EPHEM": "'YES'",
+          "EPHEM_TYPE": "'OBSERVER'",
+          "CENTER": "'coord@301'",
+          "COORD_TYPE": "'GEODETIC'",
+          "SITE_COORD": "'-137.490000,-89.463200,1.946770'",
+          "TIME_TYPE": "'UT'",
+          "QUANTITIES": "'14,17'",
+          "APPARENT": "'AIRLESS'",
+          "ANG_FORMAT": "'DEG'",
+          "CSV_FORMAT": "'YES'",
+          "EXTRA_PREC": "'YES'",
+          "CAL_FORMAT": "'CAL'",
+          "TIME_DIGITS": "'SECONDS'",
+          "TLIST": "'2461345.500000000' '2461359.500000000' '2461406.500000000'",
+          "TLIST_TYPE": "'JD'"
+        },
+        "resultSha256": "0e5037ad3cc41c56745e655a3cebccfffa33c459404280ce627028f7114e110a",
+        "targetOrientation": "Target pole/equ : ITRF93 (high precision)         {East-longitude positive}",
+        "eop": "EOP file        : eop.261113.p270209"
+      },
+      {
+        "siteId": "Site04",
+        "params": {
+          "format": "json",
+          "COMMAND": "'399'",
+          "OBJ_DATA": "'NO'",
+          "MAKE_EPHEM": "'YES'",
+          "EPHEM_TYPE": "'OBSERVER'",
+          "CENTER": "'coord@301'",
+          "COORD_TYPE": "'GEODETIC'",
+          "SITE_COORD": "'-171.870000,-89.766800,0.771680'",
+          "TIME_TYPE": "'UT'",
+          "QUANTITIES": "'14,17'",
+          "APPARENT": "'AIRLESS'",
+          "ANG_FORMAT": "'DEG'",
+          "CSV_FORMAT": "'YES'",
+          "EXTRA_PREC": "'YES'",
+          "CAL_FORMAT": "'CAL'",
+          "TIME_DIGITS": "'SECONDS'",
+          "TLIST": "'2461345.500000000' '2461359.500000000' '2461406.500000000'",
+          "TLIST_TYPE": "'JD'"
+        },
+        "resultSha256": "ed49615d39e847221b49a170dbd05aef9ab932391aed105dcb88857b2761b469",
+        "targetOrientation": "Target pole/equ : ITRF93 (high precision)         {East-longitude positive}",
+        "eop": "EOP file        : eop.261113.p270209"
+      },
+      {
+        "siteId": "Site07",
+        "params": {
+          "format": "json",
+          "COMMAND": "'399'",
+          "OBJ_DATA": "'NO'",
+          "MAKE_EPHEM": "'YES'",
+          "EPHEM_TYPE": "'OBSERVER'",
+          "CENTER": "'coord@301'",
+          "COORD_TYPE": "'GEODETIC'",
+          "SITE_COORD": "'123.690100,-88.811000,1.647270'",
+          "TIME_TYPE": "'UT'",
+          "QUANTITIES": "'14,17'",
+          "APPARENT": "'AIRLESS'",
+          "ANG_FORMAT": "'DEG'",
+          "CSV_FORMAT": "'YES'",
+          "EXTRA_PREC": "'YES'",
+          "CAL_FORMAT": "'CAL'",
+          "TIME_DIGITS": "'SECONDS'",
+          "TLIST": "'2461345.500000000' '2461359.500000000' '2461406.500000000'",
+          "TLIST_TYPE": "'JD'"
+        },
+        "resultSha256": "a88ca63260815ce35543ff63fdbf0f66885283ed00d3b3d7a3af07fff1453e23",
+        "targetOrientation": "Target pole/equ : ITRF93 (high precision)         {East-longitude positive}",
+        "eop": "EOP file        : eop.261113.p270209"
+      },
+      {
+        "siteId": "Site04R",
+        "params": {
+          "format": "json",
+          "COMMAND": "'399'",
+          "OBJ_DATA": "'NO'",
+          "MAKE_EPHEM": "'YES'",
+          "EPHEM_TYPE": "'OBSERVER'",
+          "CENTER": "'coord@301'",
+          "COORD_TYPE": "'GEODETIC'",
+          "SITE_COORD": "'-156.196951,-89.780403,1.741120'",
+          "TIME_TYPE": "'UT'",
+          "QUANTITIES": "'14,17'",
+          "APPARENT": "'AIRLESS'",
+          "ANG_FORMAT": "'DEG'",
+          "CSV_FORMAT": "'YES'",
+          "EXTRA_PREC": "'YES'",
+          "CAL_FORMAT": "'CAL'",
+          "TIME_DIGITS": "'SECONDS'",
+          "TLIST": "'2461345.500000000' '2461359.500000000' '2461406.500000000'",
+          "TLIST_TYPE": "'JD'"
+        },
+        "resultSha256": "a4a28eedd42b3349e5ab4fee974f99ea10bfe4644e8f9fff686a2f01ac489c2a",
+        "targetOrientation": "Target pole/equ : ITRF93 (high precision)         {East-longitude positive}",
+        "eop": "EOP file        : eop.261113.p270209"
+      },
+      {
+        "siteId": "Site11",
+        "params": {
+          "format": "json",
+          "COMMAND": "'399'",
+          "OBJ_DATA": "'NO'",
+          "MAKE_EPHEM": "'YES'",
+          "EPHEM_TYPE": "'OBSERVER'",
+          "CENTER": "'coord@301'",
+          "COORD_TYPE": "'GEODETIC'",
+          "SITE_COORD": "'-67.932100,-88.683400,1.795740'",
+          "TIME_TYPE": "'UT'",
+          "QUANTITIES": "'14,17'",
+          "APPARENT": "'AIRLESS'",
+          "ANG_FORMAT": "'DEG'",
+          "CSV_FORMAT": "'YES'",
+          "EXTRA_PREC": "'YES'",
+          "CAL_FORMAT": "'CAL'",
+          "TIME_DIGITS": "'SECONDS'",
+          "TLIST": "'2461345.500000000' '2461359.500000000' '2461406.500000000'",
+          "TLIST_TYPE": "'JD'"
+        },
+        "resultSha256": "f065381747b350c9848d46757d297da394d61cb22b929cc078af3452ac1b9e69",
+        "targetOrientation": "Target pole/equ : ITRF93 (high precision)         {East-longitude positive}",
+        "eop": "EOP file        : eop.261113.p270209"
+      },
+      {
+        "siteId": "Site20",
+        "params": {
+          "format": "json",
+          "COMMAND": "'399'",
+          "OBJ_DATA": "'NO'",
+          "MAKE_EPHEM": "'YES'",
+          "EPHEM_TYPE": "'OBSERVER'",
+          "CENTER": "'coord@301'",
+          "COORD_TYPE": "'GEODETIC'",
+          "SITE_COORD": "'31.742760,-85.426600,6.400590'",
+          "TIME_TYPE": "'UT'",
+          "QUANTITIES": "'14,17'",
+          "APPARENT": "'AIRLESS'",
+          "ANG_FORMAT": "'DEG'",
+          "CSV_FORMAT": "'YES'",
+          "EXTRA_PREC": "'YES'",
+          "CAL_FORMAT": "'CAL'",
+          "TIME_DIGITS": "'SECONDS'",
+          "TLIST": "'2461345.500000000' '2461359.500000000' '2461406.500000000'",
+          "TLIST_TYPE": "'JD'"
+        },
+        "resultSha256": "6bbb1cbfae90067dbaf9a0a58532ee35cdecc535813521e052329a34830282d8",
+        "targetOrientation": "Target pole/equ : ITRF93 (high precision)         {East-longitude positive}",
+        "eop": "EOP file        : eop.261113.p270209"
+      },
+      {
+        "siteId": "Site23",
+        "params": {
+          "format": "json",
+          "COMMAND": "'399'",
+          "OBJ_DATA": "'NO'",
+          "MAKE_EPHEM": "'YES'",
+          "EPHEM_TYPE": "'OBSERVER'",
+          "CENTER": "'coord@301'",
+          "COORD_TYPE": "'GEODETIC'",
+          "SITE_COORD": "'-0.235780,-85.994800,4.785790'",
+          "TIME_TYPE": "'UT'",
+          "QUANTITIES": "'14,17'",
+          "APPARENT": "'AIRLESS'",
+          "ANG_FORMAT": "'DEG'",
+          "CSV_FORMAT": "'YES'",
+          "EXTRA_PREC": "'YES'",
+          "CAL_FORMAT": "'CAL'",
+          "TIME_DIGITS": "'SECONDS'",
+          "TLIST": "'2461345.500000000' '2461359.500000000' '2461406.500000000'",
+          "TLIST_TYPE": "'JD'"
+        },
+        "resultSha256": "b31c214528c3de52e4a796001e8f6b454ef716a851fc08b52e5bb94467dcb20b",
+        "targetOrientation": "Target pole/equ : ITRF93 (high precision)         {East-longitude positive}",
+        "eop": "EOP file        : eop.261113.p270209"
+      },
+      {
+        "siteId": "CE6",
+        "params": {
+          "format": "json",
+          "COMMAND": "'399'",
+          "OBJ_DATA": "'NO'",
+          "MAKE_EPHEM": "'YES'",
+          "EPHEM_TYPE": "'OBSERVER'",
+          "CENTER": "'coord@301'",
+          "COORD_TYPE": "'GEODETIC'",
+          "SITE_COORD": "'-153.985200,-41.638500,-5.252770'",
+          "TIME_TYPE": "'UT'",
+          "QUANTITIES": "'14,17'",
+          "APPARENT": "'AIRLESS'",
+          "ANG_FORMAT": "'DEG'",
+          "CSV_FORMAT": "'YES'",
+          "EXTRA_PREC": "'YES'",
+          "CAL_FORMAT": "'CAL'",
+          "TIME_DIGITS": "'SECONDS'",
+          "TLIST": "'2461345.500000000' '2461359.500000000' '2461406.500000000'",
+          "TLIST_TYPE": "'JD'"
+        },
+        "resultSha256": "ca489821434e20c87bb5c73d75dfb76daf288920671d2aeee760dcda4dacbdab",
+        "targetOrientation": "Target pole/equ : ITRF93 (high precision)         {East-longitude positive}",
+        "eop": "EOP file        : eop.261113.p270209"
+      },
+      {
+        "siteId": "Apollo11",
+        "params": {
+          "format": "json",
+          "COMMAND": "'399'",
+          "OBJ_DATA": "'NO'",
+          "MAKE_EPHEM": "'YES'",
+          "EPHEM_TYPE": "'OBSERVER'",
+          "CENTER": "'coord@301'",
+          "COORD_TYPE": "'GEODETIC'",
+          "SITE_COORD": "'23.473140,0.674160,-1.923600'",
+          "TIME_TYPE": "'UT'",
+          "QUANTITIES": "'14,17'",
+          "APPARENT": "'AIRLESS'",
+          "ANG_FORMAT": "'DEG'",
+          "CSV_FORMAT": "'YES'",
+          "EXTRA_PREC": "'YES'",
+          "CAL_FORMAT": "'CAL'",
+          "TIME_DIGITS": "'SECONDS'",
+          "TLIST": "'2461345.500000000' '2461359.500000000' '2461406.500000000'",
+          "TLIST_TYPE": "'JD'"
+        },
+        "resultSha256": "fbced523b9110c7911b8d13c523d70ecbd0bb496fda72107fae65499b031a89f",
+        "targetOrientation": "Target pole/equ : ITRF93 (high precision)         {East-longitude positive}",
+        "eop": "EOP file        : eop.261113.p270209"
+      }
+    ],
+    "limits": [
+      "Sampled consistency check, not an absolute orientation accuracy guarantee",
+      "Horizons uses ITRF93 plus current EOP; Skyfield uses its bundled UT1 prediction and omits polar motion",
+      "Geodetic latitude comparison accounts for the reference ellipsoid; rendered Earth remains spherical"
+    ]
+  }
+}

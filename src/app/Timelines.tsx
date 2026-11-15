@@ -65,7 +65,6 @@ export function Timelines({ outcomes, colors, k }: Props) {
           ))}
         </div>
       </div>
-      <p className="muted small">Coloured = the body's centre is above the terrain horizon. Hover a block for its start, end and length.</p>
     </div>
   )
 }

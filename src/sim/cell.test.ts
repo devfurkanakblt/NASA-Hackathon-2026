@@ -88,9 +88,9 @@ describe('cellSiteData', () => {
           both += sun[i] > 0 && earth[i] > 0 ? 1 : 0
         }
         const i = r * nx + c
-        expect(Math.abs((100 * s) / n - d.map!.sunPct[i]), `${id} ${r},${c} sun`).toBeLessThanOrEqual(0.2)
-        expect(Math.abs((100 * e) / n - d.map!.earthPct[i]), `${id} ${r},${c} earth`).toBeLessThanOrEqual(0.2)
-        expect(Math.abs((100 * both) / n - d.map!.bothPct[i]), `${id} ${r},${c} both`).toBeLessThanOrEqual(0.2)
+        expect(Math.abs((100 * s) / n - d.map!.sunPct[i]!), `${id} ${r},${c} sun`).toBeLessThanOrEqual(0.2)
+        expect(Math.abs((100 * e) / n - d.map!.earthPct[i]!), `${id} ${r},${c} earth`).toBeLessThanOrEqual(0.2)
+        expect(Math.abs((100 * both) / n - d.map!.bothPct[i]!), `${id} ${r},${c} both`).toBeLessThanOrEqual(0.2)
       }
     }
   })

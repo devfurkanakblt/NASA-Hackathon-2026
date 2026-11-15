@@ -43,7 +43,7 @@ NASA data ──► Python preprocessing (offline) ──► public/data/*.json 
 | Preprocessing | [`preprocess/`](preprocess/README.md) | Downloads LOLA DEMs, queries JPL Horizons, computes terrain horizons and 3D grids, validates them |
 | Data contract | [`docs/data-contract.md`](docs/data-contract.md) | File formats, units (SI) and angle conventions |
 | Simulation engine | [`src/sim/`](src/sim/) | Pure TypeScript functions, unit-tested |
-| App screen | [`src/app/`](src/app/) | Scenarios, hardware form, comparison, horizon panorama, timelines, charts |
+| App screen | [`src/app/`](src/app/) | Places and dates, lander settings, result cards, "See why" tabs (skyline, battery, area map, year), guided tour |
 | 3D view | [`src/scene3d/`](src/scene3d/) | React Three Fiber; terrain is visual only |
 | Validation | [`docs/validation.md`](docs/validation.md), [`docs/validation-moontrek.md`](docs/validation-moontrek.md) | Numerical checks and cross-checks |
 

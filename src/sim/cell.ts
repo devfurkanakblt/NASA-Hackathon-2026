@@ -86,13 +86,14 @@ export function cellSiteData(base: SiteData, year: EphemerisDoc, cells: CellHori
   const where = east === 0 && north === 0 ? 'site centre' : `${m(east)} ${east >= 0 ? 'east' : 'west'}, ${m(north)} ${north >= 0 ? 'north' : 'south'} of the site centre`
   const cell: Observer = { latDeg: map.latDeg[index], lonDeg: map.lonDeg[index], eyeM: cells.eyeM[index] }
   return {
+    ...base,
     site: {
       ...s,
       id: `${s.id}:r${row}c${col}`,
       name: `${s.name} — map point`,
       latDeg: cell.latDeg,
       lonDeg: cell.lonDeg,
-      surfaceElevationM: map.surfaceElevationM[index],
+      surfaceElevationM: map.surfaceElevationM[index] ?? cell.eyeM - s.observerHeightM,
       label: CELL_LABEL,
       coordSource: `Regional map of ${s.id} (map.json cell centre)`,
       derivedFrom: s.id,

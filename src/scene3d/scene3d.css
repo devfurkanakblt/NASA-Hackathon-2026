@@ -87,14 +87,16 @@
 .scene3d__explain {
   position: absolute;
   left: 10px;
-  bottom: 34px;
+  bottom: 44px;
   z-index: 20;
   max-width: min(560px, calc(100% - 20px));
   padding: 8px 11px;
   border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: 6px;
   background: rgba(10, 13, 20, 0.84);
-  pointer-events: none;
+  pointer-events: auto;
+  max-height: 40%;
+  overflow: auto;
 }
 
 .scene3d__explain p {
@@ -131,6 +133,40 @@
   margin: 0;
   color: #8f99aa;
   font-size: 11.5px;
+  pointer-events: none;
+}
+
+.scene3d__data {
+  position: absolute;
+  left: 10px;
+  bottom: 8px;
+  z-index: 22;
+  max-width: min(620px, calc(100% - 20px));
+  max-height: 45%;
+  overflow: auto;
+  color: #c6cedb;
+  background: rgba(10, 13, 20, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 5px;
+  padding: 5px 8px;
+  box-sizing: border-box;
+  font-size: 11.5px;
+}
+.scene3d__data summary { cursor: pointer; }
+.scene3d__data summary:focus-visible { outline: 2px solid #7fb4ff; outline-offset: 1px; }
+.scene3d__data .scene3d__note { position: static; margin: 6px 0 0; color: #b8c1cf; pointer-events: auto; }
+.scene3d__data a { color: #92bfff; }
+.scene3d:has(.scene3d__data[open]) .scene3d__explain { visibility: hidden; }
+
+.scene3d__diagnostics {
+  position: absolute;
+  bottom: 44px;
+  right: 10px;
+  z-index: 21;
+  background: #10141d;
+  color: #c6cedb;
+  padding: 3px 6px;
+  font-size: 11px;
   pointer-events: none;
 }
 
@@ -220,4 +256,12 @@
 
 .scene3d__lost p {
   margin: 0;
+}
+
+@media (max-width: 600px) {
+  .scene3d__toolbar { gap: 5px; }
+  .scene3d__segmented button,
+  .scene3d__check { padding: 5px 7px; font-size: 11px; line-height: 1.2; }
+  .scene3d__explain { max-height: 24%; font-size: 11.5px; padding: 6px 8px; }
+  .scene3d__legend { font-size: 10.5px; }
 }

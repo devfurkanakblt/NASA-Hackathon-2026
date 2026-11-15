@@ -21,13 +21,13 @@ export interface MapCell {
   eastM: number
   northM: number
   distanceM: number
-  sunPct: number
-  earthPct: number
-  bothPct: number
-  slopeDeg: number
-  longestNoSunS: number
-  longestNoEarthS: number
-  surfaceElevationM: number
+  sunPct: number | null
+  earthPct: number | null
+  bothPct: number | null
+  slopeDeg: number | null
+  longestNoSunS: number | null
+  longestNoEarthS: number | null
+  surfaceElevationM: number | null
 }
 
 export function cellAt(map: MapDoc, row: number, col: number): MapCell {

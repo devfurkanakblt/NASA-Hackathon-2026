@@ -2,6 +2,10 @@ import { Canvas } from '@react-three/fiber'
 import { useCallback, useMemo, useRef, useState } from 'react'
 import type { RefObject } from 'react'
 import type { Object3D } from 'three'
+import { ACESFilmicToneMapping, SRGBColorSpace } from 'three'
+import type { QuaternionXyzw } from './appearance.ts'
+import { useEarthTexture } from './earthTexture.ts'
+import sourceLinks from './sources.json'
 import {
   DEFAULT_PANEL,
   OBSERVER_HEIGHT_M,
@@ -16,6 +20,7 @@ import {
 } from './coords.ts'
 import { EARTH_COLOR, GEOMETRIC_HORIZON_COLOR, STATUS_COLOR, STATUS_TEXT, SUN_COLOR, TERRAIN_HORIZON_COLOR } from './palette.ts'
 import { CameraRig } from './parts/CameraRig.tsx'
+import { Diagnostics } from './parts/Diagnostics.tsx'
 import { CompassPoints, HorizonCurtain, HorizonLines } from './parts/HorizonOverlay.tsx'
 import { LabelProjector } from './parts/Labels.tsx'
 import type { LabelBinding } from './parts/Labels.tsx'
@@ -23,12 +28,14 @@ import { Lander } from './parts/Lander.tsx'
 import { DirectionArrow, SkyBody, SkyFollow, SkyTrack } from './parts/SkyBodies.tsx'
 import { ReferenceSphere, Terrain } from './parts/Terrain.tsx'
 import './scene3d.css'
-import { buildTerrainMeshData } from './terrainGeometry.ts'
-import type { BodyPath, BodyState, BodyStatus, CameraMode, HorizonProfile, LookTarget, PanelState, TerrainGrid } from './types.ts'
+import { buildTerrainMeshData, nestFarMesh } from './terrainGeometry.ts'
+import type { BodyPath, BodyState, BodyStatus, CameraMode, HorizonProfile, LookTarget, PanelState, TerrainGrid, Vec3 } from './types.ts'
 
 export interface MissionScene3DProps {
   /** Local elevation grid of the selected site (`terrain.json`). */
   terrain: TerrainGrid
+  /** Coarse regional grid around it (`terrain-far.json`), drawn in the overview out to its edge. */
+  farTerrain?: TerrainGrid
   /** Terrain horizon of the selected site (`horizon.json`). */
   horizon: HorizonProfile
   /** Sun / Earth at the current time step; `visible` comes from the simulation engine. */
@@ -37,6 +44,13 @@ export interface MissionScene3DProps {
   /** Real sky tracks over the period to show (e.g. the mission window), from `ephemeris.json`. */
   sunPath?: BodyPath
   earthPath?: BodyPath
+  /** Earth-fixed axes registered in the local scene at the displayed UTC. */
+  earthOrientation?: QuaternionXyzw
+  /** Direction to the Sun evaluated at Earth, in the same local axes. */
+  earthSunDirection?: Vec3
+  /** Authoritative engine output, including optional partial-disc production. */
+  panelPowerW?: number
+  diagnostics?: boolean
   panel?: PanelState
   /** Elevation of the geometric (flat) horizon, drawn dashed. Default 0°. */
   geometricHorizonDeg?: number
@@ -91,11 +105,16 @@ function useLabel() {
 
 export default function SceneCanvas({
   terrain,
+  farTerrain,
   horizon,
   sun,
   earth,
   sunPath,
   earthPath,
+  earthOrientation,
+  earthSunDirection,
+  panelPowerW,
+  diagnostics = false,
   panel = DEFAULT_PANEL,
   geometricHorizonDeg = 0,
   observerHeightM = OBSERVER_HEIGHT_M,
@@ -107,12 +126,21 @@ export default function SceneCanvas({
   const [showTerrainEffect, setShowTerrainEffect] = useState(defaultShowTerrainEffect)
   const [lookTarget, setLookTarget] = useState<LookTarget>('sun')
   const [contextLost, setContextLost] = useState(false)
+  const [showAnnotations, setShowAnnotations] = useState(true)
+  const [reliefLighting, setReliefLighting] = useState(true)
   const [canvasKey, setCanvasKey] = useState(0)
+  const diagnosticOutput = useRef<HTMLOutputElement | null>(null)
+  const { texture: earthMap, failed: earthMapFailed } = useEarthTexture()
 
   const meshData = useMemo(() => buildTerrainMeshData(terrain, observerHeightM), [terrain, observerHeightM])
   const half = meshData.halfExtentM
+  const farMesh = useMemo(
+    () => (farTerrain ? nestFarMesh(buildTerrainMeshData(farTerrain, observerHeightM), meshData) : null),
+    [farTerrain, observerHeightM, meshData],
+  )
   const overviewRadius = half * 0.9
-  const curtainRadius = half * 2.2
+  // Keep the full-resolution horizon silhouette beyond the measured regional mesh.
+  const curtainRadius = Math.max(half * 2.2, (farTerrain?.sizeM ?? 0) * 0.75)
   // The sky sits far beyond the terrain patch and travels with the camera (see SkyFollow).
   // It must lie beyond the limb of the reference sphere as seen from the highest overview camera.
   const skyRadius = half * SKY_RADIUS
@@ -123,7 +151,7 @@ export default function SceneCanvas({
   const earthStatus = bodyStatus(earth, geometricHorizonDeg)
   const sunDirection = useMemo(() => azElToUnitVector(sun.azDeg, sun.elDeg), [sun.azDeg, sun.elDeg])
   const normal = useMemo(() => panelNormal(panel, { azDeg: sun.azDeg, elDeg: sun.elDeg }), [panel, sun.azDeg, sun.elDeg])
-  const lit = panelIsLit(panel, sun)
+  const lit = panelPowerW === undefined ? panelIsLit(panel, sun) : panelPowerW > 0
   const freeLook = useCallback(() => setLookTarget('free'), [])
 
   const sunLabel = useLabel()
@@ -146,9 +174,10 @@ export default function SceneCanvas({
       <Canvas
         key={canvasKey}
         frameloop="demand"
-        dpr={[1, 2]}
+        shadows="soft"
+        dpr={[1.5, 2]}
         camera={{ fov: 45, near: 5, far: half * FAR_PLANE, position: [half, half * 0.5, half * 2.3] }}
-        gl={{ antialias: true, powerPreference: 'high-performance' }}
+        gl={{ antialias: true, powerPreference: 'high-performance', toneMapping: ACESFilmicToneMapping, toneMappingExposure: 1.2, outputColorSpace: SRGBColorSpace }}
         onCreated={({ gl }) => {
           gl.domElement.addEventListener('webglcontextlost', (event) => {
             event.preventDefault()
@@ -157,17 +186,30 @@ export default function SceneCanvas({
         }}
       >
         <color attach="background" args={['#000000']} />
-        <hemisphereLight args={['#c3cbdb', '#2a2d35', 1.5]} />
-        {/* Shading follows the engine's answer: no sunlight when the Sun is not visible from the site. */}
+        <hemisphereLight args={['#f5f5f3', '#6c6c69', reliefLighting ? 0.9 : 0]} />
+        {/* Inspection fill preserves visible relief without claiming measured lunar irradiance. */}
+        <directionalLight position={[-12000, 12000, 16000]} intensity={reliefLighting ? 1.1 : 0} color="#f2f2f0" />
+        {/* Local visibility does not turn off sunlight for every mountain in the region. */}
         <directionalLight
-          position={[sunDirection[0] * 1000, sunDirection[1] * 1000, sunDirection[2] * 1000]}
-          intensity={sun.visible ? 4 : 0}
-          color="#fff4e0"
+          position={[sunDirection[0] * 45000, sunDirection[1] * 45000, sunDirection[2] * 45000]}
+          intensity={4}
+          color="#fff8ed"
+          castShadow
+          shadow-mapSize={[4096, 4096]}
+          shadow-camera-left={-half * 1.3}
+          shadow-camera-right={half * 1.3}
+          shadow-camera-top={half * 1.3}
+          shadow-camera-bottom={-half * 1.3}
+          shadow-camera-near={30000}
+          shadow-camera-far={60000}
+          shadow-bias={-0.00001}
+          shadow-normalBias={0.5}
         />
 
-        <Terrain data={meshData} />
+        <Terrain data={meshData} reliefTint={reliefLighting} />
+        {farMesh && <Terrain data={farMesh} reliefTint={reliefLighting} />}
         {!lander && surfaceElevationM !== undefined && (
-          <ReferenceSphere data={meshData} siteElevationM={surfaceElevationM} outerRadiusM={half * (SKY_RADIUS - 5)} />
+          <ReferenceSphere data={farMesh ?? meshData} siteElevationM={surfaceElevationM} outerRadiusM={half * (SKY_RADIUS - 5)} />
         )}
         {cameraMode === 'overview' && <Lander panelNormal={normal} panelLit={lit} panelAreaM2={panel.areaM2} northLabelAnchor={northLabel.anchor} />}
 
@@ -175,8 +217,8 @@ export default function SceneCanvas({
           {cameraMode === 'overview' ? (
             <>
               {showTerrainEffect && <HorizonLines profile={horizon} radius={overviewRadius} geometricHorizonDeg={geometricHorizonDeg} />}
-              <DirectionArrow color={SUN_COLOR} body={sun} status={sunStatus} labelAnchor={sunLabel.anchor} length={half * 0.42} />
-              <DirectionArrow color={EARTH_COLOR} body={earth} status={earthStatus} labelAnchor={earthLabel.anchor} length={half * 0.42} />
+              {showAnnotations && <DirectionArrow color={SUN_COLOR} body={sun} status={sunStatus} labelAnchor={sunLabel.anchor} length={half * 0.42} />}
+              {showAnnotations && <DirectionArrow color={EARTH_COLOR} body={earth} status={earthStatus} labelAnchor={earthLabel.anchor} length={half * 0.42} />}
             </>
           ) : (
             <>
@@ -189,8 +231,8 @@ export default function SceneCanvas({
 
         {/* Sun and Earth at their true direction and apparent size, with their real tracks. */}
         <SkyFollow>
-          {sunPath && <SkyTrack path={sunPath} color={SUN_COLOR} radius={trackRadius} />}
-          {earthPath && <SkyTrack path={earthPath} color={EARTH_COLOR} radius={trackRadius} />}
+          {showAnnotations && sunPath && <SkyTrack path={sunPath} color={SUN_COLOR} radius={trackRadius} />}
+          {showAnnotations && earthPath && <SkyTrack path={earthPath} color={EARTH_COLOR} radius={trackRadius} />}
           <SkyBody
             kind="sun"
             color={SUN_COLOR}
@@ -199,6 +241,7 @@ export default function SceneCanvas({
             radius={skyRadius}
             angularDiameterDeg={sunAngularDiameterDeg(sun.distanceM)}
             sunDirection={sunDirection}
+            showAnnotations={showAnnotations}
             xray={lander && showTerrainEffect}
             labelAnchor={lander ? sunLabel.anchor : undefined}
           />
@@ -209,7 +252,9 @@ export default function SceneCanvas({
             status={earthStatus}
             radius={skyRadius}
             angularDiameterDeg={earthAngularDiameterDeg(earth.distanceM)}
-            sunDirection={sunDirection}
+            sunDirection={earthSunDirection ?? sunDirection}
+            earthOrientation={earthOrientation}
+            showAnnotations={showAnnotations}
             xray={lander && showTerrainEffect}
             labelAnchor={lander ? earthLabel.anchor : undefined}
           />
@@ -224,11 +269,14 @@ export default function SceneCanvas({
           sun={sun}
           earth={earth}
           onUserLook={freeLook}
+          terrainMesh={meshData}
+          regionalMesh={farMesh ?? undefined}
         />
         <LabelProjector bindings={labels} />
+        {diagnostics && <Diagnostics output={diagnosticOutput} />}
       </Canvas>
 
-      <div className="scene3d__labels">
+      <div className="scene3d__labels" style={{ display: showAnnotations ? undefined : 'none' }}>
         <BodyTag elementRef={sunLabel.element} name="Sun" color={SUN_COLOR} status={sunStatus} />
         <BodyTag elementRef={earthLabel.element} name="Earth" color={EARTH_COLOR} status={earthStatus} />
         <div ref={northLabel.element} className="scene3d__label scene3d__label--compass scene3d__label--north">
@@ -268,7 +316,17 @@ export default function SceneCanvas({
           <input type="checkbox" checked={showTerrainEffect} onChange={(e) => setShowTerrainEffect(e.target.checked)} />
           Show terrain effect
         </label>
+        <label className="scene3d__check">
+          <input type="checkbox" checked={showAnnotations} onChange={e => setShowAnnotations(e.target.checked)} />
+          Annotations
+        </label>
+        <label className="scene3d__check">
+          <input type="checkbox" checked={reliefLighting} onChange={e => setReliefLighting(e.target.checked)} />
+          Relief lighting (view aid)
+        </label>
       </div>
+
+      {diagnostics && <output ref={diagnosticOutput} className="scene3d__diagnostics">Rendering diagnostics…</output>}
 
       {showTerrainEffect && (
         <div className="scene3d__explain" role="status">
@@ -285,13 +343,22 @@ export default function SceneCanvas({
         </div>
       )}
 
-      <p className="scene3d__note">
+      <details className="scene3d__data">
+        <summary>NASA data · terrain scale 1:1 · model limits</summary>
+        <p className="scene3d__note">
         {lander
           ? 'Drag to look, scroll to zoom. '
-          : 'Lander not to scale; arrows point from it to the Sun and Earth. Beyond the terrain patch only the smooth reference sphere is drawn. '}
-        Sun and Earth are drawn at their true direction and apparent size; the labels give their status at the lander. 3D shading is
-        illustrative — visibility and power come from the terrain-horizon profile.
-      </p>
+          : farMesh
+            ? 'Lander not to scale; arrows point from it to the Sun and Earth. Around the detailed 10 km patch the region is drawn from a coarse LOLA grid. '
+            : 'Lander not to scale; arrows point from it to the Sun and Earth. Beyond the terrain patch only the smooth reference sphere is drawn. '}
+        Terrain scale 1:1. Sun/Earth directions and sizes follow the ephemeris. Mesh shadows are approximate; visibility and power use the full horizon profile.
+        {!earthOrientation ? ' Earth map hidden: registered orientation is unavailable.'
+          : earthMapFailed ? ' Earth map unavailable; an untextured illuminated sphere is shown.'
+          : !earthMap ? ' Earth texture loading.' : ' Earth: NASA November 2004 composite, UTC-registered rotation; not live weather.'}
+        {reliefLighting && ' Relief fill light is enabled for readability; switch it off to inspect Sun-only shading.'}
+        </p>
+        <p className="scene3d__note">Sources: <a href={sourceLinks.moonTrek} target="_blank" rel="noreferrer">NASA Moon Trek / LOLA</a> · <a href={sourceLinks.blueMarble} target="_blank" rel="noreferrer">NASA Blue Marble</a></p>
+      </details>
 
       {contextLost && (
         <div className="scene3d__lost" role="alert">

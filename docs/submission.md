@@ -31,8 +31,9 @@ a ridge 1.9 km away gets continuous sunlight and keeps its reserve.
 **What it does.** A mission planner picks one of seven south-pole sites (six from NASA's Lunar
 Surface Data Book plus a derived ridge point) or two contrast points (Chang'e-6 on the far side,
 Apollo 11 near the equator), a start date (1 Nov 2026 – 1 Nov 2027 UTC) and a
-mission length (1–30 days), sets panel, battery and load assumptions, and pins up to three
-scenarios. The app shows a horizon panorama (terrain skyline with the Sun and Earth tracks), a 3D
+mission length (1–30 days), optionally changes the panel, battery and load assumptions, and
+compares up to three places or dates. For each one a result card answers the two questions in
+plain words, "Power?" and "Talk to Earth?", with a tick or a cross. Tabs then show why: the app shows a horizon panorama (terrain skyline with the Sun and Earth tracks), a 3D
 view of the local terrain with the lander, timelines of Sun / Earth / both in view, panel output
 versus demand, and battery state of charge. Each scenario reports whether it keeps the battery
 reserve, the first reserve violation, unmet energy, the longest Earth outage against the accepted
@@ -40,7 +41,8 @@ limit, and the time to the next rise or set. Around each polar site a ±3 km map
 visibility and slope for every 100 m cell (on Shackleton's map the catalogue point and the ridge
 1.9 km away sit side by side); any 100 m map cell can be simulated as a scenario (or reached by
 typing a latitude/longitude within ±3 km of a site), and a one-year monthly chart shows the seasonal effect. The whole
-comparison (sites, dates, hardware) is kept in the page link, so it can be shared as is.
+comparison (sites, dates, hardware) is kept in the page link, so it can be shared as is, and a
+short built-in tour explains the screen to first-time visitors.
 
 **How it works.** Offline Python preprocessing queries JPL Horizons for Sun and Earth azimuth,
 elevation and distance seen from each site (10-minute steps, observer 2 m above the surface),
@@ -66,7 +68,7 @@ on gentle ground. Against NASA GSFC's independent polar illumination maps (Mazar
 years) our Sun and Earth visibility falls within the map's local 3×3-pixel range at all 7 polar
 sites (rank correlation 0.96 for both), and Shackleton's floor is permanently shadowed in both.
 The TypeScript engine reproduces the Python reference values exactly; map points with the 1°
-horizon stay within 0.15 points of the 0.5° map values; 157 TypeScript and 40 Python tests run on every change.
+horizon stay within 0.15 points of the 0.5° map values; 310 automated tests (231 TypeScript, 79 Python) run on every change.
 
 **Limits.** Sites are research region centres, not certified landing sites; hardware values are
 example assumptions. Not modelled: eclipses, temperature, dust, battery ageing, ground-station

@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import type { CSSProperties } from 'react'
 import type { LoadedData, SiteData } from '../data/contract.ts'
 import { loadCells, loadYear } from '../data/extended.ts'
 import { loadAllData } from '../data/load.ts'
 import { MissionScene3D } from '../scene3d/index.ts'
 import type { BodyState, PanelState } from '../scene3d/index.ts'
-import { J_PER_WH } from '../sim/energy.ts'
+import { earthOrientationAt, earthSunDirectionAt } from '../scene3d/appearance.ts'
 import { DEFAULT_SETTINGS, validateSettings } from '../sim/evaluate.ts'
 import type { MissionSettings } from '../sim/evaluate.ts'
 import { nextTransition } from '../sim/visibility.ts'
@@ -16,29 +17,64 @@ import { SiteMap } from './charts/SiteMap.tsx'
 import { Comparison } from './Comparison.tsx'
 import { errorMessage, fmtDuration, fmtUtc } from './format.ts'
 import { ScenarioList } from './ScenarioList.tsx'
-import { defaultScenarios, evaluateAll, isEvaluated, targetScenarioKey } from './scenarios.ts'
-import type { Scenario } from './scenarios.ts'
-import { SettingsForm } from './SettingsForm.tsx'
 import { cellId, isKnownSiteId, parseCellId, resolveSiteData, sitesNeeded, snapToCell } from './extendedSites.ts'
 import type { ExtendedState } from './extendedSites.ts'
 import { cellAt } from './mapGrid.ts'
+import { defaultScenarios, evaluateAll, isEvaluated, targetScenarioKey } from './scenarios.ts'
+import type { Scenario } from './scenarios.ts'
+import { SettingsForm } from './SettingsForm.tsx'
 import { decodeShare, encodeShare } from './share.ts'
 import { Sources } from './Sources.tsx'
 import { Timelines } from './Timelines.tsx'
+import { Tour } from './Tour.tsx'
+import type { TourStep } from './Tour.tsx'
 import './app.css'
+
+type Tab = 'sky' | 'power' | 'map' | 'year' | 'sources'
+const TABS: { key: Tab; label: string }[] = [
+  { key: 'sky', label: 'Sky view' },
+  { key: 'power', label: 'Battery' },
+  { key: 'map', label: 'Area map' },
+  { key: 'year', label: 'Through the year' },
+  { key: 'sources', label: 'Data & limits' },
+]
+
+const TOUR_SEEN_KEY = 'lsn-tour-seen'
+function readFlag(key: string): boolean {
+  try {
+    return window.localStorage.getItem(key) === '1'
+  } catch {
+    return false
+  }
+}
+function writeFlag(key: string) {
+  try {
+    window.localStorage.setItem(key, '1')
+  } catch {
+    // Storage blocked (private window): the tour simply shows again next time.
+  }
+}
 
 /** Scenario colours A, B, C (distinct on the dark background and for common colour blindness). */
 const COLORS = ['#f2a541', '#4cc9f0', '#c77dff']
 const STEPS_PER_FRAME = 2
 
+/** "the same point" / "200 m east, 600 m north of it". */
+function cellOffset(map: Parameters<typeof cellAt>[0], row: number, col: number): string {
+  const c = cellAt(map, row, col)
+  if (c.distanceM === 0) return 'the same point'
+  return `${fmtM(Math.abs(c.eastM))} ${c.eastM >= 0 ? 'east' : 'west'}, ${fmtM(Math.abs(c.northM))} ${c.northM >= 0 ? 'north' : 'south'} of it`
+}
 const yearEndUtc = (y: { startUtc: string; stepS: number; count: number }) =>
   new Date(Date.parse(y.startUtc) + (y.count - 1) * y.stepS * 1000).toISOString().replace('.000Z', 'Z')
 const fmtM = (m: number) => (Math.abs(m) < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(1)} km`)
 
-function countdown(name: string, windows: VisibilityWindow[], visibleNow: boolean, tS: number): string {
+/** "in view, sets in 5 d 20 h" / "hidden for the rest of the mission". */
+function countdown(windows: VisibilityWindow[], visibleNow: boolean, tS: number): string {
   const next = nextTransition(windows, tS)
-  if (!next) return `${name} ${visibleNow ? 'stays in view' : 'stays hidden'} for the rest of the mission`
-  return `${name} ${next.kind === 'set' ? 'sets' : 'rises'} in ${fmtDuration(next.atS - tS)}`
+  const now = visibleNow ? 'in view' : 'hidden'
+  if (!next) return `${now} for the rest of the mission`
+  return `${now}, ${next.kind === 'set' ? 'sets' : 'rises'} in ${fmtDuration(next.atS - tS)}`
 }
 
 /**
@@ -54,6 +90,9 @@ export function MissionApp() {
   const [step, setStep] = useState(0)
   const [playing, setPlaying] = useState(false)
   const [show3d, setShow3d] = useState(true)
+  const [tab, setTab] = useState<Tab>('sky')
+  const [tourOpen, setTourOpen] = useState(false)
+  const diagnostics = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('diagnostics') === '1'
   // Result of the last "Copy link", for the link it copied; a changed comparison clears it.
   const [copyResult, setCopyResult] = useState<{ hash: string; ok: boolean } | null>(null)
   // One-year series and map-point horizons, fetched per site after the first render.
@@ -72,6 +111,8 @@ export function MissionApp() {
         setLoaded(data)
         setScenarios(initial)
         setActiveKey(initial[shared?.active ?? 0]?.key ?? null)
+        // First visit (and not opened from a shared link): show the short tour once.
+        if (!shared && !readFlag(TOUR_SEEN_KEY)) setTourOpen(true)
       })
       .catch((e) => !cancelled && setLoadError(errorMessage(e)))
     return () => {
@@ -153,7 +194,6 @@ export function MissionApp() {
   const activeColor = COLORS[active ? outcomes.indexOf(active) : 0]
   const activeData = active?.data ?? null
   const activeCell = activeData ? parseCellId(activeData.site.id) : null
-  const activeBaseId = activeCell?.siteId ?? activeData?.site.id ?? ''
   // Map-point actions and the highlight stay on the chosen scenario, also while it loads.
   const chosenKey = targetScenarioKey(scenarios, activeKey)
   const chosenOutcome = outcomes.find((o) => o.scenario.key === chosenKey)
@@ -188,7 +228,9 @@ export function MissionApp() {
     const kk = Math.min(k, active.result.count - 1)
     const sun: BodyState = { azDeg: tracks.sunPath.azDeg[kk], elDeg: tracks.sunPath.elDeg[kk], distanceM: tracks.sunDist[kk], visible: active.result.sunVisible[kk] }
     const earth: BodyState = { azDeg: tracks.earthPath.azDeg[kk], elDeg: tracks.earthPath.elDeg[kk], distanceM: tracks.earthDist[kk], visible: active.result.earthVisible[kk] }
-    return { sun, earth, kk, tS: kk * active.result.stepS }
+    const tS = kk * active.result.stepS
+    const utc = new Date(Date.parse(active.result.alignedStartUtc) + tS * 1000).toISOString()
+    return { sun, earth, kk, tS, utc }
   }, [active, tracks, k])
 
   const panel = useMemo<PanelState>(
@@ -204,17 +246,41 @@ export function MissionApp() {
     .filter((o) => o.result.summary.firstReserveViolationS !== null)
     .map((o) => {
       const idx = Math.round((o.result.summary.firstReserveViolationS ?? 0) / o.result.stepS)
-      return { index: idx, value: (100 * o.result.socJ[idx]) / o.result.batteryCapacityJ, color: COLORS[outcomes.indexOf(o)], label: `${o.letter}: below reserve at T+${Math.round(idx * o.result.stepS / 360) / 10} h` }
+      return { index: idx, value: (100 * o.result.socJ[idx]) / o.result.batteryCapacityJ, color: COLORS[outcomes.indexOf(o)], label: `${o.letter}: below reserve on day ${Math.floor((idx * o.result.stepS) / 86400) + 1}` }
     })
   const powerMax = active ? Math.max(100, ...Array.from(active.result.generationW), ...Array.from(active.result.loadW)) : 100
 
+  const tourSteps: TourStep[] = [
+    {
+      title: 'Where should a Moon lander go?',
+      body: "Near the Moon's south pole the Sun and Earth stay low on the horizon, so a hill or a crater rim can hide them. This tool checks two things for a landing spot: does the lander get enough sunlight for power, and can it see Earth to send data home?",
+    },
+    { target: 'places', title: '1. Pick places to compare', body: 'Choose up to three landing spots or start dates. Each one keeps its letter and colour (A, B, C) everywhere on the page.' },
+    { target: 'result', title: '2. Read the answer', body: 'Each card answers the two questions. A green tick means the goal is met, a red cross means it is not. The bars show how much of the time the Sun and Earth are in view.' },
+    {
+      target: 'tabs',
+      title: '3. See why',
+      body: 'These tabs show the reason behind the answer: the skyline the lander sees, the battery over time, a map of the area and how things change through the year.',
+      before: () => setTab('sky'),
+    },
+    { target: 'timebar', title: 'Move through time', body: 'Press Play or drag the slider. The skyline, the timelines and the 3D view all follow the same moment.', before: () => setTab('sky') },
+    { target: 'settings', title: 'Change the lander', body: 'Open the lander settings to try a bigger battery, more solar panel or a longer mission. Every place is checked again instantly.' },
+    { target: 'share', title: 'Share what you found', body: 'Copy link saves this exact comparison. Anyone who opens the link sees the same places, dates and settings.' },
+  ]
+  const closeTour = () => {
+    setTourOpen(false)
+    writeFlag(TOUR_SEEN_KEY)
+  }
+
   const header = (
     <header className="app__header">
-      <div>
+      <div className="app__title">
         <h1>Lunar Landing Site Navigator</h1>
-        <p>Sun, Earth and terrain at lunar south-pole sites: power, battery and line of sight to Earth, compared with the same hardware.</p>
+        <p>Compare landing spots near the Moon&rsquo;s south pole: will the lander have power, and can it talk to Earth?</p>
       </div>
-      <span className="app__badge">Static app · NASA data pre-computed · no server</span>
+      <button type="button" className="app__help" onClick={() => setTourOpen(true)}>
+        <span aria-hidden>?</span> How it works
+      </button>
     </header>
   )
 
@@ -231,18 +297,33 @@ export function MissionApp() {
     return (
       <div className="app">
         {header}
-        <p className="app__message">Loading site data…</p>
+        <p className="app__message">Loading Moon terrain and Sun and Earth positions…</p>
       </div>
     )
+
+  const days = `${settings.durationDays} ${settings.durationDays === 1 ? 'day' : 'days'}`
+  const settingsSummary = `${days}, ${settings.panelAreaM2} m² solar panel, ${settings.batteryCapacityWh / 1000} kWh battery`
+  const timebar = active && now && (
+    <div className="timebar" data-tour="timebar">
+      <button type="button" className="primary" onClick={() => setPlaying((p) => !p)}>
+        {playing ? 'Pause' : 'Play'}
+      </button>
+      <input type="range" min={0} max={lastStep} value={k} aria-label="Time in mission" onChange={(e) => setStep(Number(e.target.value))} />
+      <span className="timebar__time">
+        Day {Math.floor(now.tS / 86400) + 1}, {fmtUtc(Date.parse(active.result.alignedStartUtc) + now.tS * 1000)}
+      </span>
+    </div>
+  )
 
   return (
     <div className="app">
       {header}
+      <Tour steps={tourSteps} open={tourOpen} onClose={closeTour} />
       <div className="app__layout">
         <aside className="app__side">
-          <section className="card">
+          <section className="card" data-tour="places">
             <h2>
-              <span className="step">1–2</span> Sites &amp; dates
+              <span className="step">1</span> Pick places to compare
             </h2>
             <ScenarioList
               sites={loaded.sites}
@@ -261,162 +342,202 @@ export function MissionApp() {
               onActivate={setActiveKey}
             />
           </section>
-          <section className="card">
-            <h2>
-              <span className="step">3</span> Mission hardware
-            </h2>
-            <SettingsForm settings={settings} issues={issues} onChange={(patch) => setSettings((s) => ({ ...s, ...patch }))} onReset={() => setSettings(DEFAULT_SETTINGS)} />
+          <section className="card" data-tour="settings">
+            <details className="settings-box" open={issues.length > 0 || undefined}>
+              <summary>
+                <span className="settings-box__title">
+                  <span className="step">2</span> Lander settings <span className="muted small">(optional)</span>
+                </span>
+                <span className="muted small">{settingsSummary}</span>
+              </summary>
+              <SettingsForm settings={settings} issues={issues} onChange={(patch) => setSettings((s) => ({ ...s, ...patch }))} onReset={() => setSettings(DEFAULT_SETTINGS)} />
+            </details>
           </section>
         </aside>
 
         <main className="app__main">
-          <section className="card">
+          <section className="card" data-tour="result">
             <div className="card__head">
               <h2>
-                <span className="step">4</span> Compare
+                <span className="step">3</span> Result
               </h2>
-              <button type="button" onClick={copyLink} title="Copy a link that opens this comparison (sites, dates and hardware)">
+              <button type="button" onClick={copyLink} data-tour="share" title="Copy a link that opens this comparison (places, dates and lander settings)">
                 {copied === 'done' ? 'Link copied' : 'Copy link'}
               </button>
             </div>
-            {copied === 'failed' && (
-              <p className="small muted">
-                Copying is blocked in this browser; copy the address bar instead, it already holds this comparison.
-              </p>
+            {copied === 'failed' && <p className="small muted">This browser blocked copying. Copy the address bar instead; it already holds this comparison.</p>}
+            {issues.length > 0 ? (
+              <p className="bad">Some lander settings are out of range. Fix them in step 2 to see the result.</p>
+            ) : (
+              <Comparison outcomes={outcomes} settings={settings} bySite={shownBySite} colors={COLORS} />
             )}
-            {issues.length > 0 ? <p className="bad">Fix the mission hardware values to see results.</p> : <Comparison outcomes={outcomes} settings={settings} bySite={shownBySite} colors={COLORS} />}
           </section>
 
           {active && now && activeData && tracks && (
-            <>
-              <div className="timebar">
-                <button type="button" onClick={() => setPlaying((p) => !p)}>
-                  {playing ? 'Pause' : 'Play'}
-                </button>
-                <input type="range" min={0} max={lastStep} value={k} aria-label="Time in mission" onChange={(e) => setStep(Number(e.target.value))} />
-                <span className="timebar__time">
-                  T+{fmtDuration(now.tS)} · <b style={{ color: activeColor }}>{active.letter}</b> {fmtUtc(Date.parse(active.result.alignedStartUtc) + now.tS * 1000)}
-                </span>
-              </div>
-
-              <section className="card">
-                <h2>
-                  Horizon panorama — <span style={{ color: activeColor }}>Scenario {active.letter}</span>, {activeData.site.id} {activeData.site.name}
-                </h2>
-                <Panorama horizon={activeData.horizon} sun={tracks.sunPath} earth={tracks.earthPath} k={now.kk} />
-                <p className="muted small">
-                  Grey = real terrain horizon from LOLA DEMs (out to 250 km, lunar curvature included); dashed line = flat horizon. Solid track = centre above the terrain horizon, dotted = hidden. Dot = now.{' '}
-                  {countdown('Sun', active.result.sunWindows, now.sun.visible, now.tS)} · {countdown('Earth', active.result.earthWindows, now.earth.visible, now.tS)}.
-                </p>
-              </section>
-
-              <section className="card">
-                <h2>Sun and Earth in view</h2>
-                <Timelines outcomes={evaluated} colors={colorsOfEvaluated} k={k} />
-              </section>
-
-              <section className="card">
-                <h2>Battery state of charge</h2>
-                <LineChart
-                  series={socSeries}
-                  stepH={active.result.stepS / 3600}
-                  yMin={0}
-                  yMax={100}
-                  yUnit=" %"
-                  refLines={[{ value: settings.reserveFraction * 100, label: `reserve ${Math.round(settings.reserveFraction * 100)} %` }]}
-                  markers={socMarkers}
-                  k={k}
-                  ariaLabel="Battery state of charge of every scenario"
-                />
-              </section>
-
-              <section className="card">
-                <h2>
-                  Panel output and demand — <span style={{ color: activeColor }}>Scenario {active.letter}</span>
-                </h2>
-                <LineChart
-                  series={[
-                    { label: 'Panel output (W)', color: '#ffd166', values: active.result.generationW },
-                    { label: 'Demand (W)', color: '#ef6f6c', values: active.result.loadW, dashed: true },
-                  ]}
-                  stepH={active.result.stepS / 3600}
-                  yMin={0}
-                  yMax={Math.ceil(powerMax / 50) * 50}
-                  yUnit=" W"
-                  k={k}
-                  ariaLabel="Panel output and demand of the active scenario"
-                />
-                <p className="muted small">
-                  Now: panel {Math.round(active.result.generationW[now.kk])} W · demand {Math.round(active.result.loadW[now.kk])} W · battery{' '}
-                  {Math.round((100 * active.result.socJ[now.kk]) / active.result.batteryCapacityJ)} % ({(active.result.socJ[now.kk] / J_PER_WH / 1000).toFixed(2)} kWh)
-                </p>
-              </section>
-
-              <section className="card">
-                <div className="card__head">
-                  <h2>
-                    3D view — <span style={{ color: activeColor }}>Scenario {active.letter}</span>
-                  </h2>
-                  <label className="field--check">
-                    <input type="checkbox" checked={show3d} onChange={(e) => setShow3d(e.target.checked)} /> Show
-                  </label>
+            <section className="card explore">
+              <h2>See why</h2>
+              <div className="explore__head">
+                <div className="tabs" role="tablist" aria-label="See why" data-tour="tabs">
+                  {TABS.map((t) => (
+                    <button
+                      key={t.key}
+                      type="button"
+                      role="tab"
+                      id={`tab-${t.key}`}
+                      aria-selected={tab === t.key}
+                      aria-controls="tabpanel"
+                      className={tab === t.key ? 'is-on' : undefined}
+                      onClick={() => setTab(t.key)}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
                 </div>
-                {show3d && activeCell && activeData.map && (
-                  <p className="muted small">
-                    The 3D view shows the catalogue point; the selected map point is {(() => {
-                      const c = cellAt(activeData.map, activeCell.row, activeCell.col)
-                      return c.distanceM === 0 ? 'the same point' : `${fmtM(Math.abs(c.eastM))} ${c.eastM >= 0 ? 'east' : 'west'}, ${fmtM(Math.abs(c.northM))} ${c.northM >= 0 ? 'north' : 'south'} of it`
-                    })()}.
-                  </p>
-                )}
-                {show3d && !activeCell && (
-                  <div className="scene-box">
-                    <MissionScene3D
-                      terrain={activeData.terrain}
-                      horizon={activeData.horizon}
-                      sun={now.sun}
-                      earth={now.earth}
-                      sunPath={tracks.sunPath}
-                      earthPath={tracks.earthPath}
-                      panel={panel}
-                      observerHeightM={activeData.site.observerHeightM}
-                      surfaceElevationM={activeData.site.surfaceElevationM}
-                    />
+                {evaluated.length > 1 && tab !== 'power' && (
+                  <div className="explore__which" role="group" aria-label="Place shown">
+                    <span className="muted small">Showing</span>
+                    {evaluated.map((o) => (
+                      <button
+                        key={o.scenario.key}
+                        type="button"
+                        className={`chip${o === active ? ' is-on' : ''}`}
+                        style={{ '--chip': COLORS[outcomes.indexOf(o)] } as CSSProperties}
+                        aria-pressed={o === active}
+                        onClick={() => setActiveKey(o.scenario.key)}
+                      >
+                        {o.letter}
+                      </button>
+                    ))}
                   </div>
                 )}
-              </section>
+              </div>
 
-              <section className="card">
-                <h2>
-                  Around the site (±{activeData.map ? activeData.map.grid.halfSizeM / 1000 : 3} km) — {activeBaseId}
-                </h2>
-                {activeData.map ? (
-                  <SiteMap
-                    map={activeData.map}
-                    sites={loaded.sites.sites}
-                    selected={activeCell ?? undefined}
-                    onSimulate={(siteId, row, col) => setActiveSite(cellId(siteId, row, col))}
-                    busy={chosenLoading ? (chosenOutcome?.error ?? 'Loading…') : undefined}
-                  />
-                ) : (
-                  <p className="muted small">No regional map for this point{activeData.site.category === 'contrast' ? ' (contrast points have none)' : ''}.</p>
+              <div id="tabpanel" role="tabpanel" aria-labelledby={`tab-${tab}`} className="explore__panel">
+                {tab === 'sky' && (
+                  <>
+                    <p className="explain">
+                      The grey shape is the real skyline around the lander. Behind it, the <b className="sun">Sun</b> gives no power and <b className="earth">Earth</b> cannot be reached.
+                    </p>
+                    {timebar}
+                    <h3>
+                      Skyline at <span style={{ color: activeColor }}>{active.letter}</span>, {activeData.site.name}
+                    </h3>
+                    <Panorama horizon={activeData.horizon} sun={tracks.sunPath} earth={tracks.earthPath} k={now.kk} />
+                    <p className="status">
+                      <span className={now.sun.visible ? 'ok' : 'bad'}>
+                        <b>Sun</b> {countdown(active.result.sunWindows, now.sun.visible, now.tS)}
+                      </span>
+                      <span className={now.earth.visible ? 'ok' : 'bad'}>
+                        <b>Earth</b> {countdown(active.result.earthWindows, now.earth.visible, now.tS)}
+                      </span>
+                    </p>
+                    <h3>In view during the mission</h3>
+                    <Timelines outcomes={evaluated} colors={colorsOfEvaluated} k={k} />
+                    <div className="card__head">
+                      <h3>3D view</h3>
+                      <label className="field--check">
+                        <input type="checkbox" checked={show3d} onChange={(e) => setShow3d(e.target.checked)} /> Show
+                      </label>
+                    </div>
+                    {show3d && activeCell && activeData.map && (
+                      <p className="muted small">
+                        The 3D view shows the catalogue point; the selected map point is {cellOffset(activeData.map, activeCell.row, activeCell.col)}.
+                      </p>
+                    )}
+                    {show3d && !activeCell && (
+                      <div className="scene-box">
+                        <MissionScene3D
+                          terrain={activeData.terrain}
+                          farTerrain={activeData.terrainFar}
+                          horizon={activeData.horizon}
+                          sun={now.sun}
+                          earth={now.earth}
+                          sunPath={tracks.sunPath}
+                          earthPath={tracks.earthPath}
+                          earthOrientation={earthOrientationAt(activeData.earthOrientation, now.utc)}
+                          earthSunDirection={earthSunDirectionAt(activeData.earthOrientation, now.utc)}
+                          panelPowerW={active.result.generationW[now.kk]}
+                          diagnostics={diagnostics}
+                          panel={panel}
+                          observerHeightM={activeData.site.observerHeightM}
+                          surfaceElevationM={activeData.site.surfaceElevationM}
+                        />
+                      </div>
+                    )}
+                  </>
                 )}
-              </section>
 
-              <section className="card">
-                <h2>Through the year — {activeBaseId}</h2>
-                {activeData.season ? (
-                  <SeasonChart season={activeData.season} missionStartUtc={active.result.alignedStartUtc} />
-                ) : (
-                  <p className="muted small">No one-year summary for this site.</p>
+                {tab === 'power' && (
+                  <>
+                    <p className="explain">The panel charges the battery while the Sun is up. Below the red dashed line the lander is into its safety reserve.</p>
+                    {timebar}
+                    <h3>Battery charge</h3>
+                    <LineChart
+                      series={socSeries}
+                      stepH={active.result.stepS / 3600}
+                      yMin={0}
+                      yMax={100}
+                      yUnit=" %"
+                      refLines={[{ value: settings.reserveFraction * 100, label: `safety reserve ${Math.round(settings.reserveFraction * 100)} %` }]}
+                      markers={socMarkers}
+                      k={k}
+                      ariaLabel="Battery charge of every place"
+                    />
+                    <h3>
+                      Power in and out at <span style={{ color: activeColor }}>{active.letter}</span>
+                    </h3>
+                    <LineChart
+                      series={[
+                        { label: 'Solar panel output (W)', color: '#ffd166', values: active.result.generationW },
+                        { label: 'Power used (W)', color: '#ef6f6c', values: active.result.loadW, dashed: true },
+                      ]}
+                      stepH={active.result.stepS / 3600}
+                      yMin={0}
+                      yMax={Math.ceil(powerMax / 50) * 50}
+                      yUnit=" W"
+                      k={k}
+                      ariaLabel="Solar panel output and power used"
+                    />
+                  </>
                 )}
-              </section>
 
-              <section className="card">
-                <h2>Sources and model</h2>
-                <Sources data={activeData} result={active.result} />
-              </section>
-            </>
+                {tab === 'map' && (
+                  <>
+                    <p className="explain">Every spot within {activeData.map ? activeData.map.grid.halfSizeM / 1000 : 3} km. Brighter means more time in view. Click a spot to read it.</p>
+                    {activeData.map ? (
+                      <SiteMap
+                        map={activeData.map}
+                        sites={loaded.sites.sites}
+                        selected={activeCell ?? undefined}
+                        onSimulate={(siteId, row, col) => setActiveSite(cellId(siteId, row, col))}
+                        busy={chosenLoading ? (chosenOutcome?.error ?? 'Loading…') : undefined}
+                      />
+                    ) : (
+                      <p className="muted">
+                        No area map here{activeData.site.category === 'contrast' ? ': this is a comparison point away from the pole' : ''}. Pick a south-pole site to see one.
+                      </p>
+                    )}
+                  </>
+                )}
+
+                {tab === 'year' && (
+                  <>
+                    <p className="explain">Sunlight at the pole changes a lot with the season. One point per month.</p>
+                    {activeData.season ? (
+                      <SeasonChart season={activeData.season} missionStartUtc={active.result.alignedStartUtc} />
+                    ) : (
+                      <p className="muted">No one-year summary for this place.</p>
+                    )}
+                  </>
+                )}
+
+                {tab === 'sources' && (
+                  <>
+                    <Sources data={activeData} result={active.result} />
+                  </>
+                )}
+              </div>
+            </section>
           )}
         </main>
       </div>

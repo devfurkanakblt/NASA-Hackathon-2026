@@ -88,7 +88,8 @@ export function SiteMap({ map, sites, selected, onSimulate, busy }: Props) {
     setPicked((c) => cellAt(map, Math.min(ny - 1, Math.max(0, c.row + d[0])), Math.min(nx - 1, Math.max(0, c.col + d[1]))))
   }
   const px = (c: MapCell) => ({ left: (c.col + 0.5) * cellPx, top: (ny - 1 - c.row + 0.5) * cellPx })
-  const periodLabel = `${map.coverage.startUtc.slice(0, 10)} – ${map.coverage.endUtc.slice(0, 10)}`
+  const day = (iso: string) => new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
+  const periodLabel = `${day(map.coverage.startUtc)} to ${day(map.coverage.endUtc)}`
   const legendStops = rampFor(layer).map((_, i, all) => rgbCss(rampColor(all, i / (all.length - 1))))
 
   return (
@@ -155,7 +156,7 @@ export function SiteMap({ map, sites, selected, onSimulate, busy }: Props) {
           </div>
 
           <dl className="sitemap__cell" aria-live="polite">
-            <dt>Selected cell</dt>
+            <dt>Spot</dt>
             <dd>
               {offset(picked)}
               {picked.distanceM > 0 && <span className="muted"> ({fmtM(picked.distanceM)} from {map.siteId})</span>}
@@ -184,19 +185,9 @@ export function SiteMap({ map, sites, selected, onSimulate, busy }: Props) {
               {busy ?? (isSimulated ? 'Simulated in the active scenario' : 'Simulate this point')}
             </button>
           )}
-          <p className="small muted">
-            Summary value for {periodLabel} (UTC). “Simulate this point” runs the full mission at the cell with its 1° terrain horizon. Cells every {spacingM} m; terrain horizon computed for
-            each cell from the LOLA DEMs.
-          </p>
+          <p className="small muted">Share of time from {periodLabel}. Spots every {spacingM} m. “Simulate this point” runs the full mission there (1° skyline).</p>
         </div>
       </div>
-      {map.warnings && map.warnings.length > 0 && (
-        <ul className="small muted sitemap__warnings">
-          {map.warnings.map((w) => (
-            <li key={w}>Data note: {w}</li>
-          ))}
-        </ul>
-      )}
     </div>
   )
 }

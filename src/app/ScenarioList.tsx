@@ -30,7 +30,7 @@ export function ScenarioList({ sites, scenarios, outcomes, colors, activeKey, on
   const siteIds = new Set(sites.sites.map((s) => s.id))
   const polar = sites.sites.filter((s) => s.category !== 'contrast')
   const contrast = sites.sites.filter((s) => s.category === 'contrast')
-  const { startUtc: minUtc, endUtc: maxUtc } = sites.coverage
+  const { startUtc: minUtc } = sites.coverage
   const usePoint = () => {
     const target = scenarios.find((s) => s.key === activeKey) ?? scenarios[0]
     const r = snap(Number(lat.trim() === '' ? NaN : lat), Number(lon.trim() === '' ? NaN : lon))
@@ -40,6 +40,10 @@ export function ScenarioList({ sites, scenarios, outcomes, colors, activeKey, on
     setSnapMsg({ ok: true, text: `Snapped to ${id} (${Math.round(r.distanceM)} m away).` })
   }
   const update = (key: string, patch: Partial<Scenario>) => onChange(scenarios.map((s) => (s.key === key ? { ...s, ...patch } : s)))
+  const updateStartDate = (scenario: Scenario, value: string) => {
+    const iso = fromInputUtc(value)
+    if (iso && iso !== scenario.startUtc) update(scenario.key, { startUtc: iso })
+  }
 
   return (
     <div className="scenarios">
@@ -49,11 +53,11 @@ export function ScenarioList({ sites, scenarios, outcomes, colors, activeKey, on
         return (
           <div key={s.key} className={`scenario${s.key === activeKey ? ' is-active' : ''}`} style={{ borderColor: s.key === activeKey ? colors[i] : undefined }}>
             <div className="scenario__head">
-              <button type="button" className="scenario__letter" style={{ background: colors[i] }} onClick={() => onActivate(s.key)} title="Show this scenario in the panorama, 3D view and power chart">
+              <button type="button" className="scenario__letter" style={{ background: colors[i] }} onClick={() => onActivate(s.key)} title="Show this place in the charts below">
                 {LETTERS[i]}
               </button>
               <select aria-label={`Scenario ${LETTERS[i]} site`} value={s.siteId} onChange={(e) => update(s.key, { siteId: e.target.value })}>
-                <optgroup label="South polar sites">
+                <optgroup label="South-pole landing spots">
                   {polar.map((site) => (
                     <option key={site.id} value={site.id}>
                       {siteTitle(site)}
@@ -66,7 +70,7 @@ export function ScenarioList({ sites, scenarios, outcomes, colors, activeKey, on
                   </optgroup>
                 )}
                 {contrast.length > 0 && (
-                  <optgroup label="Contrast points (educational comparison)">
+                  <optgroup label="For comparison: away from the pole">
                     {contrast.map((site) => (
                       <option key={site.id} value={site.id}>
                         {siteTitle(site)}
@@ -83,17 +87,15 @@ export function ScenarioList({ sites, scenarios, outcomes, colors, activeKey, on
             </div>
             <div className="scenario__time">
               <label>
-                <span>Start (UTC)</span>
+                <span>Landing date (UTC)</span>
                 <input
                   type="datetime-local"
                   step={600}
                   value={toInputUtc(s.startUtc)}
                   min={toInputUtc(minUtc)}
                   max={toInputUtc(maxStartFor(s.siteId))}
-                  onChange={(e) => {
-                    const iso = fromInputUtc(e.target.value)
-                    if (iso) update(s.key, { startUtc: iso })
-                  }}
+                  onInput={(e) => updateStartDate(s, e.currentTarget.value)}
+                  onChange={(e) => updateStartDate(s, e.currentTarget.value)}
                 />
               </label>
               <span className="scenario__shift">
@@ -132,7 +134,7 @@ export function ScenarioList({ sites, scenarios, outcomes, colors, activeKey, on
             onActivate(copy.key)
           }}
         >
-          + Copy scenario to compare (max {MAX_SCENARIOS})
+          + Add another place or date (up to {MAX_SCENARIOS})
         </button>
       )}
       <div className="scenario__point">
@@ -150,9 +152,7 @@ export function ScenarioList({ sites, scenarios, outcomes, colors, activeKey, on
           </p>
         )}
       </div>
-      <p className="muted small">
-        Start dates from {minUtc.slice(0, 10)} to 2027-11-01 UTC in 10-minute steps. Dates after {maxUtc.slice(0, 10)} and map points load a one-year file for that site first.
-      </p>
+      <p className="muted small">Dates up to 2027-11-01 UTC. Later dates and map points load extra data for that site first.</p>
     </div>
   )
 }
