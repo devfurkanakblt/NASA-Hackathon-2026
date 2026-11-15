@@ -38,35 +38,41 @@ def month_starts(start=SEASON_START, stop=SEASON_STOP):
     t, t1, out = _dt(start), _dt(stop), []
     while t < t1:
         out.append(t)
-        t = t.replace(year=t.year + (t.month == 12), month=t.month % 12 + 1)
+        t = t.replace(day=1, year=t.year + (t.month == 12), month=t.month % 12 + 1)
     return out + [t1]
 
 
-def query_year(site_id, source="horizons"):
-    """Return {'sun': rows, 'earth': rows} for the season period (rows as in Horizons)."""
-    s = C.SITES[site_id]
-    eye = load_eye(site_id)
-    edges = month_starts()[::CHUNK_MONTHS]
-    if edges[-1] != _dt(SEASON_STOP):
-        edges.append(_dt(SEASON_STOP))
+def query_year(site_id, source="horizons", start=SEASON_START, stop=SEASON_STOP, lat=None, lon=None, eye=None):
+    """Return {'sun': rows, 'earth': rows} for start..stop (rows as in Horizons).
+
+    Defaults: the season period and the catalogue site's coordinate and eye (sites.json). A custom
+    point passes lat/lon/eye itself; start/stop must lie inside the season on the STEP_S grid.
+    """
+    s = C.SITES.get(site_id, {})
+    lat = s["lat"] if lat is None else lat
+    lon = s["lon"] if lon is None else lon
+    eye = load_eye(site_id) if eye is None else eye
+    t0, t1 = _dt(start), _dt(stop)
+    # Chunk edges come from the season's quarter starts, so the default call keeps its Horizons cache keys.
+    edges = [t0] + [m for m in month_starts(start, stop)[::CHUNK_MONTHS] if t0 < m < t1] + [t1]
     out = {}
     for body in ("sun", "earth"):
         rows = []
         for a, b in zip(edges[:-1], edges[1:]):
             if source == "horizons":
                 from . import ephemeris_horizons as E
-                part = E.query(body, s["lat"], s["lon"], eye, _iso(a), _iso(b), C.STEP_S)[1]
+                part = E.query(body, lat, lon, eye, _iso(a), _iso(b), C.STEP_S)[1]
             else:
                 from . import ephemeris_skyfield as SF
-                part = SF.query(body, s["lat"], s["lon"], eye, _iso(a), _iso(b), C.STEP_S)
+                part = SF.query(body, lat, lon, eye, _iso(a), _iso(b), C.STEP_S)
             if rows and rows[-1][0] == part[0][0]:
                 part = part[1:]  # chunk edges overlap by one sample
             rows += part
         out[body] = rows
-    n = int((_dt(SEASON_STOP) - _dt(SEASON_START)).total_seconds() // C.STEP_S) + 1
+    n = int((t1 - t0).total_seconds() // C.STEP_S) + 1
     for body, rows in out.items():
         assert len(rows) == n, (body, len(rows), n)
-        assert rows[0][0] == SEASON_START and rows[-1][0] == SEASON_STOP
+        assert rows[0][0] == start and rows[-1][0] == stop
     return out
 
 

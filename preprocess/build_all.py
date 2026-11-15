@@ -52,51 +52,79 @@ def horizon_params(site_id, far_range_m):
     if C.SITES[site_id].get("dem") == "ldem64":
         params["nearDem"] = "LDEM_64 (~474 m/px)"
         return params, GLOBAL_DEM_NOTE
+    if C.SITES[site_id].get("dem") == "regional80":
+        params["nearDem"] = "LDEM_80S_80MPP_ADJ (80 m/px)"
+        return params, "near field uses the regional 80 m DEM; ray sampling step is not terrain resolution"
     return params, None
 
 
-def build_site(site_id, args):
+def catalogue_horizon(lat_deg, lon_deg, eye_m, near, far, far_range_m):
+    """The 0.1 deg catalogue horizon: horizon.compute, then a recompute with halved ray steps,
+    keeping the finer value where the two disagree by more than REFINE_TOL_DEG.
+
+    Returns (elev_deg, dist_m, refined_mask, near_fallback_count, d) with `d` the coarse distances."""
+    d = Hz.distances(far_range=far_range_m)
+    elev, dist, fb = Hz.compute(lat_deg, lon_deg, eye_m, near, far, near.crs, d=d)
+    d_fine = Hz.distances(near_step=C.NEAR_STEP_M / 2, far_step=C.FAR_STEP_M / 2, far_range=far_range_m)
+    elev_f, dist_f, _ = Hz.compute(lat_deg, lon_deg, eye_m, near, far, near.crs, d=d_fine)
+    bad = np.abs(elev_f - elev) > REFINE_TOL_DEG
+    elev[bad], dist[bad] = elev_f[bad], dist_f[bad]
+    return elev, dist, bad, fb, d
+
+
+def horizon_warnings(lat_deg, lon_deg, eye_m, far, crs, elev, d, fb, far_range_m):
+    """Near-field fallback and far-terrain coverage warnings of a horizon.
+    Returns (warnings, n_rays_leaving, affected_az)."""
+    hw = []
+    if fb:
+        hw.append(f"{fb} near-field samples (<= {C.NEAR_RANGE_M:.0f} m) used the 80 m DEM")
+    n_leave, affected = Hz.coverage_check(lat_deg, lon_deg, eye_m, far, crs, elev, d=d)
+    if n_leave:
+        hw.append(f"{n_leave} of {elev.size} rays leave the 80 m DEM (latitude limit -80 deg) before "
+                  f"{far_range_m / 1000:.0f} km; terrain beyond could raise the horizon at "
+                  f"{len(affected)} azimuths (bound: {C.MAX_LUNAR_HEIGHT_M / 1000:.1f} km high terrain)")
+    return hw, n_leave, affected
+
+
+def build_site(site_id, args, out=None):
+    """Build one site's files into `out` (default public/data/<site_id>); return its sites.json entry."""
     t0 = time.time()
     s = C.SITES[site_id]
-    out = C.OUT_DIR / site_id
+    out = out or C.OUT_DIR / site_id
     near, far, xy = load_site_dems(site_id, far_range_m=args.far_range)
     z0, warnings = surface_elevation(near, far, xy)
+    z0 = round(z0, 2)  # same published observer used by all ephemeris and horizon products
     eye = z0 + C.OBSERVER_HEIGHT_M
     print(f"[{site_id}] surface {z0:.1f} m, eye {eye:.1f} m")
 
     if not args.skip_ephemeris:
         W.write(out / "ephemeris.json", ephemeris(site_id, eye, args.source))
 
-    d = Hz.distances(far_range=args.far_range)
-    elev, dist, fb = Hz.compute(s["lat"], s["lon"], eye, near, far, near.crs, d=d)
-    # Refinement: recompute with halved steps; keep the finer value where they disagree.
-    d_fine = Hz.distances(near_step=C.NEAR_STEP_M / 2, far_step=C.FAR_STEP_M / 2, far_range=args.far_range)
-    elev_f, dist_f, _ = Hz.compute(s["lat"], s["lon"], eye, near, far, near.crs, d=d_fine)
-    bad = np.abs(elev_f - elev) > REFINE_TOL_DEG
-    elev[bad], dist[bad] = elev_f[bad], dist_f[bad]
+    elev, dist, bad, fb, d = catalogue_horizon(s["lat"], s["lon"], eye, near, far, args.far_range)
     refined_az = [round(i * C.AZ_STEP_DEG, 1) for i in np.flatnonzero(bad)]
     print(f"  refined {bad.sum()} / {bad.size} azimuths with halved steps")
-    hw = []
-    if fb:
-        hw.append(f"{fb} near-field samples (<= {C.NEAR_RANGE_M:.0f} m) used the 80 m DEM")
-    n_leave, affected = Hz.coverage_check(s["lat"], s["lon"], eye, far, near.crs, elev, d=d)
-    if n_leave:
-        hw.append(f"{n_leave} of {elev.size} rays leave the 80 m DEM (latitude limit -80 deg) before "
-                  f"{args.far_range / 1000:.0f} km; terrain beyond could raise the horizon at "
-                  f"{len(affected)} azimuths (bound: {C.MAX_LUNAR_HEIGHT_M / 1000:.1f} km high terrain)")
+    hw, n_leave, affected = horizon_warnings(s["lat"], s["lon"], eye, far, near.crs, elev, d, fb, args.far_range)
     print(f"  coverage: {n_leave} rays leave the DEM, {len(affected)} azimuths possibly affected")
     params, dem_note = horizon_params(site_id, args.far_range)
     if dem_note:
         hw.append(dem_note)
     doc = W.horizon_doc(site_id, elev, dist, params, hw)
+    doc["observer"] = {"latDeg": s["lat"], "lonDeg": s["lon"], "eyeM": eye}
     doc["refinedAzDeg"] = refined_az
     if affected:
         doc["coverageLimitedAzDeg"] = affected
     W.write(out / "horizon.json", doc)
     print(f"  horizon: min {elev.min():.3f}, max {elev.max():.3f} deg")
 
-    z, miss = T.build(s["lat"], s["lon"], eye, near, far, near.crs)
-    W.write(out / "terrain.json", W.terrain_doc(site_id, z, 10_000.0))
+    for size in (10_000.0, 4_000.0, 2_000.0, 1_000.0, 500.0):
+        z, miss = T.build(s["lat"], s["lon"], eye, near, far, near.crs, size_m=size)
+        if np.isfinite(z).all():
+            break
+    else:
+        raise ValueError(f"{site_id}: missing DEM around observer; no finite terrain display can be built")
+    if size != 10_000.0:
+        warnings.append(f"3D terrain display is limited to {size:g} m width by available DEM coverage; horizon coverage warnings still apply")
+    W.write(out / "terrain.json", W.terrain_doc(site_id, z, size))
     if miss:
         warnings.append(f"terrain grid: {miss} samples from 80 m DEM")
     print(f"  done in {time.time() - t0:.0f} s")

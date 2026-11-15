@@ -1,1 +1,1 @@
-{"version":1,"siteId":"Apollo11","year":{"file":"year.bin","startUtc":"2026-11-01T00:00:00Z","stepS":600,"count":52561,"source":"jpl-horizons"}}
+{"version":1,"extendedSchema":2,"siteId":"Apollo11","year":{"file":"year.bin","sha256":"9f3b7e24eeea3399c81ec3a682821621955e2ce320939f316aa6c07aa8e12810","startUtc":"2026-11-01T00:00:00Z","endUtc":"2027-11-01T00:00:00Z","stepS":600,"count":52561,"source":"jpl-horizons","observer":{"latDeg":0.67416,"lonDeg":23.47314,"eyeM":-1923.6},"fields":["sun.azDeg","sun.elDeg","sun.distanceM","earth.azDeg","earth.elDeg","earth.distanceM"]}}

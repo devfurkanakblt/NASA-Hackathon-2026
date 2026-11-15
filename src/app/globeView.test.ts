@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { GLOBE_CAMERA_MAX_LAT_DEG, LABEL_FRAME_PAD, keepLabelInFrame, labelOffset, southernCameraPosition } from './globeView.ts'
+import { GLOBE_CAMERA_MAX_LAT_DEG, LABEL_FRAME_PAD, isOnGlobe, keepLabelInFrame, labelOffset, placeGroups, southernCameraPosition } from './globeView.ts'
 
 const lat = ([x, y, z]: [number, number, number]) => Math.asin(y / Math.hypot(x, y, z)) * 180 / Math.PI
 
@@ -54,5 +54,25 @@ describe('keepLabelInFrame', () => {
   it('centres a label wider than the frame', () => {
     const shift = keepLabelInFrame({ x: 0, y: 250 }, { x: 0, y: 0 }, { w: 600, h: 40 }, frame)
     expect(shift.x).toBe(250)
+  })
+})
+
+describe('places on the globe and in the list', () => {
+  const sites = [
+    { id: 'Site01', latDeg: -89.5 },
+    { id: 'Apollo11', latDeg: 0.67, category: 'contrast' },
+    { id: 'CE5', latDeg: 43.1, category: 'contrast' },
+    { id: 'IM2', latDeg: -84.8, category: 'mission' },
+  ]
+
+  it('draws the southern hemisphere and its 3° margin only', () => {
+    expect(sites.filter(isOnGlobe).map((s) => s.id)).toEqual(['Site01', 'Apollo11', 'IM2'])
+  })
+
+  it('lists polar places first and keeps every place in exactly one group', () => {
+    const groups = placeGroups(sites)
+    expect(groups.map((g) => g.id)).toEqual(['pole', 'elsewhere'])
+    expect(groups[0].sites.map((s) => s.id)).toEqual(['Site01', 'IM2'])
+    expect(groups.flatMap((g) => g.sites)).toHaveLength(sites.length)
   })
 })

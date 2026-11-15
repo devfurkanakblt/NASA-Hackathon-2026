@@ -1,7 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import type { LoadedData, SiteData, SiteEntry } from '../data/contract.ts'
-import { loadCells, loadYear } from '../data/extended.ts'
+import { loadCells, loadHeader, loadYear } from '../data/extended.ts'
 import { loadAllData } from '../data/load.ts'
 import { MissionScene3D } from '../scene3d/index.ts'
 import { SceneMissionControls } from '../scene3d/SceneMissionControls.tsx'
@@ -27,6 +27,7 @@ import type { ExtendedState } from './extendedSites.ts'
 import { cellAt } from './mapGrid.ts'
 import { defaultScenarios, evaluateAll, isEvaluated, newKey, targetScenarioKey } from './scenarios.ts'
 import type { Scenario } from './scenarios.ts'
+import { PlaceList } from './PlaceList.tsx'
 import { ResearchView } from './ResearchView.tsx'
 import { SettingsForm } from './SettingsForm.tsx'
 import { decodeShare, encodeShare } from './share.ts'
@@ -201,10 +202,12 @@ export function MissionApp() {
     const bases = scenarios.map((s) => parseCellId(s.siteId)?.siteId ?? s.siteId).filter((id) => id in loaded.bySite)
     // The Research tab compares every catalogue place on the chosen dates: past the two-month
     // period that needs each place's one-year series, so fetch them only then (≈1.3 MB each).
+    // A south-polar place only gets south-polar alternatives (research.ts), so only those load.
     const focus = scenarios.find((s) => s.key === activeKey) ?? scenarios[0]
-    const research = tab === 'research' && focus
-      && needsYear(parseCellId(focus.siteId)?.siteId ?? focus.siteId, focus.startUtc, loaded.sites.coverage.endUtc, settings.durationDays)
-      ? Object.keys(loaded.bySite) : []
+    const focusBase = focus ? parseCellId(focus.siteId)?.siteId ?? focus.siteId : ''
+    const contrast = loaded.bySite[focusBase]?.site.category === 'contrast'
+    const research = tab === 'research' && focus && needsYear(focusBase, focus.startUtc, loaded.sites.coverage.endUtc, settings.durationDays)
+      ? Object.keys(loaded.bySite).filter((id) => contrast || loaded.bySite[id].site.category !== 'contrast') : []
     return { years: [...new Set([...need.years, ...bases, ...research])], cells: need.cells }
   }, [loaded, scenarios, settings.durationDays, tab, activeKey])
   const wantedKey = `${wanted.years.join(',')}|${wanted.cells.join(',')}`
@@ -223,6 +226,7 @@ export function MissionApp() {
     }
     for (const id of cells) {
       mark('cells', id, 'loading')
+      loadHeader(id).then((h) => setExt((e) => ({ ...e, headers: { ...e.headers, [id]: h } })), () => mark('cells', id, 'error'))
       loadCells(id).then(
         (c) => mark('cells', id, c),
         () => mark('cells', id, 'error'),
@@ -466,6 +470,9 @@ export function MissionApp() {
       ))}
     </div>
   )
+  const togglePlace = (site: SiteEntry) => updateLocations(picked.some(s => s.siteId === site.id)
+    ? picked.filter(s => s.siteId !== site.id)
+    : picked.length < 3 ? [...picked, { key: newKey(), siteId: site.id, startUtc: scenarios[0]?.startUtc ?? loaded.sites.coverage.startUtc }] : picked)
   const updateLocations = (next: Scenario[]) => {
     setPicked(next)
     setScenarios(next)
@@ -489,24 +496,23 @@ export function MissionApp() {
           <main className="app__main">
             <section className="card moon-picker" data-mode={flight ? 'flight' : simulationStage} aria-hidden={simulationStage !== 'pick' && !flight || undefined} inert={simulationStage !== 'pick' && !flight || undefined} data-tour="places">
               <div className="card__head"><div><h2>Choose places on the Moon</h2>
-                <p className="card__tagline">Click a place name on the globe to add it. You can compare up to three places.</p></div></div>
+                <p className="card__tagline">Click a place on the globe or in the list to add it. You can compare up to three places.</p></div></div>
               <div className="moon-picker__globe"><Suspense fallback={<p role="status">Loading the Moon&hellip;</p>}>
                 <MoonGlobe active={simulationStage === 'pick' || !!flight} flight={flight ?? undefined} onComplete={() => { if (flight) { setActiveKey(flight.targetKey); setFlight(null) } }} sites={loaded.sites.sites} selected={(flight ? scenarios : picked).flatMap((s, i) => {
                   const site = shownBySite[s.siteId]?.site ?? loaded.sites.sites.find(site => site.id === s.siteId)
                   return site ? [{ key: s.key, site, letter: String.fromCharCode(65 + i), color: COLORS[i] }] : []
-                })} onSelect={(site: SiteEntry) => updateLocations(picked.some(s => s.siteId === site.id)
-                  ? picked.filter(s => s.siteId !== site.id)
-                  : picked.length < 3 ? [...picked, { key: newKey(), siteId: site.id, startUtc: scenarios[0]?.startUtc ?? loaded.sites.coverage.startUtc }] : picked)} />
+                })} onSelect={togglePlace} />
               </Suspense></div>
               {flight && <p className="sim__flight-label" role="status">{flight.from.name} <span aria-hidden="true">&rarr;</span> {flight.to.name}</p>}
               <div className="moon-picker__selection" aria-live="polite">
-                {picked.length === 0 && <p className="muted">No place chosen yet. Click a name on the globe.</p>}
+                {picked.length === 0 && <p className="muted">No place chosen yet. Click a dot on the globe or a name in the list.</p>}
                 {picked.map((s, i) => <div key={s.key} className="moon-choice" style={{ '--place-color': COLORS[i] } as CSSProperties}>
                   <span className="moon-choice__letter">{String.fromCharCode(65 + i)}</span>
                   <span>{placeTitle(s.siteId, shownBySite)}</span>
                   <button type="button" aria-label={`Remove ${placeTitle(s.siteId, loaded.bySite)}`} onClick={() => updateLocations(picked.filter(p => p.key !== s.key))}>&times;</button>
                 </div>)}
               </div>
+              {!flight && <PlaceList sites={loaded.sites.sites} chosen={picked.map(p => p.siteId)} colors={COLORS} onToggle={togglePlace} />}
               <div className="moon-picker__actions"><button type="button" className="primary" disabled={picked.length < 2} onClick={() => { setScenarios(picked); setActiveKey(picked[0].key); setPlaying(false); setStep(0); go('results') }}>Compare selected points</button><span className="muted small">{picked.length} / 3 locations</span>
                 <button type="button" className="primary" disabled={!picked.length || covered || !selectionReady} onClick={() => darken(() => {
                   setScenarios(picked); setActiveKey(picked[0].key); setStep(0); setSimulationStarted(true); setSimulationStage('watch')
@@ -776,8 +782,11 @@ export function MissionApp() {
                   {tab === 'year' && (
                     <>
                       <p className="explain">One point per month.</p>
-                      {activeData.season && !activeCell ? (
-                        <SeasonChart season={activeData.season} missionStartUtc={active.result.alignedStartUtc} />
+                      {activeData.season && (!activeCell || activeData.season.siteId === activeData.site.id) ? (
+                        <>
+                          {activeCell && <p className="muted">This map point’s own monthly summary (its 1° terrain horizon and re-projected ephemeris), not the catalogue centre’s.</p>}
+                          <SeasonChart season={activeData.season} missionStartUtc={active.result.alignedStartUtc} />
+                        </>
                       ) : (
                         <p className="muted">No monthly summary for this exact point. Mission results above use this point’s own horizon; the catalogue centre’s annual summary is not substituted.</p>
                       )}

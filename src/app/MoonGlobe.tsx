@@ -6,7 +6,7 @@ import { PolarMoonCap } from '../scene3d/PolarMoonCap.tsx'
 import { globeNearPlane } from '../scene3d/globeClip.ts'
 import { Vector3 } from 'three'
 import type { Mesh } from 'three'
-import { GLOBE_NORTH_EDGE_DEG, keepLabelInFrame, labelOffset, southernCameraPosition } from './globeView.ts'
+import { GLOBE_NORTH_EDGE_DEG, isOnGlobe, keepLabelInFrame, labelOffset, southernCameraPosition } from './globeView.ts'
 import { createMoonRoute, moonPosition, sampleMoonRoute } from './moonFlight.ts'
 import type { CSSProperties } from 'react'
 import type { SiteEntry } from '../data/contract.ts'
@@ -122,7 +122,10 @@ export default function MoonGlobe({ sites, selected, onSelect, flight, onComplet
   // drei <Html> roots created while the canvas is still being set up can come out empty
   // (the first place label went missing). Mount the labels on the first frame after setup.
   const [labelsReady, setLabelsReady] = useState(false)
-  const labelSites = flight ? selected.map(p => p.site) : sites
+  // With the full catalogue the pole is crowded: only chosen places carry a name label (at most
+  // three); the others are dots named on hover. Northern places are not drawn (picker list only).
+  const labelSites = useMemo(() => [...new Map(selected.map(p => [p.site.id, p.site])).values()].filter(isOnGlobe), [selected])
+  const dotSites = useMemo(() => (flight ? [] : sites.filter(site => isOnGlobe(site) && !selected.some(p => p.site.id === site.id))), [flight, sites, selected])
   const labelPositions = useMemo(() => labelSites.map(site => moonPosition(site).multiplyScalar(1.0007)), [labelSites])
   const labelRefs = useRef<LabelRefs[]>([])
   const { texture, failed } = useMoonSurfaceTexture()
@@ -134,7 +137,7 @@ export default function MoonGlobe({ sites, selected, onSelect, flight, onComplet
       {!flight && <SouthernView />}
       <ambientLight intensity={1.3} />
       <directionalLight position={[3, -4, 5]} intensity={2.5} />
-      {/* Places are chosen by name only; the surface itself is not clickable. */}
+      {/* Places are chosen by their dot or label only; the surface itself is not clickable. */}
       <group>
       {/* Southern hemisphere only (theta is measured from the north pole, +Y). */}
       <mesh ref={moon}><sphereGeometry args={[1, 128, 64, 0, Math.PI * 2, (90 - GLOBE_NORTH_EDGE_DEG) * Math.PI / 180, (90 + GLOBE_NORTH_EDGE_DEG) * Math.PI / 180]} />
@@ -162,6 +165,13 @@ export default function MoonGlobe({ sites, selected, onSelect, flight, onComplet
           </Html>
         </group>
       })}
+      {labelsReady && dotSites.map(site => <group key={site.id} position={moonPosition(site).multiplyScalar(1.0007)}>
+        <Html center occlude={[moon]} zIndexRange={[19, 0]}>
+          <button type="button" className="moon-dot" onClick={() => onSelect?.(site)} aria-label={`Add ${site.name} to the comparison`}>
+            <span className="moon-dot__name" aria-hidden="true">{site.name}</span>
+          </button>
+        </Html>
+      </group>)}
       {selected.filter(p => !sites.some(s => s.id === p.site.id)).map(p => <group key={p.key} position={moonPosition(p.site).multiplyScalar(1.001)}>
         <mesh><sphereGeometry args={[.00004, 10, 10]} /><meshBasicMaterial color={p.color} depthTest={false} /></mesh>
         <Html center occlude={[moon]} style={{ pointerEvents: 'none' }}><span style={{ color: p.color, background: '#10141c', padding: 4 }}>{p.letter}</span></Html>
@@ -169,7 +179,7 @@ export default function MoonGlobe({ sites, selected, onSelect, flight, onComplet
       {flight && onComplete ? <FlightCamera flight={flight} onComplete={onComplete} /> : <OrbitControls makeDefault enablePan={false} minDistance={1.001} maxDistance={4} enableDamping dampingFactor={.12} />}
     </Canvas>
     {!flight && <button type="button" style={{ position: 'absolute', left: 12, bottom: 50, zIndex: 25 }} onClick={() => setPoleRequest(n => n + 1)}>Focus south pole</button>}
-    {!flight && <span className="moon-globe__hint">Southern hemisphere · Click a name to add or remove it (up to three)</span>}
+    {!flight && <span className="moon-globe__hint">Southern hemisphere · Click a dot to add a place</span>}
     <span className="moon-globe__credit">{texture ? 'NASA/LROC WAC archive · Catalogue coordinates' : failed ? 'Image unavailable · Untextured catalogue locator' : 'Loading NASA/LROC imagery · Untextured globe'}</span>
   </div>
 }

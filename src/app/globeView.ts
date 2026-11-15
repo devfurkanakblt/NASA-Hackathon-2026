@@ -52,3 +52,21 @@ export function keepLabelInFrame(anchor: { x: number; y: number }, pin: { x: num
     y: clamp(cy, pad.top + label.h / 2, frame.h - pad.bottom - label.h / 2) - cy,
   }
 }
+
+/** True when a place lies on the drawn southern hemisphere (northern places are listed, not drawn). */
+export function isOnGlobe(site: { latDeg: number }): boolean {
+  return site.latDeg <= GLOBE_NORTH_EDGE_DEG
+}
+
+/**
+ * Places for the picker list, in catalogue order: the south-polar places, then the comparison
+ * places elsewhere on the Moon (`category: 'contrast'`, the same split the research
+ * alternatives use).
+ */
+export function placeGroups<T extends { category?: string }>(sites: T[]): { id: 'pole' | 'elsewhere'; title: string; sites: T[] }[] {
+  const groups = [
+    { id: 'pole' as const, title: 'South pole', sites: sites.filter((s) => s.category !== 'contrast') },
+    { id: 'elsewhere' as const, title: 'Elsewhere on the Moon, for comparison', sites: sites.filter((s) => s.category === 'contrast') },
+  ]
+  return groups.filter((g) => g.sites.length > 0)
+}

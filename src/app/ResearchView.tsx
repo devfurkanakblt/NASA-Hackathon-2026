@@ -55,6 +55,9 @@ export function ResearchView({ data, result, startUtc, settings, catalogue, reso
     let missing = 0
     let waiting = 0
     for (const id of Object.keys(catalogue)) {
+      // A south-polar place only gets south-polar alternatives (alternativesFor), and only
+      // those places' one-year series are fetched, so the others are not waited for.
+      if (selected.region === 'polar' && catalogue[id].site.category === 'contrast') continue
       const resolved = resolveCatalogue(id, startUtc)
       if ('loading' in resolved) { waiting++; continue }
       if ('error' in resolved) { missing++; continue }
@@ -65,7 +68,7 @@ export function ResearchView({ data, result, startUtc, settings, catalogue, reso
       }
     }
     return { candidates: out, skipped: missing, loading: waiting }
-  }, [catalogue, resolveCatalogue, startUtc, settings, psrs])
+  }, [catalogue, resolveCatalogue, startUtc, settings, psrs, selected.region])
 
   const assessed = RESEARCH_TYPES.map((type) => ({ type, ...type.assess(selected) }))
   const suited = assessed.filter((a) => a.fit !== 'no')

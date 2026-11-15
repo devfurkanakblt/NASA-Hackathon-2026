@@ -37,7 +37,7 @@ describe('regional map', () => {
     expect(on.some((o) => o.site.id === 'Site04')).toBe(false)
   })
 
-  it('has a map for every polar site and none for the contrast points', () => {
+  it('has regional maps for the seven original regions; mission points do not imply map coverage', () => {
     for (const site of sites.sites) {
       const exists = (() => {
         try {
@@ -46,7 +46,7 @@ describe('regional map', () => {
           return false
         }
       })()
-      expect([site.id, exists]).toEqual([site.id, site.category !== 'contrast'])
+      expect([site.id, exists]).toEqual([site.id, ['Site01', 'Site04', 'Site04R', 'Site07', 'Site11', 'Site20', 'Site23'].includes(site.id)])
     }
   })
 

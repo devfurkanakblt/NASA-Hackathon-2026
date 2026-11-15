@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "frame": "south polar stereographic, R 1737400 m, x towards 90\u00b0 E, y towards 0\u00b0; heights relative to the sphere",
+  "heightEncoding": "int16 little-endian, 0.5 m units, row 0 = max y (north edge of the map), column 0 = min x",
+  "lightEncoding": "R = sqrt(clamp(2 * max(n.sun, 0) * sunVisibility, 0, 1)); G = clamp(n.up, 0, 1)",
+  "sun": {
+    "subSolarLatDeg": -1.5,
+    "subSolarLonDeg": 60.0,
+    "discRadiusDeg": 0.2665
+  },
+  "crops": {
+    "near": {
+      "bounds": [
+        -21900.0,
+        -42100.0,
+        42100.0,
+        21900.0
+      ],
+      "sourcePixels": 2048,
+      "sourceSha256": "32a39a4372aae1ac9239084c06ded0f715e37a1634fe6797164456d8c26f274e",
+      "minM": -3275.401123046875,
+      "maxM": 1959.1146240234375,
+      "mesh-desktop": 512,
+      "light-desktop": 2048,
+      "mesh-mobile": 256,
+      "light-mobile": 1024
+    },
+    "far": {
+      "bounds": [
+        -180000.0,
+        -180000.0,
+        180000.0,
+        180000.0
+      ],
+      "sourcePixels": 1024,
+      "sourceSha256": "eb312955d2cc50682e41a76c42724d2a808d20eb2595d7014a79234c97407b46",
+      "minM": -5491.01416015625,
+      "maxM": 7019.39208984375,
+      "mesh-desktop": 256,
+      "light-desktop": 1024,
+      "mesh-mobile": 128,
+      "light-mobile": 512
+    }
+  },
+  "source": {
+    "product": "LRO_LOLA_DEM_SPole75_30mp_v04",
+    "service": "https://trek.nasa.gov/moon/trekarcgis/rest/services/LRO_LOLA_DEM_SPole75_30mp_v04/ImageServer",
+    "nativePixelM": 30,
+    "interpolation": "bilinear",
+    "credit": "NASA/GSFC LOLA team; Moon Trek (NASA JPL)"
+  },
+  "limits": "Display only. Baked light is for one fixed scene sun, not a mission date.",
+  "generatedUtc": "2026-11-15T14:42:20+00:00"
+}

@@ -1,4 +1,5 @@
-import type { LoadedData, Psr } from './contract.ts'
+import type { LoadedData, Provenance, Psr } from './contract.ts'
+import { validateCoverage } from './coverage.ts'
 import { validateTerrainNormal } from './terrainNormal.ts'
 import { validateLunarImagery } from './lunarImagery.ts'
 import { validateEarthOrientation, validateEphemeris, validateHorizon, validateMap, validateSeason, validateSites, validateTerrain } from './validate.ts'
@@ -87,9 +88,17 @@ export async function loadAllData(baseUrl = `${import.meta.env.BASE_URL}data`): 
       ...(localImagery && { imagery: { manifest: localImagery, textureUrl: `${root}/${localImagery.file}?v=${localImagery.sha256}` } }),
     } : terrain
     const displayFar = terrainFar && farImagery ? { ...terrainFar, imagery: { manifest: farImagery, textureUrl: `${root}/${farImagery.file}?v=${farImagery.sha256}` } } : terrainFar
-    return [site.id, { site, ephemeris, horizon, terrain: displayTerrain, terrainFar: displayFar, earthOrientation, visualWarnings, season, map }] as const
+    const provenance: Provenance = {
+      latDeg: site.latDeg, lonDeg: site.lonDeg, observerHeightM: site.observerHeightM,
+      eyeM: site.surfaceElevationM + site.observerHeightM,
+      horizonResolutionDeg: horizon.azStepDeg, horizonSource: 'catalogue',
+      ephemerisSource: ephemeris.source, dataHash: null, precision: 'catalogue', coverageWarnings: [...(horizon.warnings ?? [])],
+    }
+    return [site.id, { site, ephemeris, horizon, terrain: displayTerrain, terrainFar: displayFar, earthOrientation, visualWarnings, season, map, provenance }] as const
   }))
   const psrWarnings: string[] = []
   const psrs = await optionalVisual(`${base}/psr-south.json`, validatePsrs, psrWarnings)
-  return { sites, bySite: Object.fromEntries(entries), psrs }
+  // Optional: a missing or invalid coverage.json only removes the supported-area report.
+  const coverage = await optionalVisual(`${base}/coverage.json`, doc => validateCoverage(doc, `${base}/coverage.json`), [])
+  return { sites, bySite: Object.fromEntries(entries), psrs, ...(coverage && { coverage }) }
 }

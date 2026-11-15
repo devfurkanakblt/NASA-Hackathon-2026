@@ -210,7 +210,7 @@ def build(site_id, half_m=HALF_M, spacing_m=SPACING_M, workers=None):
 def main():
     ap = argparse.ArgumentParser()
     # contrast sites (global 474 m DEM) are too coarse for a 100-200 m map
-    ap.add_argument("--sites", nargs="+", default=[s for s in C.SITES if C.SITES[s].get("dem") != "ldem64"])
+    ap.add_argument("--sites", nargs="+", default=[s for s in C.SITES if C.SITES[s].get("dem") != "ldem64" and not C.SITES[s].get("program")])
     ap.add_argument("--half", type=float, default=HALF_M)
     ap.add_argument("--spacing", type=float, default=SPACING_M)
     ap.add_argument("--workers", type=int, default=None)

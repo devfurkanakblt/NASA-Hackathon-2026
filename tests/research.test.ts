@@ -80,9 +80,11 @@ describe('alternatives', () => {
 
   it('offers the ridge for water ice from Connecting Ridge, and drops the 32° crater wall', () => {
     const list = alternativesFor(type('ice'), metrics.Site01, all)
-    expect(list[0].metrics.siteId).toBe('Site04R')
-    expect(list.map((a) => a.metrics.siteId)).not.toContain('Site04')
-    expect(list[0].distanceKm).toBeGreaterThan(0)
+    // The 32-site catalogue adds Artemis research points; Nobile Rim 2 (PSR edge 1.6 km, no slope map) now ranks first.
+    const ids = list.map((a) => a.metrics.siteId)
+    expect(ids).toContain('Site04R')
+    expect(ids).not.toContain('Site04')
+    expect(list.every((a) => a.distanceKm > 0)).toBe(true)
   })
 
   it('keeps south-polar alternatives in the south polar region', () => {
@@ -130,8 +132,10 @@ describe('alternatives after the two-month period (one-year series)', () => {
     })
     expect(laterMetrics).toHaveLength(Object.keys(bySite).length)
     const site01 = laterMetrics.find((m) => m.siteId === 'Site01')!
-    const ice = alternativesFor(type('ice'), site01, laterMetrics)
-    expect(ice[0].metrics.siteId).toBe('Site04R') // place-only criterion: same answer on any date
+    // Water ice is a place-only criterion: March must give the same list as November.
+    const ids = (list: { metrics: { siteId: string } }[]) => list.map((a) => a.metrics.siteId)
+    expect(ids(alternativesFor(type('ice'), site01, laterMetrics))).toEqual(ids(alternativesFor(type('ice'), metrics.Site01, Object.values(metrics))))
+    expect(ids(alternativesFor(type('ice'), site01, laterMetrics))).toContain('Site04R')
     for (const t of RESEARCH_TYPES) {
       for (const a of alternativesFor(t, site01, laterMetrics, 9)) expect(a.fit).not.toBe('no')
     }
