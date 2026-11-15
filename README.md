@@ -80,8 +80,17 @@ For longer studies the repository includes a **2026–2029 Connecting Ridge pack
 `python -m preprocess.custom_point` generates other coordinates/periods with an explicit terrain
 choice: local 5 m (strict default), south-polar 80 m, or global ~474 m screening. Dates may be
 within 2000–2040, up to 1830 days per package. A hash-checking TypeScript importer and generation
-contract are ready for B/D; the current coordinate form still snaps to existing regional cells.
-See [preprocessing](preprocess/README.md) and [package contract](docs/data-contract.md).
+contract are wired into the engine and the searches.
+
+**Your own coordinate.** "Enter your own coordinates" (place picker and Simulation) accepts any
+point on the Moon. Inside the ±3 km polar maps the nearest map cell is used and its distance is
+shown; anywhere else the app computes that exact point in the browser: the Sun and Earth from the
+loaded JPL Horizons year series re-projected to the point (checked against five catalogue sites'
+own series, ≤ 0.003° elevation), and a 0.1° terrain horizon ray-marched out to 250 km on the
+global LOLA LDEM_64 tiles (`public/data/global-dem/`, 4 × 4 block mean, ~1.9 km/px,
+`python -m preprocess.global_tiles`). Such points are labelled **global screening estimate**:
+hills and crater walls smaller than a few km are not resolved. See
+[preprocessing](preprocess/README.md) and [package contract](docs/data-contract.md).
 
 ### Model
 

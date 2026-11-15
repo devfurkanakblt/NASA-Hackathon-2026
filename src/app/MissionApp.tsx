@@ -23,6 +23,9 @@ import { Landing } from './Landing.tsx'
 import { mapPointWhere, placeTitle } from './placeName.ts'
 import { errorMessage, fmtDuration, fmtHours, fmtUtc } from './format.ts'
 import { cellId, isKnownSiteId, parseCellId, resolveSiteData, sitesNeeded } from './extendedSites.ts'
+import { computeFreePoint, placeForCoordinate } from './freePointLoader.ts'
+import { parseFreePointId } from '../sim/freePoint.ts'
+import { CoordinateForm } from './CoordinateForm.tsx'
 import type { ExtendedState } from './extendedSites.ts'
 import { cellAt } from './mapGrid.ts'
 import { defaultScenarios, evaluateAll, isEvaluated, newKey, targetScenarioKey } from './scenarios.ts'
@@ -98,6 +101,7 @@ export function MissionApp() {
   const [preparedPickKey, setPreparedPickKey] = useState('')
   const [readyTerrain, setReadyTerrain] = useState<TerrainGrid | null>(null)
   const [picked, setPicked] = useState<Scenario[]>([])
+  const [pickMessage, setPickMessage] = useState<{ ok: boolean; text: string } | null>(null)
   const [flight, setFlight] = useState<(MoonFlight & { targetKey: string }) | null>(null)
   const [transitionId, setTransitionId] = useState(0)
   const transitionAction = useRef<(() => void) | null>(null)
@@ -196,16 +200,28 @@ export function MissionApp() {
   // Which per-site files to fetch: what the scenarios need now, plus (in the background) the
   // one-year series of every scenario's site so later dates open without waiting.
   const wanted = useMemo(() => {
-    if (!loaded) return { years: [] as string[], cells: [] as string[] }
-    const need = sitesNeeded(scenarios, loaded.sites.coverage.endUtc, settings.durationDays, loaded.bySite)
+    if (!loaded) return { years: [] as string[], cells: [] as string[], points: [] as string[] }
+    const all = [...scenarios, ...picked]
+    const need = sitesNeeded(all, loaded.sites.coverage.endUtc, settings.durationDays, loaded.bySite)
     const bases = scenarios.map((s) => parseCellId(s.siteId)?.siteId ?? s.siteId).filter((id) => id in loaded.bySite)
-    return { years: [...new Set([...need.years, ...bases])], cells: need.cells }
-  }, [loaded, scenarios, settings.durationDays])
-  const wantedKey = `${wanted.years.join(',')}|${wanted.cells.join(',')}`
+    return { years: [...new Set([...need.years, ...bases])], cells: need.cells, points: need.points }
+  }, [loaded, scenarios, picked, settings.durationDays])
+  const wantedKey = `${wanted.years.join(',')}|${wanted.cells.join(',')}|${wanted.points.join(',')}`
   useEffect(() => {
     const years = wanted.years.filter((id) => ext.years[id] === undefined)
     const cells = wanted.cells.filter((id) => ext.cells[id] === undefined)
-    if (years.length === 0 && cells.length === 0) return
+    const points = wanted.points.filter((id) => ext.points?.[id] === undefined)
+    if (years.length === 0 && cells.length === 0 && points.length === 0) return
+    for (const id of points) {
+      setExt((e) => ({ ...e, points: { ...e.points, [id]: 'loading' } }))
+      computeFreePoint(id, loaded!.bySite).then(
+        (d) => setExt((e) => ({ ...e, points: { ...e.points, [id]: d } })),
+        (err) => {
+          console.warn(`${id}:`, err)
+          setExt((e) => ({ ...e, points: { ...e.points, [id]: 'error' } }))
+        },
+      )
+    }
     const mark = (kind: 'years' | 'cells', id: string, value: ExtendedState['years'][string] | ExtendedState['cells'][string]) =>
       setExt((e) => ({ ...e, [kind]: { ...e[kind], [id]: value } }))
     for (const id of years) {
@@ -249,6 +265,7 @@ export function MissionApp() {
   const activeColor = COLORS[active ? outcomes.indexOf(active) : 0]
   const activeData = active?.data ?? null
   const activeCell = activeData ? parseCellId(activeData.site.id) : null
+  const activeFree = activeData ? parseFreePointId(activeData.site.id) : null
   // Map-point actions and the highlight stay on the chosen scenario, also while it loads.
   const chosenKey = targetScenarioKey(scenarios, activeKey)
   const chosenOutcome = outcomes.find((o) => o.scenario.key === chosenKey)
@@ -466,12 +483,27 @@ export function MissionApp() {
     setScenarios(next)
     setActiveKey(current => next.some(place => place.key === current) ? current : next[0]?.key ?? null)
   }
+  /** A typed or clicked coordinate: the best available place for it, added to the picked places. */
+  const addCoordinate = (lat: number, lon: number): { ok: boolean; text: string } => {
+    const choice = placeForCoordinate(lat, lon, loaded.bySite)
+    if ('error' in choice) return { ok: false, text: choice.error }
+    if (picked.some(p => p.siteId === choice.siteId)) return { ok: false, text: 'This point is already in the comparison.' }
+    if (picked.length >= 3) return { ok: false, text: 'Three places already chosen; remove one first.' }
+    updateLocations([...picked, { key: newKey(), siteId: choice.siteId, startUtc: scenarios[0]?.startUtc ?? loaded.sites.coverage.startUtc }])
+    return { ok: true, text: choice.message }
+  }
 
   const missionControls = <SceneMissionControls
     sites={loaded.sites} scenarios={scenarios} chosenKey={chosenKey}
     durationDays={settings.durationDays} endUtc={maxStartFor(chosenScenario?.siteId ?? loaded.sites.sites[0].id)}
     onChoose={key => { setPlaying(false); setStep(0); setActiveKey(key) }} onPatch={patchSceneScenario}
     onDuration={durationDays => { setPlaying(false); setStep(0); setSettings(previous => ({ ...previous, durationDays })) }}
+    onCoordinate={(lat, lon) => {
+      const choice = placeForCoordinate(lat, lon, loaded.bySite)
+      if ('error' in choice) return choice.error
+      patchSceneScenario({ siteId: choice.siteId })
+      return choice.message
+    }}
     onCopy={() => { if (chosenScenario && scenarios.length < 3) { const copy = { ...chosenScenario, key: newKey() }; setScenarios([...scenarios, copy]); setActiveKey(copy.key); setPlaying(false); setStep(0) } }} />
 
   return (
@@ -484,15 +516,21 @@ export function MissionApp() {
           <main className="app__main">
             <section className="card moon-picker" data-mode={flight ? 'flight' : simulationStage} aria-hidden={simulationStage !== 'pick' && !flight || undefined} inert={simulationStage !== 'pick' && !flight || undefined} data-tour="places">
               <div className="card__head"><div><h2>Choose places on the Moon</h2>
-                <p className="card__tagline">Click a place name on the globe to add it. You can compare up to three places.</p></div></div>
+                <p className="card__tagline">Click a place name, or anywhere on the globe, to add it, or enter coordinates below. You can compare up to three places.</p></div></div>
               <div className="moon-picker__globe"><Suspense fallback={<p role="status">Loading the Moon&hellip;</p>}>
                 <MoonGlobe active={simulationStage === 'pick' || !!flight} flight={flight ?? undefined} onComplete={() => { if (flight) { setActiveKey(flight.targetKey); setFlight(null) } }} sites={loaded.sites.sites} selected={(flight ? scenarios : picked).flatMap((s, i) => {
                   const site = shownBySite[s.siteId]?.site ?? loaded.sites.sites.find(site => site.id === s.siteId)
                   return site ? [{ key: s.key, site, letter: String.fromCharCode(65 + i), color: COLORS[i] }] : []
                 })} onSelect={(site: SiteEntry) => updateLocations(picked.some(s => s.siteId === site.id)
                   ? picked.filter(s => s.siteId !== site.id)
-                  : picked.length < 3 ? [...picked, { key: newKey(), siteId: site.id, startUtc: scenarios[0]?.startUtc ?? loaded.sites.coverage.startUtc }] : picked)} />
+                  : picked.length < 3 ? [...picked, { key: newKey(), siteId: site.id, startUtc: scenarios[0]?.startUtc ?? loaded.sites.coverage.startUtc }] : picked)}
+                  onPickPoint={(lat, lon) => setPickMessage(addCoordinate(lat, lon))} />
               </Suspense></div>
+              <details className="moon-picker__coords">
+                <summary>Enter your own coordinates</summary>
+                <CoordinateForm action="Add point" disabled={picked.length >= 3} onUse={addCoordinate} />
+              </details>
+              {pickMessage && <p className={`small ${pickMessage.ok ? 'muted' : 'bad'}`} role="status">{pickMessage.text}</p>}
               {flight && <p className="sim__flight-label" role="status">{flight.from.name} <span aria-hidden="true">&rarr;</span> {flight.to.name}</p>}
               <div className="moon-picker__selection" aria-live="polite">
                 {picked.length === 0 && <p className="muted">No place chosen yet. Click a name on the globe.</p>}
@@ -535,9 +573,11 @@ export function MissionApp() {
               {active?.scenario.key === chosenKey && now && activeData && tracks ? (
                 <>
                   <SceneMissionSummary result={active.result} settings={settings} />
-                  {activeCell && activeData.map ? (
+                  {(activeCell && activeData.map) || activeFree ? (
                     <div data-tour="scene">
-                      <p className="muted">This grid point is {cellOffset(activeData.map, activeCell.row, activeCell.col)}. Its own 1° terrain horizon drives the calculation. A registered 3D patch is not available here; the chart shows this point's calculated visibility.</p>
+                      {activeCell && activeData.map
+                        ? <p className="muted">This grid point is {cellOffset(activeData.map, activeCell.row, activeCell.col)}. Its own 1° terrain horizon drives the calculation. A registered 3D patch is not available here; the chart shows this point's calculated visibility.</p>
+                        : <p className="muted">Your coordinate is computed in the browser: its own 0.1° terrain horizon from the global LOLA terrain (~1.9 km per pixel, out to 250 km) and the Sun and Earth seen from this exact point. A global screening estimate: small hills and crater walls are not resolved, and there is no 3D terrain patch here. The chart shows this point's calculated visibility.</p>}
                       <SkyVisibilityChart horizon={activeData.horizon} sun={tracks.sunPath} earth={tracks.earthPath} stepH={active.result.stepS / 3600} k={now.kk} />
                     </div>
                   ) : (
