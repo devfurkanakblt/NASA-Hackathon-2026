@@ -3,11 +3,14 @@
  * One-year ephemeris (`year.bin`) and per-cell horizons (`cells.bin`) on the real files:
  * the year series must reproduce the validated two-month series and the season table.
  */
-import { readFileSync } from 'node:fs'
+import { createHash } from 'node:crypto'
+import { existsSync, readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { EphemerisDoc, HorizonDoc, SeasonDoc, SiteData, SitesDoc } from '../src/data/contract.ts'
-import { cellHorizon, loadCells, loadYear, parseCells, parseYear, type ExtendedHeader } from '../src/data/extended.ts'
+import {
+  cellHorizon, loadCells, loadYear, parseCells, parseYear, SUPPORTED_EXTENDED_SCHEMA, validateExtendedHeader, type ExtendedHeader,
+} from '../src/data/extended.ts'
 import { CoverageError, DEFAULT_SETTINGS, evaluateScenario } from '../src/sim/evaluate.ts'
 import { marginSeries } from '../src/sim/visibility.ts'
 
@@ -20,6 +23,112 @@ const readBin = (path: string): ArrayBuffer => {
 const sites = read<SitesDoc>('sites.json')
 const year = (id: string): EphemerisDoc => parseYear(id, read<ExtendedHeader>(`${id}/extended.json`), readBin(`${id}/year.bin`))
 const wrap = (d: number) => ((((d + 180) % 360) + 360) % 360) - 180
+
+const FIELDS = ['sun.azDeg', 'sun.elDeg', 'sun.distanceM', 'earth.azDeg', 'earth.elDeg', 'earth.distanceM']
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function makeHeader(siteId: string, count: number, withCells = false): Record<string, any> {
+  const end = new Date(Date.UTC(2026, 10, 1) + (count - 1) * 600 * 1000).toISOString().replace('.000Z', 'Z')
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const h: Record<string, any> = {
+    version: 1,
+    extendedSchema: 2,
+    siteId,
+    year: {
+      file: 'year.bin', sha256: 'a'.repeat(64), startUtc: '2026-11-01T00:00:00Z', endUtc: end, stepS: 600, count, source: 'test',
+      observer: { latDeg: -89, lonDeg: 10, eyeM: 2 }, fields: [...FIELDS],
+    },
+  }
+  if (withCells) {
+    h.cells = {
+      file: 'cells.bin', sha256: 'b'.repeat(64), azStartDeg: 0, azStepDeg: 1, count: 360, coverageDeg: 360, unitDeg: 0.01,
+      horizonResolutionDeg: 1, n: 2, eyeM: [1, 2], grid: { nx: 2, ny: 1, spacingM: 100, halfSizeM: 100 },
+    }
+  }
+  return h
+}
+const issues = (h: unknown, id = 'Site01') => validateExtendedHeader(h, id)
+
+describe('validateExtendedHeader', () => {
+  const hdr = makeHeader('Site01', 3, true)
+  it('accepts a well-formed header', () => expect(issues(hdr)).toEqual([]))
+  it('exports the supported schema', () => expect(SUPPORTED_EXTENDED_SCHEMA).toBe(2))
+  it('rejects non-objects', () => expect(issues(null)[0]).toMatch(/Site01\/extended\.json/))
+  it('rejects a header from another site', () => expect(issues({ ...hdr, siteId: 'Site04' })).toContainEqual(expect.stringMatching(/siteId/)))
+  it('rejects an unsupported schema', () => expect(issues({ ...hdr, extendedSchema: 1 }).length).toBeGreaterThan(0))
+  it('names Site01/extended.json in every message', () => {
+    for (const m of issues({ ...hdr, extendedSchema: 1, siteId: 'x' })) expect(m).toContain('Site01/extended.json')
+  })
+  it('rejects stepS other than 600', () => expect(issues({ ...hdr, year: { ...hdr.year, stepS: 300 } })).toContainEqual(expect.stringMatching(/stepS/)))
+  it('rejects an unparsable startUtc', () => expect(issues({ ...hdr, year: { ...hdr.year, startUtc: 'soon' } })).toContainEqual(expect.stringMatching(/startUtc/)))
+  it('rejects endUtc other than start + (count-1)*stepS', () =>
+    expect(issues({ ...hdr, year: { ...hdr.year, endUtc: '2027-11-01T00:00:00Z' } })).toContainEqual(expect.stringMatching(/endUtc/)))
+  it('rejects a non-integer count', () => expect(issues({ ...hdr, year: { ...hdr.year, count: 2.5 } }).length).toBeGreaterThan(0))
+  it('rejects fields in another order', () => {
+    const f = [...FIELDS]
+    ;[f[0], f[1]] = [f[1], f[0]]
+    expect(issues({ ...hdr, year: { ...hdr.year, fields: f } })).toContainEqual(expect.stringMatching(/fields/))
+  })
+  it('rejects a bad sha256', () => expect(issues({ ...hdr, year: { ...hdr.year, sha256: 'xyz' } })).toContainEqual(expect.stringMatching(/sha256/)))
+  it('rejects cells whose azStepDeg*count is not 360', () =>
+    expect(issues({ ...hdr, cells: { ...hdr.cells, azStepDeg: 2 } })).toContainEqual(expect.stringMatching(/azStepDeg/)))
+  it('rejects cells whose azStartDeg is not 0', () =>
+    expect(issues({ ...hdr, cells: { ...hdr.cells, azStartDeg: 5 } })).toContainEqual(expect.stringMatching(/azStartDeg/)))
+  it('rejects eyeM of the wrong length', () =>
+    expect(issues({ ...hdr, cells: { ...hdr.cells, eyeM: [1] } })).toContainEqual(expect.stringMatching(/eyeM/)))
+  it('rejects a non-finite eyeM value', () =>
+    expect(issues({ ...hdr, cells: { ...hdr.cells, eyeM: [1, null] } })).toContainEqual(expect.stringMatching(/eyeM/)))
+  it('rejects a non-positive unitDeg', () => expect(issues({ ...hdr, cells: { ...hdr.cells, unitDeg: 0 } })).toContainEqual(expect.stringMatching(/unitDeg/)))
+  it('accepts a header without cells', () => expect(issues(makeHeader('Site01', 3))).toEqual([]))
+  it('the real Site01 header passes validation', () => expect(validateExtendedHeader(read('Site01/extended.json'), 'Site01')).toEqual([]))
+  it('every real header passes validation', () => {
+    for (const { id } of sites.sites) {
+      if (existsSync(DATA_DIR + `${id}/extended.json`)) expect(validateExtendedHeader(read(`${id}/extended.json`), id), id).toEqual([])
+    }
+  })
+})
+
+describe('strict binary parsing', () => {
+  const yh = makeHeader('Site01', 3) as unknown as ExtendedHeader
+  const yearBuf = (bad?: number) => {
+    const f = new Float32Array(18).fill(1)
+    if (bad !== undefined) f[7] = bad
+    return f.buffer
+  }
+  it('parseYear accepts a good buffer', () => expect(parseYear('Site01', yh, yearBuf()).count).toBe(3))
+  it('parseYear rejects NaN and names the file', () => expect(() => parseYear('Site01', yh, yearBuf(NaN))).toThrow(/Site01\/year\.bin.*finite/))
+  it('parseYear rejects Infinity', () => expect(() => parseYear('Site01', yh, yearBuf(Infinity))).toThrow(/Site01\/year\.bin.*finite/))
+  it('parseYear rejects a wrong byte length', () => expect(() => parseYear('Site01', yh, new ArrayBuffer(8))).toThrow(/Site01\/year\.bin/))
+  it('parseYear rejects an invalid header', () =>
+    expect(() => parseYear('Site01', { ...yh, extendedSchema: 1 } as unknown as ExtendedHeader, yearBuf())).toThrow(/Site01\/extended\.json/))
+  const ch = makeHeader('Site01', 3, true) as unknown as ExtendedHeader
+  const cellsBuf = (bad?: number) => {
+    const a = new Int16Array(2 * 360).fill(5)
+    if (bad !== undefined) a[100] = bad
+    return a.buffer
+  }
+  it('parseCells accepts a good buffer', () => expect(parseCells(ch, cellsBuf()).n).toBe(2))
+  it('parseCells rejects the int16 sentinel -32768', () => expect(() => parseCells(ch, cellsBuf(-32768))).toThrow(/Site01\/cells\.bin.*-32768/))
+  it('parseCells rejects a wrong byte length', () => expect(() => parseCells(ch, new ArrayBuffer(10))).toThrow(/Site01\/cells\.bin/))
+  it('parseCells rejects an invalid header', () =>
+    expect(() => parseCells({ ...ch, extendedSchema: 9 } as unknown as ExtendedHeader, cellsBuf())).toThrow(/Site01\/extended\.json/))
+})
+
+describe('sha256 of real binaries', () => {
+  it('matches extended.json for every year.bin and cells.bin', () => {
+    let checked = 0
+    for (const { id } of sites.sites) {
+      if (!existsSync(DATA_DIR + `${id}/extended.json`)) continue
+      const h = read<ExtendedHeader>(`${id}/extended.json`)
+      for (const part of [h.year, h.cells]) {
+        if (!part) continue
+        const digest = createHash('sha256').update(readFileSync(DATA_DIR + `${id}/${part.file}`)).digest('hex')
+        expect(digest, `${id}/${part.file}`).toBe(part.sha256)
+        checked++
+      }
+    }
+    expect(checked).toBeGreaterThan(0)
+  })
+})
 
 describe('year.bin', () => {
   it('year series reproduces ephemeris.json over the two months', () => {
@@ -104,7 +213,7 @@ describe('cells.bin', () => {
 describe('loaders', () => {
   afterEach(() => vi.unstubAllGlobals())
 
-  const header = { version: 1, siteId: 'X', year: { file: 'year.bin', startUtc: '2026-11-01T00:00:00Z', stepS: 600, count: 2, source: 'test' } }
+  const header = makeHeader('X', 2)
   const yearBuf = new Float32Array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]).buffer
 
   it('loadYear rejects with the file name when year.bin is missing, and a later call retries', async () => {
