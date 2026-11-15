@@ -5,6 +5,10 @@ Veri formatının tamamı: [`docs/data-contract.md`](data-contract.md). Gerçek 
 
 ## A:
 
+- Son kontrol -> **Açık / madde 1 (öncelikli):** CLPS/ticari görevler IM-1, IM-2, Firefly Blue Ghost, Astrobotic ve Artemis III aday bölgeleri için kaynaklı katalog ve veri paketleri ekle; mevcut kutup bölgeleriyle örtüşmeyi doğrula. Ardından Apollo 12, 14–17, Chandrayaan-3, SLIM, Chang'e-3/4/5 kapsamını genişlet. Koordinat, ufuk, efemeris ve doğrulama birlikte gelmeli; B seçime bağlayacak.
+- Son kontrol -> **Açık / madde 2–3:** serbest koordinat için çevrimdışı `preprocess/custom_point.py` / `public/data/custom/P001` yolunu arayüzden yeni nokta üretme/yükleme akışına taşıyacak veri sözleşmesini hazırla (B arayüz, D motor). ±3 km hücreye oturtma tüm Ay desteği değildir. 1 Kasım 2026–1 Kasım 2027 ötesi ve çok yıllı inceleme için veri üretim kapsamını genişlet; kapsam dışına sessiz kırpma yapma.
+
+
 - C-> **15 Kasım 2026 — Yeni kullanıcı isteği / veri kapsamı:** kullanıcı herhangi bir yer ve tarih/saat, aynı yerde +5 gün ve yakındaki yer karşılaştırması, sabit yere en uygun tarih ve sabit tarihe en uygun yer istiyor. Mevcut kapsam 9 katalog noktası + 7 kutup bölgesinin ±3 km hücreleri, 1 Kasım 2026–1 Kasım 2027; koordinat girişi mevcut hücreye oturtma, tüm Ay'da serbest nokta değil. A, koordinat/tarih aralığıyla yeni veri paketi üretme yolunu ve desteklenen alanı metadata ile tanımlasın. Kapsam dışına sessizce kırpma, sıfır ufuk veya uydurma seri koyma; oturtulan koordinatı ve mesafeyi göster.
 - C-> **15 Kasım 2026 — Arama hassasiyeti:** katalog ufku 0.1°, hücre senaryosu 1°, mevcut harita özeti 0.5°; 100/200 m hücre aralığı ya da DEM pikseli mutlak doğruluk değildir. Hücre finalistlerini mümkünse daha ince ufukla yeniden doğrula; o zamana kadar "regional screening estimate" etiketi ve katalogdan farklı hassasiyet açık olsun. Her adayın koordinatı, gözlemci yüksekliği, kaynak/hash, ufuk çözünürlüğü ve kapsama uyarısı sonuçla taşınmalı.
 - C-> **15 Kasım 2026 — A/D optimizasyon veri akışı:** sabit tarih için binlerce hücre aranırken her hücrenin 52 561 örneklik yıllık efemerisini tekrar kurmayın. Ay'a sabit gövde vektörlerini kaynak site/yıl için bir kez önbellekleyip yalnız görev zaman dilimini her adayın yerel çerçevesine yansıtacak sözleşmeyi D ile kurun. Önbellek anahtarı veri hash'i, koordinat, gözlemci yüksekliği ve ufuk çözünürlüğünü içersin. İki aylık `map.json` yüzdeleri başka tarihteki görevin sıralaması için kullanılamaz.
@@ -26,6 +30,12 @@ Veri formatının tamamı: [`docs/data-contract.md`](data-contract.md). Gerçek 
 - B-> `docs/data-methods.md`'de C'nin 3B'de kullandığı iki NASA kaynağı yok: Moon Trek LOLA 30 m güney kutbu DEM'i (`LRO_LOLA_DEM_SPole75_30mp_v04`, bölgesel 3B arazi) ve NASA Blue Marble Next Generation, Kasım 2004 (Dünya dokusu). Proje sayfasına bu metin gidecekse ikisini ekler misin? (`submission.md` ve README'ye ekledim; bağlantılar orada.)
 
 ## B:
+
+- Son kontrol -> **Açık / madde 4 (öncelikli):** D motoruyla "Find dates for this place" ve "Find places for this date" arayüzlerini tamamla; ilerleme, iptal ve hangi koşulların sağlanmadığı gösterilsin. Ayrıntılı kabul koşulları aşağıdaki B/D notlarında.
+- Son kontrol -> **Açık / madde 5–6:** "Compare +5 days" orijinali koruyup +120 saatlik yeni senaryo açsın; mevcut tarih kaydırma bunun yerine geçmez. Hücre seçiliyken yıllık grafiği D'nin hücre özetine bağla; hazır değilse merkez verisini açık etiketle veya hücrede grafiği gizle. Bu veri etiketleme hatası öncelikli düzeltmedir.
+- Son kontrol -> **Entegrasyon / madde 1–3:** A'nın yeni görev noktalarını, serbest koordinat veri akışını ve genişletilen tarih kapsamını seçime/formlara bağla; kaynak ve kapsam etiketleri korunsun.
+- Son kontrol -> **İsteğe bağlı / madde 10–12:** CSV/PDF dışa aktarma ve yıl boyu günlük Güneş/Dünya yüzdesi takvim ısı haritası arayüzü B'de, sonuç şeması/günlük özet hesabı D'de. Ayrı mobil uygulama zorunlu değil; ayrıca planlanırsa arayüz B'de. Bunlar teslim engeli değil.
+
 
 - C-> **15 Kasım 2026 — Simulation entegrasyonu / sahiplik:** C, aynı `scenarios/settings/activeKey` state'ine bağlı hızlı yer + UTC tarih/saat + görev süresi kontrollerini, seçili tarihe +5 gün kaydırmayı, Güneş/Dünya yükseklik ve geri sayımlarını, görünürlük süreleri/batarya HUD'unu ve gerçek NASA görsel/harita bağlamını üstleniyor. Seçili senaryo yüklenirken/hatalıyken başka senaryonun sahnesine sessiz geçiş engelleniyor. Results için ikinci state oluşturmayın; 3 senaryo sınırı ve ortak donanım korunsun. **Otomatik en iyi tarih/yer araması C tarafından uygulanmıyor; B/D görevi.**
 - C-> **15 Kasım 2026 — +5 gün karşılaştırması:** C'nin +5 gün düğmesi aktif başlangıcı 120 saat kaydırır; bu, başlangıç senaryosunu koruyan karşılaştırma kopyası değildir. B ayrıca "Compare +5 days" ile `newKey()` kullanarak aynı yer/donanımın +120 saatlik kopyasını eklesin. Yakındaki hücreyi karşılaştırırken de eski senaryo ve tarih korunup yalnız yer değişen bir kopya eklensin. 3 yuva doluyken açıklama göster; var olan senaryoyu habersiz silme/değiştirme. UTC ay/yıl sınırı ve paylaşım bağlantısıyla geri yükleme kabul testidir.
@@ -89,6 +99,10 @@ Veri formatının tamamı: [`docs/data-contract.md`](data-contract.md). Gerçek 
 
 ## C:
 
+- Son kontrol -> **Açık hata / madde 7:** 3B Dünya yönünün 1 Ocak 2027'de bitmesini düzelt; gösterimi hesapların desteklediği 1 Kasım 2027'ye kadar uzat. Gerekli yön verisi için A ile çalış; sahne entegrasyonu C'de. Ocak sonrası tarih ve veri sonunu doğrula. Sorun yalnız görüntüyü etkiliyor.
+- Son kontrol -> **İsteğe bağlı / madde 12:** oyun challenge için zorunlu değil; mevcut teslimin hatası sayılmasın. Ayrı oyun yapılması planlanırsa oyun/3B tarafının sahibi C.
+
+
 - C-> **15 Kas — yeni Simulation kontrolleri:** seçili A/B/C için aynı state'e bağlı konum, UTC tarih/saat, ortak 1–30 gün süre ve −1/+1/+5 gün başlangıç kaydırması eklendi. +5 gün düğmesi açıkça mevcut başlangıcı değiştirir; ilk senaryoyu koruyan karşılaştırma kopyası/otomatik arama değildir. Güneş/Dünya yüksekliği, görevde toplam görünür saat, kesinti, anlık batarya/panel motor verisinden okunur. Geçersiz/yüklenen seçimin yerine başka senaryo arazisi gösterilmiyor. B'nin `65263a3` yeni küre seçimi, worker hazırlığı ve Results tasarımı korunarak birleştirildi.
 - C-> **15 Kas — gerçek fotoğraflı 3B:** LROC fotoğrafları koordinatlı örnekleniyor; kuzey yukarı harita/pan/zoom/merkez ölçeği, eğik arazi ve araçtan bakış var. Arşiv kompozitinin ışığı seçili UTC değildir; fotoğraf modu bunu sürekli yazar ve yeniden dinamik ışıkla çarpmaz. NASA imagery kapatılınca seçili Güneş yönüyle DEM gölgelemesi geri gelir. Kaynak/piksel boyutu/mutlak doğruluk ayrımı ve yeniden üretim `docs/c-lunar-imagery.md` / `docs/c-3d-validation.md` içinde.
 
@@ -140,6 +154,11 @@ Veri formatının tamamı: [`docs/data-contract.md`](data-contract.md). Gerçek 
   - Şart değil: teslim için yeterli durumdayız. Zaman yoksa atla.
 
 ## D:
+
+- Son kontrol -> **Açık / madde 4 ve 6:** sabit yer için tarih ve sabit tarih için yer arama motorunu tamamla; ilerleme/iptal ve uygun aday yoksa ihlal nedenlerini B'ye ilet. Hücrenin kendi ufuk/efemerisinden yıllık/aylık özet üret ve önbellekle; `season: base.season` ile merkez özetini aktarma. Mevcut B/D kabul koşulları geçerli. Öncelik: arama (4), A'nın CLPS/Artemis kapsamı (1), yanlış hücre grafiği (6).
+- Son kontrol -> **Destek / madde 2–3, 10–11:** A'nın serbest koordinat ve çok yıllı verisinde motor kapsam kontrollerini doğrula. B'nin CSV/PDF çıktısına sonuç, UTC/birimler, konum, ayarlar, kaynak ve model sınırları şeması sağla; isteğe bağlı günlük takvim için noktanın kendi günlük Güneş/Dünya yüzdelerini hesapla.
+- Son kontrol -> **Bilerek kapsam dışı / madde 8–9:** tutulmalar, sıcaklık, toz, batarya yaşlanması ve Güneş diskinin kenara doğru kararması modellenmiyor; yaklaşık partial-disk modu varsayılan kapalı. İletişim yalnız Dünya görüş hattı; DSN takvimi, link bütçesi ve röle yok. Bunları zorunlu yeni iş sayma; D teslim/model sınırları metninde, B kullanıcı açıklamalarında korusun.
+
 
 - C-> **15 Kasım 2026 — Optimizasyonun sahibi D / arayüz B:** iki saf arama girişi tasarlayın: sabit yer + tarih aralığı için tarih araması; sabit UTC + desteklenen aday yerler için yer araması. Aynı görev süresi/donanım ve mevcut `evaluateScenario` modeli kullanılmalı; önce yalnız özet, seçilen aday için tam seri üretilsin. C otomatik arama algoritmasını yazmıyor. Katalog/hücre ızgarası, taranan aralık/adım ve veri kaynağı çıktıda açıkça taşınmalı.
 - C-> **15 Kasım 2026 — Önce zorunlu koşullar:** uygun aday = batarya rezervi korunuyor **ve** karşılanamayan enerji sayısal tolerans içinde sıfır **ve** en uzun Dünya görüşü kesintisi kullanıcının sınırını aşmıyor. `NaN`/eksik veri uygun sayılmamalı. Hiçbiri geçmezse uygun sonuç boş ve ihlal nedenleri açık olmalı; donanım/rezerv/kesinti sınırları kendiliğinden değiştirilmemeli. Eğim, ayrıca tanımlanmış bir koşul yoksa iniş emniyeti kararı değildir.
