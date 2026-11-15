@@ -19,9 +19,11 @@
  * A cancelled or over-budget search is returned as `partial`, never as a finished answer.
  */
 import type { SiteData } from '../data/contract.ts'
-import type { CellHorizons } from '../data/extended.ts'
+import type { Provenance } from '../data/contract.ts'
+import type { CellHorizons, ExtendedHeader, RefinedDoc } from '../data/extended.ts'
 import { cellHorizon } from '../data/extended.ts'
-import { cellEphemerisSlice, centreObserver, CELL_LABEL } from './cell.ts'
+import { cellEphemerisSlice, centreObserver, CELL_LABEL, REFINED_CELL_LABEL, usableRefined } from './cell.ts'
+import { moonFixedKey, moonFixedSeries, projectWindow } from './moonFixed.ts'
 import { CoverageError, SettingsError, evaluateScenario, validateSettings } from './evaluate.ts'
 import type { MissionSettings, ScenarioSummary } from './evaluate.ts'
 import { arcDistanceM, compareResearch, RESEARCH_UNVERIFIED } from './research.ts'
@@ -51,7 +53,8 @@ export interface CandidateMetrics {
   longestEarthOutageS: number
 }
 
-export type Precision = 'catalogue' | 'cell'
+/** `refined`: a map cell revalidated with the 0.1° catalogue horizon (refined.json). */
+export type Precision = 'catalogue' | 'cell' | 'refined'
 
 export interface SearchCandidate {
   siteId: string
@@ -95,6 +98,11 @@ export interface SearchResult {
   failureCounts: Partial<Record<FailureCode, number>>
   /** First feasible candidate for `sortBy`; `null` when nothing passed or the search did not finish. */
   best: SearchCandidate | null
+  /**
+   * Pareto map-cell finalists still on the 1° screening horizon, per site, for A's
+   * `python -m preprocess.refine_cells`. Until refined they stay "regional screening estimate".
+   */
+  refineSuggestions: { siteId: string; cells: string[] }[]
   /** Plain sentences for the result panel: scope, labels, why nothing was found. */
   notes: string[]
   /** Wall time of the search, ms. */
@@ -173,7 +181,19 @@ const iso = (ms: number) => new Date(ms).toISOString().replace('.000Z', 'Z')
 const yieldNow = () => new Promise<void>((resolve) => setTimeout(resolve, 0))
 
 const CATALOGUE_PRECISION = 'Catalogue site: 0.1° terrain horizon'
-const CELL_PRECISION = `${CELL_LABEL}; regional screening estimate`
+const CELL_PRECISION = CELL_LABEL
+const LABELS: Record<Precision, string> = { catalogue: CATALOGUE_PRECISION, cell: CELL_PRECISION, refined: REFINED_CELL_LABEL }
+
+/** Precision of the data actually used, from its provenance when it has one. */
+export function precisionOf(data: SiteData, fallback: Precision): { precision: Precision; label: string } {
+  const p: Provenance | undefined = data.provenance
+  if (!p) return { precision: fallback, label: LABELS[fallback] }
+  if (p.horizonSource === 'refined-cell') return { precision: 'refined', label: REFINED_CELL_LABEL }
+  if (p.horizonSource === 'map-cell') return { precision: 'cell', label: CELL_PRECISION }
+  const kind = data.site.category === 'custom' ? `Scientific package ${data.site.id}` : 'Catalogue site'
+  const warn = p.coverageWarnings.length > 0 ? `; ${p.coverageWarnings.length} coverage warning(s)` : ''
+  return { precision: 'catalogue', label: `${kind}: ${p.horizonResolutionDeg}° terrain horizon${warn}` }
+}
 
 interface Job {
   siteId: string
@@ -185,13 +205,14 @@ interface Job {
 }
 
 function runJob(job: Job, settings: MissionSettings, objective: ResearchProfile | null | undefined): SearchCandidate {
-  const precisionLabel = job.precision === 'catalogue' ? CATALOGUE_PRECISION : CELL_PRECISION
-  const base = { siteId: job.siteId, precision: job.precision, precisionLabel, pareto: false, distanceM: job.distanceM }
+  let base = { siteId: job.siteId, precision: job.precision, precisionLabel: LABELS[job.precision], pareto: false, distanceM: job.distanceM }
   let data: SiteData
   let summary: ScenarioSummary
   let startUtc = job.startUtc
   try {
     data = job.data()
+    const p = precisionOf(data, job.precision)
+    base = { ...base, precision: p.precision, precisionLabel: p.label }
     const r = evaluateScenario(data, job.startUtc, settings)
     summary = r.summary
     startUtc = r.alignedStartUtc
@@ -235,6 +256,20 @@ async function runJobs(jobs: Job[], settings: MissionSettings, objective: Resear
   }
 }
 
+/** Unrefined map-cell finalists grouped by site (at most 10 per site, in result order). */
+export function refineSuggestions(finalists: SearchCandidate[]): { siteId: string; cells: string[] }[] {
+  const bySite = new Map<string, string[]>()
+  for (const c of finalists) {
+    if (c.precision !== 'cell') continue
+    const m = /^(.+):(r\d+c\d+)$/.exec(c.siteId)
+    if (!m) continue
+    const list = bySite.get(m[1]) ?? []
+    if (list.length < 10 && !list.includes(m[2])) list.push(m[2])
+    bySite.set(m[1], list)
+  }
+  return [...bySite].map(([siteId, cells]) => ({ siteId, cells }))
+}
+
 function finish(kind: SearchResult['kind'], all: SearchCandidate[], state: RunState, sortBy: SearchMetric, opts: SearchOptions, info: Pick<SearchResult, 'searchedRange' | 'timeStep' | 'spatialCoverage' | 'objectiveId'>, notes: string[]): SearchResult {
   markPareto(all)
   const order = compareCandidates(sortBy)
@@ -254,6 +289,9 @@ function finish(kind: SearchResult['kind'], all: SearchCandidate[], state: RunSt
   }
   if (feasible.length > 0) out.push(`“Best” means best among the ${all.length} tested options for “${METRICS[sortBy].label.toLowerCase()}”, not a proven optimum.`)
   if (all.some((c) => c.precision === 'cell')) out.push('Map points use a 1° horizon: a regional screening estimate, less precise than the 0.1° catalogue horizon.')
+  if (all.some((c) => c.precision === 'refined')) out.push('Some map points were revalidated with the 0.1° catalogue horizon (refined.json); they are still not catalogue sites.')
+  const toRefine = refineSuggestions(feasible.filter((c) => c.pareto))
+  for (const r of toRefine) out.push(`Screening finalists not yet revalidated: python -m preprocess.refine_cells --site ${r.siteId} --cells ${r.cells.join(' ')}`)
   if (info.objectiveId === null) out.push(`${RESEARCH_UNVERIFIED}: no research objective was chosen, so no option is claimed to keep the same research.`)
   else if (!all.some((c) => c.research.match === 'equivalent')) out.push(`${RESEARCH_UNVERIFIED} for any tested option (no sourced research profile matched).`)
   return {
@@ -267,6 +305,7 @@ function finish(kind: SearchResult['kind'], all: SearchCandidate[], state: RunSt
     rejected,
     failureCounts,
     best: status === 'complete' ? (feasible[0] ?? null) : null,
+    refineSuggestions: toRefine,
     notes: out,
     elapsedMs: Date.now() - state.started,
   }
@@ -390,28 +429,46 @@ export function cataloguePlaces(sites: SiteData[]): PlaceSource[] {
   return sites.map((d) => ({ siteId: d.site.id, precision: 'catalogue' as const, latDeg: d.site.latDeg, lonDeg: d.site.lonDeg, data: () => d }))
 }
 
+export interface CellPlaceOptions {
+  filter?: (row: number, col: number) => boolean
+  /**
+   * `extended.json` of the site: with it the Moon-fixed vectors come from A's shared cache
+   * (`moonFixedSeries`, key = year.bin sha256 + centre observer + horizon resolution) and cells get
+   * provenance; without it a per-object cache is used.
+   */
+  header?: ExtendedHeader
+  /** `refined.json`: usable entries (same cells.bin, same observer) use their 0.1° horizon. */
+  refined?: RefinedDoc | null
+}
+
 /**
  * Every map cell of a site as a place source. Only the mission slice of the year series is
- * re-projected per cell (cached Moon-fixed vectors of the site centre), not the whole year.
- * `cells` must belong to `base` (one eye height per map cell).
+ * re-projected per cell, never the whole year. `cells` must belong to `base`.
  */
-export function cellPlaces(base: SiteData, year: SiteData['ephemeris'], cells: CellHorizons, filter?: (row: number, col: number) => boolean): PlaceSource[] {
+export function cellPlaces(base: SiteData, year: SiteData['ephemeris'], cells: CellHorizons, opts: CellPlaceOptions | ((row: number, col: number) => boolean) = {}): PlaceSource[] {
+  const o: CellPlaceOptions = typeof opts === 'function' ? { filter: opts } : opts
   const map = base.map
   if (!map) return []
   const { nx, ny } = map.grid
   if (cells.n !== nx * ny) throw new RangeError(`${base.site.id}: cells.bin has ${cells.n} cells, map.json ${nx * ny}.`)
   const centre = centreObserver(base.site)
+  const header = o.header
+  const series = header
+    ? () => moonFixedSeries(year, centre, moonFixedKey({ dataHash: header.year.sha256, ...centre, horizonResolutionDeg: cells.azStepDeg }))
+    : null
   const out: PlaceSource[] = []
   for (let row = 0; row < ny; row++) {
     for (let col = 0; col < nx; col++) {
-      if (filter && !filter(row, col)) continue
+      if (o.filter && !o.filter(row, col)) continue
       const index = row * nx + col
       const siteId = `${base.site.id}:r${row}c${col}`
       const latDeg = map.latDeg[index]
       const lonDeg = map.lonDeg[index]
+      const observer = { latDeg, lonDeg, eyeM: cells.eyeM[index] }
+      const refined = header ? usableRefined(o.refined, header, `r${row}c${col}`, observer) : undefined
       out.push({
         siteId,
-        precision: 'cell',
+        precision: refined ? 'refined' : 'cell',
         latDeg,
         lonDeg,
         data: (startUtc, settings) => {
@@ -421,13 +478,25 @@ export function cellPlaces(base: SiteData, year: SiteData['ephemeris'], cells: C
           if (!Number.isFinite(startIndex) || startIndex < 0 || startIndex + steps > year.count - 1) {
             throw new CoverageError(`The mission must lie within the computed period (${year.startUtc.slice(0, 16)} to ${iso(t0 + (year.count - 1) * year.stepS * 1000).slice(0, 16)} UTC).`)
           }
-          const ephemeris = cellEphemerisSlice(year, centre, { latDeg, lonDeg, eyeM: cells.eyeM[index] }, startIndex, steps + 1)
+          const ephemeris = series ? projectWindow(series(), observer, startIndex, startIndex + steps + 1) : cellEphemerisSlice(year, centre, observer, startIndex, steps + 1)
+          const horizon = refined
+            ? { azStepDeg: refined.azStepDeg, count: refined.count, elevDeg: refined.elevDeg, distanceM: refined.distanceM, warnings: [...refined.warnings] }
+            : cellHorizon(cells, index)
+          const provenance: Provenance | undefined = header
+            ? {
+                latDeg, lonDeg, observerHeightM: base.site.observerHeightM, eyeM: observer.eyeM, ephemerisSource: year.source, dataHash: header.year.sha256,
+                ...(refined
+                  ? { horizonResolutionDeg: refined.azStepDeg, horizonSource: 'refined-cell' as const, precision: 'catalogue' as const, coverageWarnings: [...refined.warnings] }
+                  : { horizonResolutionDeg: cells.azStepDeg, horizonSource: 'map-cell' as const, precision: 'regional screening estimate' as const, coverageWarnings: [...(map.warnings ?? [])] }),
+              }
+            : undefined
           return {
             ...base,
-            site: { ...base.site, id: siteId, name: `${base.site.name} — map point`, latDeg, lonDeg, label: CELL_LABEL, derivedFrom: base.site.id, warnings: [] },
-            horizon: cellHorizon(cells, index),
+            site: { ...base.site, id: siteId, name: `${base.site.name} — map point`, latDeg, lonDeg, label: refined ? REFINED_CELL_LABEL : CELL_LABEL, derivedFrom: base.site.id, warnings: [] },
+            horizon,
             ephemeris: { ...ephemeris, siteId },
             season: undefined,
+            provenance,
           }
         },
       })
@@ -469,7 +538,7 @@ export async function findPlacesForDate(input: PlaceSearchInput, opts: SearchOpt
   const state: RunState = { started: Date.now(), done: 0, planned: 0, stopped: null }
   const all: SearchCandidate[] = []
   await runJobs(placeJobs(input), input.settings, input.objective, opts, state, all)
-  const cells = input.places.filter((p) => p.precision === 'cell').length
+  const cells = input.places.filter((p) => p.precision !== 'catalogue').length
   const description = input.coverage ?? `${input.places.length - cells} catalogue site(s) and ${cells} map point(s)`
   return finish('places', all, state, sortBy, opts, {
     searchedRange: { fromUtc: iso(t), toUtc: iso(t) },

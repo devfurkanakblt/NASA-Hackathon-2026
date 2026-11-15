@@ -292,7 +292,7 @@ describe('real data', () => {
     for (const k of ['sunVisibleFraction', 'earthVisibleFraction', 'minSocFraction', 'longestEarthOutageS'] as const) {
       expect(anyCell.summary![k], k).toBeCloseTo(full.summary[k], 9)
     }
-    expect(anyCell.precisionLabel).toMatch(/1° horizon.*screening/)
+    expect(anyCell.precisionLabel).toMatch(/screening estimate \(1° horizon\)/)
     expect(r.notes.join(' ')).toMatch(/regional screening estimate/)
     expect(r.notes.join(' ')).toMatch(/could not be verified/)
     expect(ms).toBeLessThan(5000)

@@ -24,7 +24,7 @@ export function cellEphemeris(eph: EphemerisDoc, centre: Observer, cell: Observe
  * The refined entry of cell (row, col) when it can be used: the file belongs to this `cells.bin` and the
  * entry has the cell's own coordinate and eye. Anything else is ignored with a console warning.
  */
-function usableRefined(refined: RefinedDoc | null | undefined, header: ExtendedHeader, id: string, cell: Observer): RefinedCell | undefined {
+export function usableRefined(refined: RefinedDoc | null | undefined, header: ExtendedHeader, id: string, cell: Observer): RefinedCell | undefined {
   if (!refined) return undefined
   const entry = refined.cells[id]
   if (!entry) return undefined

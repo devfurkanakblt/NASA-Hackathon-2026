@@ -116,7 +116,7 @@ landing-site decision. "Through the year" tab shows the monthly picture.
   RMS 1.3–2.4 m on gentle ground (< 10°), 16–18 m on Shackleton's steep wall (> 25°).
 - **Engine:** the TypeScript engine reproduces the Python pipeline's reference values (visibility
   percentages, every window, horizon test vectors, mean Sun-disk fraction) exactly on all nine
-  sites; 451 automated tests (341 TypeScript, 110 Python).
+  sites; 615 automated tests (505 TypeScript, 110 Python).
 - **One-year series:** `year.bin` reproduces `ephemeris.json` sample by sample over the two shared
   months, and its monthly Sun / Earth / both shares match `season.json` (`tests/extended.test.ts`).
 - **Map points:** the Sun / Earth direction re-projected into a cell's frame matches Python within
