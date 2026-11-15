@@ -12,13 +12,13 @@ efficiency, 200 W base load + 100 W while Earth is in view, 6 h accepted Earth o
 
 | # | Title | On the slide | Visual |
 |---|---|---|---|
-| 1 | Problem & promise | At the south pole the Sun and Earth skim the horizon: a few hundred metres of terrain decide power and contact. We show it and let planners test it. | Southern-hemisphere globe: 7 south-pole sites, Artemis III candidate regions, landed missions; contrast points Chang'e-6 (far side) and Apollo 12 (near side) |
-| 2 | User flow | Three pages: **Home** (what the tool is for, no numbers) → **Simulation** (pick up to 3 places — a catalogue site, a map point or a lat / lon within 3 km of a site — and any start date from 1 Nov 2026 to 1 Nov 2027; watch the 3D terrain, Sun and Earth move) → **Results** (cards answer "Power?" and "Talk to Earth?", optional lander settings, "See why" tabs). Built-in "How it works" tour. No server, instant updates. | Screenshot of each page (Home hero, Simulation 3D, Results cards) |
+| 1 | Problem & promise | At the south pole the Sun and Earth skim the horizon: a few hundred metres of terrain decide power and contact. We show it and let planners test it. | Southern-hemisphere globe: 26 points — 7 south-pole sites, Artemis III candidate-region points, landed missions, VIPER's planned CLPS target (CS-7); contrast points Chang'e-6 (far side) and Apollo 12 (near side) |
+| 2 | User flow | Three pages: **Home** (what the tool is for, no numbers) → **Simulation** (pick any number of places on the globe — a catalogue site, a map point, any typed or clicked coordinate, or an imported data package — and a start date from 1 Nov 2026 to 1 Nov 2027 (a package brings its own period); watch the 3D terrain, Sun and Earth move) → **Results** (cards answer "Power?" and "See Earth?", optional lander settings, "Find a better date or place", "See why" tabs, CSV download). Built-in "How it works" tour. No server, instant updates. | Screenshot of each page (Home hero, Simulation globe, Results cards) |
 | 3 | Terrain evidence | Horizon panorama: real skyline vs. flat horizon, Sun/Earth tracks; Site04 Earth hidden behind the crater wall all week. | Panorama screenshot (+ 3D view if ready) |
 | 4 | Energy evidence | Same site, change the hardware or date → battery result changes (Site04: +72 h start → unmet 1.1 → 15.5 kWh). | "Battery" tab screenshot |
-| 5 | Comparison | Site04 vs. Site04R vs. Site04R +72 h with the same hardware; plain answers, no score. Then two quick changes on the same screen: a map point 630 m from Site01 (story 2) and the same site in April 2027 (story 3). | Result cards A / B / C screenshot; optional second screenshot of story 2 or 3 |
+| 5 | Comparison | Site04 vs. Site04R vs. Site04R +72 h with the same hardware; plain answers, no score. Then "Find dates for this place" on the ridge (best among the starts tested, reasons shown, added as a copy), a map point 630 m from Site01 (story 2) or the same site in April 2027 (story 3). | Result cards A / B / C screenshot; optional search panel or story 2 / 3 screenshot |
 | 6 | Scientific basis | NASA data, validation numbers, model limits (sections below). | Small table of checks |
-| 7 | Impact & access | Live app, source (MIT), offline build, team, next steps (free coordinates anywhere on the Moon, thermal / relay-satellite models). | Links + QR code, team names |
+| 7 | Impact & access | Live app, source (MIT), offline build, team, next steps (sourced research profiles per place, a package generation service, finer free-point terrain near the pole, thermal / relay-satellite models). | Links + QR code, team names |
 
 ## Story: the catalogue point vs. the ridge 1.9 km away (slides 3–5)
 
@@ -116,8 +116,11 @@ landing-site decision. "Through the year" tab shows the monthly picture.
 - **Terrain cross-check:** our 3D grids vs. NASA Moon Trek's LOLA 5 m south-pole DEM:
   RMS 1.3–2.4 m on gentle ground (< 10°), 16–18 m on Shackleton's steep wall (> 25°).
 - **Engine:** the TypeScript engine reproduces the Python pipeline's reference values (visibility
-  percentages, every window, horizon test vectors, mean Sun-disk fraction) exactly on all nine
-  sites; 615 automated tests (505 TypeScript, 110 Python).
+  percentages, every window, horizon test vectors, mean Sun-disk fraction) exactly on all 26
+  catalogue sites; 843 automated tests (553 TypeScript, 290 Python).
+- **Free coordinates:** Sun / Earth directions re-projected from Site01's series match five
+  catalogue sites' own series within 0.003°; the ~1.9 km global-terrain horizon gives yearly Sun
+  shares within 0.43 points of sites with an LDEM_64 horizon (`docs/validation.md`).
 - **One-year series:** `year.bin` reproduces `ephemeris.json` sample by sample over the two shared
   months, and its monthly Sun / Earth / both shares match `season.json` (`tests/extended.test.ts`).
 - **Map points:** the Sun / Earth direction re-projected into a cell's frame matches Python within
@@ -147,7 +150,10 @@ landing-site decision. "Through the year" tab shows the monthly picture.
   (about 0.5–4 h) of rise/set time at the polar sites (`docs/validation.md` §4).
 - Site04R's near terrain partly falls back to the 80 m DEM where the 5 m product has no data
   (warning carried in `horizon.json`).
-- Map points use a 1° horizon (catalogue sites 0.1°) and have no ridge distance; the 3D view
-  stays on the catalogue point. Coordinates must lie within 3 km of a polar site.
+- Map points use a 1° horizon (catalogue sites 0.1°, or 0.1° where `refined.json` revalidated
+  them) and have no 3D patch of their own.
+- A coordinate outside the polar maps is a screening estimate: ~1.9 km global terrain (small hills
+  and crater walls unresolved), no 3D view. Catalogue-quality terrain needs an offline package.
+- Research suitability is not claimed: no place has a verified research profile yet.
 - Sites are research region centres, not certified landing sites. Pixel size and these checks are
   not a statement of the DEM's absolute accuracy.
