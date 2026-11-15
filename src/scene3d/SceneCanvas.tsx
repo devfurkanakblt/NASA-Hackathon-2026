@@ -27,6 +27,7 @@ import { CompassPoints, HorizonCurtain, HorizonLines } from './parts/HorizonOver
 import { LabelProjector } from './parts/Labels.tsx'
 import type { LabelBinding } from './parts/Labels.tsx'
 import { LANDER_MODEL_RADIUS_M, Lander } from './parts/Lander.tsx'
+import { REFERENCE_SPHERE_RADIUS, SKY_RADIUS, sceneHalfExtent } from './sceneScale.ts'
 import { DirectionArrow, SkyBody, SkyFollow, SkyTrack } from './parts/SkyBodies.tsx'
 import { ReferenceSphere, Terrain } from './parts/Terrain.tsx'
 import './scene3d.css'
@@ -71,8 +72,6 @@ export interface MissionScene3DProps {
   defaultShowTerrainEffect?: boolean
 }
 
-/** Scene distances in units of half the terrain patch: sky sphere and camera far plane. */
-const SKY_RADIUS = 75
 /** Lander display scale as a fraction of half the terrain patch (150x for a 10 km patch). */
 const LANDER_SCALE_PER_HALF_EXTENT = 0.03
 /** Night-side brightness of the Earth view aid; the sunlit part stays about twice as bright. */
@@ -180,6 +179,8 @@ export default function SceneCanvas({
 
   const { meshData, farMesh } = useMemo(() => getPreparedTerrain(terrain, farTerrain, observerHeightM), [terrain, farTerrain, observerHeightM])
   const half = meshData.halfExtentM
+  // Sky, far plane and reference sphere scale with the whole terrain shown (see sceneScale.ts).
+  const sceneHalf = sceneHalfExtent(half, farTerrain?.sizeM)
   // One fixed enlargement of the lander (about 360 m across on a 10 km patch); the orbit
   // camera keeps a matching minimum distance so it never ends up inside the model.
   const landerScale = half * LANDER_SCALE_PER_HALF_EXTENT
@@ -189,8 +190,8 @@ export default function SceneCanvas({
   const curtainRadius = Math.max(half * 2.2, (farTerrain?.sizeM ?? 0) * 0.75)
   // The sky sits far beyond the terrain patch and travels with the camera (see SkyFollow).
   // It must lie beyond the limb of the reference sphere as seen from the highest overview camera.
-  const skyRadius = half * SKY_RADIUS
-  const trackRadius = half * (SKY_RADIUS + 4)
+  const skyRadius = sceneHalf * SKY_RADIUS
+  const trackRadius = sceneHalf * (SKY_RADIUS + 4)
   const lander = cameraMode === 'lander'
   const mapView = cameraMode === 'map'
 
@@ -224,7 +225,7 @@ export default function SceneCanvas({
         frameloop="demand"
         shadows="percentage"
         dpr={[1.5, 2]}
-        camera={{ fov: 45, near: 5, far: half * FAR_PLANE, position: [half, half * 0.5, half * 2.3] }}
+        camera={{ fov: 45, near: 5, far: sceneHalf * FAR_PLANE, position: [half, half * 0.5, half * 2.3] }}
         gl={{ antialias: true, powerPreference: 'high-performance', toneMapping: ACESFilmicToneMapping, toneMappingExposure: 1.1, outputColorSpace: SRGBColorSpace }}
         onCreated={({ gl }) => {
           gl.domElement.addEventListener('webglcontextlost', (event) => {
@@ -258,7 +259,7 @@ export default function SceneCanvas({
         <Terrain data={meshData} reliefTint={reliefLighting} detailNormal={detailNormal} imageryTexture={showImagery ? localPhoto : null} globalPhotoFrame={showImagery ? globalPhotoFrame : undefined} />
         {farMesh && <Terrain data={farMesh} reliefTint={reliefLighting} imageryTexture={showImagery ? regionalPhoto : null} globalPhotoFrame={showImagery ? globalPhotoFrame : undefined} />}
         {cameraMode === 'overview' && surfaceElevationM !== undefined && (
-          <ReferenceSphere data={farMesh ?? meshData} siteElevationM={surfaceElevationM} outerRadiusM={half * (SKY_RADIUS - 5)} />
+          <ReferenceSphere data={farMesh ?? meshData} siteElevationM={surfaceElevationM} outerRadiusM={sceneHalf * REFERENCE_SPHERE_RADIUS} />
         )}
         {cameraMode === 'overview' && <Lander panelNormal={normal} panelLit={lit} panelAreaM2={panel.areaM2} northLabelAnchor={northLabel.anchor} displayScale={landerScale} />}
 
@@ -315,7 +316,7 @@ export default function SceneCanvas({
           mode={cameraMode}
           halfExtentM={half}
           minOrbitDistanceM={minOrbitDistanceM}
-          farPlaneM={half * FAR_PLANE}
+          farPlaneM={sceneHalf * FAR_PLANE}
           eyeHeightM={observerHeightM}
           lookTarget={lookTarget}
           sun={sun}
