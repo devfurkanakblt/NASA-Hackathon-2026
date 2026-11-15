@@ -19,7 +19,7 @@ import numpy as np
 
 from . import config as C, writer as W
 from . import season as S
-from .validate import load
+from .validate import load, load_eye
 
 YEAR_FIELDS = [(b, f) for b in ("sun", "earth") for f in ("azDeg", "elDeg", "distanceM")]
 
@@ -32,12 +32,18 @@ def year_array(site_id):
 
 def write_year(site_id):
     y = year_array(site_id)
+    assert np.isfinite(y).all(), f"{site_id}: year series has non-finite values, year.bin not written"
     path = C.OUT_DIR / site_id / "year.bin"
     path.parent.mkdir(parents=True, exist_ok=True)
     y.tofile(path)
     print(f"wrote {path.relative_to(C.ROOT)} ({path.stat().st_size / 1e6:.2f} MB)")
-    return {"file": "year.bin", "startUtc": S.SEASON_START, "stepS": C.STEP_S,
-            "count": int(y.shape[1]), "source": "jpl-horizons"}
+    site = next(x for x in load_sites() if x["id"] == site_id)
+    return {"file": "year.bin", "sha256": W.sha256_file(path),
+            "startUtc": S.SEASON_START, "endUtc": S.SEASON_STOP, "stepS": C.STEP_S,
+            "count": int(y.shape[1]), "source": "jpl-horizons",
+            "observer": {"latDeg": site["latDeg"], "lonDeg": site["lonDeg"],
+                         "eyeM": round(float(load_eye(site_id)), 2)},
+            "fields": [f"{b}.{f}" for b, f in YEAR_FIELDS]}
 
 
 # ---------------------------------------------------------------- cells
@@ -65,11 +71,15 @@ def eye_m(site_id):
 
 def write_cells(site_id):
     c = cells_int16(site_id)
+    assert (c != -32768).all(), f"{site_id}: cells contain the -32768 sentinel, cells.bin not written"
     path = C.OUT_DIR / site_id / "cells.bin"
     c.tofile(path)
     print(f"wrote {path.relative_to(C.ROOT)} ({path.stat().st_size / 1e6:.2f} MB)")
-    return {"file": "cells.bin", "azStepDeg": 1, "count": 360, "unitDeg": 0.01, "n": int(c.shape[0]),
-            "eyeM": eye_m(site_id)}
+    g = load(site_id, "map.json")["grid"]
+    return {"file": "cells.bin", "sha256": W.sha256_file(path), "azStartDeg": 0, "azStepDeg": 1,
+            "count": 360, "coverageDeg": 360, "unitDeg": 0.01, "horizonResolutionDeg": 1,
+            "n": int(c.shape[0]), "eyeM": eye_m(site_id),
+            "grid": {k: g[k] for k in ("nx", "ny", "spacingM", "halfSizeM")}}
 
 
 def fixed_cells(nx):
@@ -169,7 +179,7 @@ def read_header(site_id):
 
 
 def write_header(site_id, year, cells=None):
-    doc = {"version": W.VERSION, "siteId": site_id, "year": year}
+    doc = {"version": W.VERSION, "extendedSchema": 2, "siteId": site_id, "year": year}
     if cells is not None:
         doc["cells"] = cells
     W.write(C.OUT_DIR / site_id / "extended.json", doc)

@@ -2,7 +2,9 @@ import numpy as np
 import pytest
 
 from preprocess import config as C
+from preprocess.extended import load_sites
 from preprocess.validate import load
+from preprocess.writer import sha256_file
 
 pytestmark = pytest.mark.skipif(not (C.OUT_DIR / "Site01" / "year.bin").exists(),
                                 reason="year.bin not generated (python -m preprocess.extended)")
@@ -80,3 +82,35 @@ def test_near_field_total_counts_near_steps():
 def test_no_raw_counts_left_in_maps():
     for sid in MAP_SITES:
         assert not any("near-field ray samples" in w for w in load(sid, "map.json").get("warnings", []))
+
+
+@pytest.mark.parametrize("sid", list(C.SITES))
+def test_header_schema_2(sid):
+    h = load(sid, "extended.json")
+    y = h["year"]
+    assert h["extendedSchema"] == 2 and h["siteId"] == sid
+    assert (y["startUtc"], y["endUtc"], y["stepS"], y["count"]) == ("2026-11-01T00:00:00Z", "2027-11-01T00:00:00Z", 600, 52561)
+    assert y["fields"] == [f"{b}.{f}" for b in ("sun", "earth") for f in ("azDeg", "elDeg", "distanceM")]
+    assert y["sha256"] == sha256_file(C.OUT_DIR / sid / "year.bin")
+
+
+@pytest.mark.parametrize("sid", list(C.SITES))
+def test_year_observer_equals_horizon_observer(sid):
+    s = next(x for x in load_sites() if x["id"] == sid)
+    o = load(sid, "extended.json")["year"]["observer"]
+    assert (o["latDeg"], o["lonDeg"]) == (s["latDeg"], s["lonDeg"])
+    assert abs(o["eyeM"] - (s["surfaceElevationM"] + s["observerHeightM"])) <= 0.01
+
+
+@pytest.mark.parametrize("sid", MAP_SITES)
+def test_cells_header_schema_2(sid):
+    c = load(sid, "extended.json")["cells"]
+    m = load(sid, "map.json")["grid"]
+    assert (c["azStartDeg"], c["azStepDeg"], c["count"], c["coverageDeg"], c["horizonResolutionDeg"]) == (0, 1, 360, 360, 1)
+    assert c["grid"]["nx"] == m["nx"] and c["n"] == m["nx"] * m["ny"] == len(c["eyeM"])
+    assert c["sha256"] == sha256_file(C.OUT_DIR / sid / "cells.bin")
+
+
+@pytest.mark.parametrize("sid", list(C.SITES))
+def test_year_bin_all_finite(sid):
+    assert np.isfinite(np.fromfile(C.OUT_DIR / sid / "year.bin", "<f4")).all()

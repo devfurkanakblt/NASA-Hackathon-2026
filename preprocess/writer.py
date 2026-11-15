@@ -1,4 +1,5 @@
 """JSON writers that follow docs/data-contract.md (v1)."""
+import hashlib
 import json
 from datetime import datetime, timezone
 
@@ -13,6 +14,14 @@ def now_utc():
 
 def _r(xs, nd):
     return [round(float(x), nd) for x in xs]
+
+
+def sha256_file(path):
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for block in iter(lambda: f.read(1 << 20), b""):
+            h.update(block)
+    return h.hexdigest()
 
 
 def write(path, obj):

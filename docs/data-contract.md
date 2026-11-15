@@ -173,12 +173,22 @@ Written by `python -m preprocess.extended` from existing caches only. Not part o
 
 ```jsonc
 {
-  "version": 1, "siteId": "Site01",
-  "year": { "file": "year.bin", "startUtc": "2026-11-01T00:00:00Z", "stepS": 600, "count": 52561, "source": "jpl-horizons" },
+  "version": 1, "extendedSchema": 2, "siteId": "Site01",
+  "year": { "file": "year.bin", "sha256": "…", "startUtc": "2026-11-01T00:00:00Z", "endUtc": "2027-11-01T00:00:00Z",
+            "stepS": 600, "count": 52561, "source": "jpl-horizons",
+            "observer": { "latDeg": -89.4632, "lonDeg": -137.49, "eyeM": 1946.77 },
+            "fields": ["sun.azDeg","sun.elDeg","sun.distanceM","earth.azDeg","earth.elDeg","earth.distanceM"] },
   // only for sites with map.json:
-  "cells": { "file": "cells.bin", "azStepDeg": 1, "count": 360, "unitDeg": 0.01, "n": 3721, "eyeM": [ /* n values */ ] }
+  "cells": { "file": "cells.bin", "sha256": "…", "azStartDeg": 0, "azStepDeg": 1, "count": 360, "coverageDeg": 360,
+             "unitDeg": 0.01, "horizonResolutionDeg": 1, "n": 3721, "eyeM": [ /* n values */ ],
+             "grid": { "nx": 61, "ny": 61, "spacingM": 100, "halfSizeM": 3000 } }
 }
 ```
+
+- `extendedSchema: 2` adds the fields below. `sha256` is the hex SHA-256 of the `.bin` file; `year.endUtc` is the inclusive last sample.
+- `year.observer`: the site position and eye height (surface + 2 m) the year series was computed for; equals the `sites.json` observer used for `horizon.json`. `year.fields`: block order of `year.bin`.
+- `cells.azStartDeg` / `azStepDeg` / `count` / `coverageDeg`: azimuth of column `j` is `azStartDeg + j × azStepDeg` (full 360° circle). `horizonResolutionDeg` is the stored resolution (1°). `cells.grid`: map grid, same as `map.json.grid`; `n = nx × ny`.
+- The generator refuses to write `year.bin` with non-finite values or `cells.bin` containing the `-32768` sentinel.
 
 - **`year.bin`**: little-endian float32, six blocks of `count` values in this order: `sun.azDeg, sun.elDeg, sun.distanceM, earth.azDeg, earth.elDeg, earth.distanceM`. Coverage `2026-11-01T00:00:00Z` … `2027-11-01T00:00:00Z`, `stepS` 600, count 52 561 (both ends inclusive). Same observer and settings as `ephemeris.json`; the first `ephemeris.json.count` samples equal it within float32 rounding (angles ≤ 1e-4°).
 - **`cells.bin`**: little-endian int16, unit `unitDeg` (0.01°). Row = cell in `map.json` order (row 0 = south, col 0 = west, row-major), 360 columns = azimuth `j × 1°`. Taken as every second column of the 0.5° map horizons (decimation, not averaging: a horizon value is a maximum, an average would invent a value). No `distanceM`.
