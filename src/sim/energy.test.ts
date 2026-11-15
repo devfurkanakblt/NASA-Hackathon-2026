@@ -170,8 +170,8 @@ describe('evaluateScenarios', () => {
     expect(results.every((r) => r.batteryCapacityJ === 5000 * J_PER_WH)).toBe(true)
   })
 
-  it('accepts at most three candidates and only known sites', () => {
-    const four = new Array(4).fill({ siteId: 'Test', startUtc: start })
+  it('accepts at most six candidates and only known sites', () => {
+    const four = new Array(7).fill({ siteId: 'Test', startUtc: start })
     expect(() => evaluateScenarios(four, DEFAULT_SETTINGS, bySite)).toThrow(RangeError)
     expect(() => evaluateScenarios([{ siteId: 'Nowhere', startUtc: start }], DEFAULT_SETTINGS, bySite)).toThrow(RangeError)
   })

@@ -26,7 +26,7 @@ interface Props {
   bySite: Record<string, SiteData>
 }
 
-/** Up to three scenarios (site + start time). The active one drives the panorama, 3D view and power chart. */
+/** Up to six scenarios (site + start time). The active one drives the panorama, 3D view and power chart. */
 export function ScenarioList({ sites, scenarios, outcomes, colors, activeKey, onChange, onActivate, maxStartFor, snap, cellId, busy, bySite }: Props) {
   const [lat, setLat] = useState('')
   const [lon, setLon] = useState('')

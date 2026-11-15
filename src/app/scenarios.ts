@@ -34,7 +34,7 @@ export type EvaluatedOutcome = ScenarioOutcome & { result: ScenarioResult }
 
 /** Default mission start in the plan. */
 export const DEFAULT_START_UTC = '2026-11-15T00:00:00Z'
-export const LETTERS = ['A', 'B', 'C'] as const
+export const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F'] as const
 
 let nextKey = 1
 export const newKey = () => `s${nextKey++}`

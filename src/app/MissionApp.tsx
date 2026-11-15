@@ -9,7 +9,7 @@ import { SceneMissionSummary } from '../scene3d/SceneMissionSummary.tsx'
 import type { BodyState, PanelState } from '../scene3d/index.ts'
 import type { TerrainGrid } from '../scene3d/types.ts'
 import { earthOrientationAt, earthOrientationCoverageWarning, earthSunDirectionAt } from '../scene3d/appearance.ts'
-import { DEFAULT_SETTINGS, validateSettings } from '../sim/evaluate.ts'
+import { DEFAULT_SETTINGS, MAX_SCENARIOS, validateSettings } from '../sim/evaluate.ts'
 import type { MissionSettings } from '../sim/evaluate.ts'
 import { nextTransition } from '../sim/visibility.ts'
 import type { VisibilityWindow } from '../sim/visibility.ts'
@@ -65,7 +65,7 @@ function viewFromLocation(): View {
 }
 
 /** Scenario colours A, B, C (distinct on the dark background and for common colour blindness). */
-const COLORS = ['#7a5be0', '#3a9468', '#cc6cbb']
+const COLORS = ['#7a5be0', '#3a9468', '#cc6cbb', '#d08a2e', '#3b8fc4', '#c9504f']
 const STEPS_PER_FRAME = 2
 
 /** "the same point" / "200 m east, 600 m north of it". */
@@ -343,7 +343,7 @@ export function MissionApp() {
       title: 'Find the light before you land.',
       body: "Near the Moon's south pole the Sun and Earth stay low on the horizon, so a hill or a crater rim can hide them. The light is on the rim. Rimlight checks two things for a landing spot: does the lander get enough sunlight for power, and can it see Earth to send data home?",
     },
-    { target: 'places', title: '1. Pick places to compare', body: 'Choose up to three labelled locations on the Moon, then press Show in simulation. Use the arrows to visit them in selection order.', before: () => go('simulation') },
+    { target: 'places', title: '1. Pick places to compare', body: 'Choose up to six labelled locations on the Moon, then press Show in simulation. Use the arrows to visit them in selection order.', before: () => go('simulation') },
     { target: 'scene', title: '2. Watch the simulation', body: 'The 3D view shows the real terrain around the lander, with the Sun and Earth where they really are. Drag to look around.', before: () => go('simulation') },
     { target: 'timebar', title: 'Move through time', body: 'Press Play or drag the slider to move through the mission. The line under the view says whether the Sun and Earth are in sight.', before: () => go('simulation') },
     {
@@ -490,7 +490,7 @@ export function MissionApp() {
     const choice = placeForCoordinate(lat, lon, loaded.bySite)
     if ('error' in choice) return { ok: false, text: choice.error }
     if (picked.some(p => p.siteId === choice.siteId)) return { ok: false, text: 'This point is already in the comparison.' }
-    if (picked.length >= 3) return { ok: false, text: 'Three places already chosen; remove one first.' }
+    if (picked.length >= MAX_SCENARIOS) return { ok: false, text: `${MAX_SCENARIOS} places already chosen; remove one first.` }
     updateLocations([...picked, { key: newKey(), siteId: choice.siteId, startUtc: scenarios[0]?.startUtc ?? loaded.sites.coverage.startUtc }])
     return { ok: true, text: choice.message }
   }
@@ -506,7 +506,7 @@ export function MissionApp() {
       patchSceneScenario({ siteId: choice.siteId })
       return choice.message
     }}
-    onCopy={() => { if (chosenScenario && scenarios.length < 3) { const copy = { ...chosenScenario, key: newKey() }; setScenarios([...scenarios, copy]); setActiveKey(copy.key); setPlaying(false); setStep(0) } }} />
+    onCopy={() => { if (chosenScenario && scenarios.length < MAX_SCENARIOS) { const copy = { ...chosenScenario, key: newKey() }; setScenarios([...scenarios, copy]); setActiveKey(copy.key); setPlaying(false); setStep(0) } }} />
 
   // Choosing places is a single screen: the globe fills the viewport and the page does not scroll.
   const picking = view === 'simulation' && simulationStage === 'pick' && !flight
@@ -520,7 +520,7 @@ export function MissionApp() {
           <main className="app__main">
             <section className="card moon-picker" data-mode={flight ? 'flight' : simulationStage} aria-hidden={simulationStage !== 'pick' && !flight || undefined} inert={simulationStage !== 'pick' && !flight || undefined} data-tour="places">
               <div className="card__head"><div><h2>Choose places on the Moon</h2>
-                <p className="card__tagline">Click a place name or anywhere on the globe, or enter coordinates. You can compare up to three places.</p></div>
+                <p className="card__tagline">Click a place name or anywhere on the globe, or enter coordinates. You can compare up to six places.</p></div>
                 <div className="moon-picker__selection" aria-live="polite">
                 {picked.length === 0 && <p className="muted">No place chosen yet. Click a name on the globe.</p>}
                 {picked.map((s, i) => <div key={s.key} className="moon-choice" style={{ '--place-color': COLORS[i] } as CSSProperties}>
@@ -531,7 +531,7 @@ export function MissionApp() {
               </div>
               <details className="moon-picker__coords">
                 <summary>Enter your own coordinates</summary>
-                <CoordinateForm action="Add point" disabled={picked.length >= 3} onUse={addCoordinate} />
+                <CoordinateForm action="Add point" disabled={picked.length >= MAX_SCENARIOS} onUse={addCoordinate} />
               </details>
               {pickMessage && <p className={`small moon-picker__message ${pickMessage.ok ? 'muted' : 'bad'}`} role="status">{pickMessage.text}</p>}
               </div>
@@ -541,11 +541,11 @@ export function MissionApp() {
                   return site ? [{ key: s.key, site, letter: String.fromCharCode(65 + i), color: COLORS[i] }] : []
                 })} onSelect={(site: SiteEntry) => updateLocations(picked.some(s => s.siteId === site.id)
                   ? picked.filter(s => s.siteId !== site.id)
-                  : picked.length < 3 ? [...picked, { key: newKey(), siteId: site.id, startUtc: scenarios[0]?.startUtc ?? loaded.sites.coverage.startUtc }] : picked)}
+                  : picked.length < MAX_SCENARIOS ? [...picked, { key: newKey(), siteId: site.id, startUtc: scenarios[0]?.startUtc ?? loaded.sites.coverage.startUtc }] : picked)}
                   onPickPoint={(lat, lon) => setPickMessage(addCoordinate(lat, lon))} />
               </Suspense>
               {/* Actions float in the globe's lower-right corner once a place is chosen: no scrolling down. */}
-              {picked.length > 0 && !flight && <div className="moon-picker__actions" role="group" aria-label="Selected places actions"><button type="button" className="primary" disabled={picked.length < 2} onClick={() => { setScenarios(picked); setActiveKey(picked[0].key); setPlaying(false); setStep(0); go('results') }}>Compare selected points</button><span className="muted small">{picked.length} / 3 locations</span>
+              {picked.length > 0 && !flight && <div className="moon-picker__actions" role="group" aria-label="Selected places actions"><button type="button" className="primary" disabled={picked.length < 2} onClick={() => { setScenarios(picked); setActiveKey(picked[0].key); setPlaying(false); setStep(0); go('results') }}>Compare selected points</button><span className="muted small">{picked.length} / {MAX_SCENARIOS} locations</span>
                 <button type="button" className="primary" disabled={!picked.length || covered || !selectionReady} onClick={() => darken(() => {
                   setScenarios(picked); setActiveKey(picked[0].key); setStep(0); setSimulationStarted(true); setSimulationStage('watch')
                 })}>{picked.length > 0 && !selectionReady ? 'Preparing terrain…' : 'Show in simulation'} <span aria-hidden="true">↗</span></button></div>}
@@ -753,9 +753,9 @@ export function MissionApp() {
                       resolveCatalogue={resolve}
                       psrs={loaded.psrs ?? []}
                       inScenarios={scenarios.map((s) => s.siteId)}
-                      canAdd={scenarios.length < 3}
+                      canAdd={scenarios.length < MAX_SCENARIOS}
                       onCompare={(siteId) => {
-                        if (scenarios.length < 3) {
+                        if (scenarios.length < MAX_SCENARIOS) {
                           const added = { key: newKey(), siteId, startUtc: active.scenario.startUtc }
                           setScenarios([...scenarios, added])
                           setPicked([...scenarios, added])
@@ -764,7 +764,7 @@ export function MissionApp() {
                       year={activeCell ? null : ext.years[activeData.site.id] ?? null}
                       chosenDates={scenarios.filter((s) => s.siteId === active.scenario.siteId).map((s) => s.startUtc)}
                       onUseDate={(startUtc) => {
-                        if (scenarios.length < 3) {
+                        if (scenarios.length < MAX_SCENARIOS) {
                           const added = { key: newKey(), siteId: active.scenario.siteId, startUtc }
                           setScenarios([...scenarios, added])
                           setPicked([...scenarios, added])

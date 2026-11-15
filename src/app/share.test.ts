@@ -31,9 +31,9 @@ describe('shareable link', () => {
     expect(strip(d)).toEqual({ scenarios: [{ siteId: 'CE6', startUtc: '2026-11-20T06:00:00Z' }], active: 0, settings: { ...DEFAULT_SETTINGS, baseLoadW: 250 } })
   })
 
-  it('keeps at most three scenarios', () => {
-    const many = '#s=' + Array(5).fill('Site04@2026-11-15T00:00').join(',')
-    expect(decodeShare(many, SITES)?.scenarios).toHaveLength(3)
+  it('keeps at most six scenarios', () => {
+    const many = '#s=' + Array(8).fill('Site04@2026-11-15T00:00').join(',')
+    expect(decodeShare(many, SITES)?.scenarios).toHaveLength(6)
   })
 
   it('share link keeps a cell scenario', () => {

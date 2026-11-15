@@ -23,7 +23,7 @@ interface Props {
 }
 
 /** A short editor for the same scenario state used by Results and shared links. */
-export function SceneMissionControls({ sites, scenarios, chosenKey, durationDays, endUtc, onChoose, onPatch, onDuration, onCoordinate, onCopy }: Props) {
+export function SceneMissionControls({ sites, scenarios, chosenKey, durationDays, endUtc, onPatch, onDuration, onCoordinate }: Props) {
   const [latitude, setLatitude] = useState('')
   const [longitude, setLongitude] = useState('')
   const [coordinateMessage, setCoordinateMessage] = useState('')
@@ -44,13 +44,7 @@ export function SceneMissionControls({ sites, scenarios, chosenKey, durationDays
   }
   return (
     <div className="scene-mission" data-tour="places">
-      <div className="scene-mission__scenarios" role="group" aria-label="Scenario to explore">
-        <span>Explore scenario</span>
-        {scenarios.map((s, i) => <button key={s.key} type="button" aria-pressed={s.key === chosenKey} onClick={() => onChoose(s.key)}>{'ABC'[i]}</button>)}
-        <span className="scene-mission__hint">Changes also update Results.</span>
-        {onCopy && <button type="button" disabled={scenarios.length >= 3} title="Preserve this scenario, then change the copy’s place or date. Maximum three; remove a location in Edit locations if full." onClick={onCopy}>Keep baseline & add comparison</button>}
-      </div>
-      {onCoordinate && <details style={{ marginTop: 12 }}><summary>Choose your own coordinates</summary>
+      {onCoordinate && <details><summary>Choose your own coordinates</summary>
         <p className="scene-mission__hint">Any point on the Moon. Inside the ±3 km polar maps the nearest 100–200 m grid point is used (distance reported); elsewhere your exact coordinate is computed from the global LOLA terrain as a screening estimate.</p>
         <div className="scene-mission__fields">
           <label>Latitude · degrees<input aria-label="Custom latitude" inputMode="decimal" value={latitude} onChange={e => setLatitude(e.target.value)} /></label>

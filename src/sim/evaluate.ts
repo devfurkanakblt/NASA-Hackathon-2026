@@ -51,7 +51,7 @@ export const DEFAULT_SETTINGS: MissionSettings = {
   sunDiskModel: 'centre',
 }
 
-export const MAX_SCENARIOS = 3
+export const MAX_SCENARIOS = 6
 export const MIN_DURATION_DAYS = 1
 export const MAX_DURATION_DAYS = 90
 
@@ -352,7 +352,7 @@ export function evaluateScenario(data: SiteData, startUtc: string, settings: Mis
 }
 
 /**
- * Evaluates up to three scenarios (site + start time) with the same mission and hardware
+ * Evaluates up to MAX_SCENARIOS scenarios (site + start time) with the same mission and hardware
  * settings, so their results can be compared like for like.
  */
 export function evaluateScenarios(candidates: ScenarioCandidate[], settings: MissionSettings, bySite: Record<string, SiteData>): ScenarioResult[] {
