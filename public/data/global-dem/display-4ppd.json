@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "kind": "global-dem-display",
+  "file": "display-4ppd.bin",
+  "source": "LOLA LDEM_64 (PDS LRO-L-LOLA-4-GDR-V1.0), 64 px/deg, ~474 m/px",
+  "sourceUrl": "https://pds-geosciences.wustl.edu/lro/lro-l-lola-3-rdr-v1/lrolol_1xxx/data/lola_gdr/cylindrical/img/ldem_64.img",
+  "derivedFrom": "global-dem/manifest.json",
+  "derivedFromSha256": "3ef6ca7ffa3d09ff748367c23ebf9f6fff2dda12c397a2894cec1f6aa425c6e3",
+  "method": "4 x 4 block mean of the 16 px/deg global tiles (4 x 4 block mean of LDEM_64)",
+  "ppd": 4,
+  "rows": 720,
+  "cols": 1440,
+  "scaleM": 0.5,
+  "radiusM": 1737400.0,
+  "layout": "int16 little-endian, row-major; row 0 centre at 90 - 0.5/ppd deg N, col 0 centre at 0.5/ppd deg E; height = value * scaleM above radiusM",
+  "bytes": 2073600,
+  "sha256": "06fb8c0d5211be860aa1d895ebda6b635a7e280e061fd1b429dba4a48ab9a6ad",
+  "limits": "Display only (place-picker globe). Science and custom points use the full tiles."
+}

@@ -28,6 +28,16 @@ STEREO = f"+proj=stere +lat_0=-90 +lon_0=0 +k=1 +R={C.MOON_RADIUS_M} +units=m +n
 UA = {"User-Agent": "LunarSiteNavigator-photographic-display/1.0"}
 NAC = "luna_nac_pole_control_south"
 WAC = "luna_wac_global"
+# LROC NAC mosaics of individual landing sites (same Lunaserv WMS, listed in its GetCapabilities).
+# Each list runs from the widest mosaic to the sharpest; later layers overlay earlier ones where
+# their alpha is valid, and WAC stays underneath outside their coverage.
+SITE_NAC = {
+    "Apollo12": ["luna_apollo_12_low_sun_nac_mosaic", "luna_apollo_12_high_sun_nac_mosaic", "luna_apollo_12_high_resolution_nac_mosaic"],
+    "Apollo14": ["luna_apollo_14_moderate_sun_nac_mosaic", "luna_apollo_14_high_resolution_nac_mosaic"],
+    "Apollo16": ["luna_apollo_16_high_sun_nac_mosaic", "luna_apollo_16_high_resolution_nac_mosaic"],
+}
+SITE_NAC_LAYERS = {layer for layers in SITE_NAC.values() for layer in layers}
+SITE_NAC_PAGE = "https://wms.im-ldi.com/?SERVICE=WMS&REQUEST=GetCapabilities"
 NAC_PAGE = "https://data.lroc.im-ldi.com/lroc/view_rdr/NAC_POLE_SOUTH_CM_AVG"
 WAC_PAGE = "https://data.lroc.im-ldi.com/lroc/view_rdr/WAC_GLOBAL"
 NAC_README = "https://pds.lroc.im-ldi.com/data/LRO-L-LROC-5-RDR-V1.0/LROLRC_2001/DATA/BDR/NAC_POLE/NAC_POLE_SOUTH_CM_AVG/NAC_POLE_SOUTH_CM_AVG_README.TXT"
@@ -42,7 +52,11 @@ def source_projection(site: dict) -> tuple[str, str]:
     return ("IAU2000:30120", STEREO) if site["latDeg"] < -75 else ("IAU2000:30100", LONLAT)
 
 
-def crop_bounds(site: dict, size_m: float, crs: str, source_pixels: int) -> list[float]:
+class SeamCrossing(ValueError):
+    """A geographic crop that crosses the 180 degree meridian; request it as two halves."""
+
+
+def crop_bounds(site: dict, size_m: float, crs: str, source_pixels: int, side: str | None = None) -> list[float]:
     """A sampled curved boundary plus a generous interpolation margin, not a lat/lon stretch."""
     half = size_m / 2
     c = np.linspace(-half, half, 513)
@@ -50,7 +64,14 @@ def crop_bounds(site: dict, size_m: float, crs: str, source_pixels: int) -> list
     north = np.concatenate((np.full_like(c, -half), np.full_like(c, half), c, c))
     lon, lat, _ = enu_to_lonlat(site["latDeg"], site["lonDeg"], east, north)
     if CRS.from_user_input(crs).is_geographic and np.ptp(lon) > 180:
-        raise ValueError("Geographic source crop crosses longitude seam; use a polar projection")
+        if side is None:
+            raise SeamCrossing("Geographic source crop crosses the 180 degree meridian")
+        # One half of the crop, ending exactly at the meridian; the two halves fill the image together.
+        keep = lon > 0 if side == "east" else lon < 0
+        margin = float(np.ptp(lat)) / source_pixels * 4
+        lon_half = lon[keep]
+        west, east = (float(lon_half.min()) - margin, 180.0) if side == "east" else (-180.0, float(lon_half.max()) + margin)
+        return [west, float(lat.min()) - margin, east, float(lat.max()) + margin]
     x, y = Transformer.from_crs(LONLAT, crs, always_xy=True).transform(lon, lat)
     if not np.isfinite(x).all() or not np.isfinite(y).all():
         raise ValueError("Invalid projected crop boundary")
@@ -106,9 +127,9 @@ class PhotoRaster:
         return values, mask
 
 
-def fetch_photo(site: dict, size_m: float, layer: str, cache: Path, pixels: int = 3072):
+def fetch_photo(site: dict, size_m: float, layer: str, cache: Path, pixels: int = 3072, side: str | None = None):
     srs, crs = source_projection(site)
-    bounds = crop_bounds(site, size_m, crs, pixels)
+    bounds = crop_bounds(site, size_m, crs, pixels, side)
     query = {"SERVICE": "WMS", "VERSION": "1.1.1", "REQUEST": "GetMap", "LAYERS": layer,
              "STYLES": "", "SRS": srs, "BBOX": ",".join(f"{v:.12f}" for v in bounds),
              "WIDTH": str(pixels), "HEIGHT": str(pixels), "FORMAT": "image/tiff", "TRANSPARENT": "TRUE"}
@@ -143,10 +164,14 @@ def fetch_photo(site: dict, size_m: float, layer: str, cache: Path, pixels: int 
             alpha = src.read(src.count) if src.count in (2,4) else src.dataset_mask()
             if src.count in (3,4):
                 raise ValueError("Unexpected RGB imagery; refuse an undocumented band interpretation")
+            if layer in SITE_NAC_LAYERS:
+                # Landing-site mosaics mark their strip borders as opaque value 0; those pixels are
+                # missing coverage, not black ground, so WAC shows through there instead.
+                alpha = np.where(image == 0, 0, alpha).astype(alpha.dtype)
             photo = PhotoRaster(image, alpha, src.transform, src.crs)
             meta = {"url": WMS, "layer": layer, "query": query, "querySha256": query_hash,
-                    "nativePixelM": 1 if layer == NAC else 100,
-                    "productPage": NAC_PAGE if layer == NAC else WAC_PAGE,
+                    "nativePixelM": 1 if layer == NAC or layer in SITE_NAC_LAYERS else 100,
+                    "productPage": NAC_PAGE if layer == NAC else SITE_NAC_PAGE if layer in SITE_NAC_LAYERS else WAC_PAGE,
                     "rawSha256": sha256_bytes(raw), "rawBytes": len(raw),
                     "crs": src.crs.to_wkt(), "transform": list(src.transform)[:6],
                     "dimensions": [src.width, src.height], "bounds": bounds,
@@ -182,13 +207,27 @@ def build_site(site: dict, data_dir: Path, cache: Path, regional: bool = False, 
     is_polar = site["latDeg"] < -84 and site.get("category") != "contrast"
     # All crops begin with genuine globally covering WAC data. Both polar scales
     # overlay the spatially controlled NAC composite only where its alpha is valid.
-    base, base_meta = fetch_photo(site, size, WAC, cache, pixels=3072)
-    layers, queries = [base], [base_meta]
+    try:
+        base, base_meta = fetch_photo(site, size, WAC, cache, pixels=3072)
+        layers, queries = [base], [base_meta]
+    except SeamCrossing:
+        # Crop crosses 180 degrees (e.g. Chang'e-4 at 177.6 E): the WAC halves on each side.
+        east, east_meta = fetch_photo(site, size, WAC, cache, pixels=3072, side="east")
+        west, west_meta = fetch_photo(site, size, WAC, cache, pixels=3072, side="west")
+        layers, queries = [east, west], [east_meta, west_meta]
     native, title = 100, "LROC WAC global photographic mosaic"
+    has_nac = False
     if is_polar:
         high, high_meta = fetch_photo(site, size, NAC, cache, pixels=3072)
         layers.append(high); queries.append(high_meta)
         native, title = 1, "LROC controlled NAC south-pole average mosaic with WAC gap fallback"
+        has_nac = True
+    elif not regional and site["id"] in SITE_NAC:
+        for layer in SITE_NAC[site["id"]]:
+            high, high_meta = fetch_photo(site, size, layer, cache, pixels=3072)
+            layers.append(high); queries.append(high_meta)
+        native, title = 1, "LROC NAC landing-site mosaics with WAC fallback outside their coverage"
+        has_nac = True
     image, mask, fractions = resample_enu(site, size, n, layers)
     if not mask.any():
         raise ValueError(f"{site['id']}: no photographic source coverage")
@@ -206,23 +245,23 @@ def build_site(site: dict, data_dir: Path, cache: Path, regional: bool = False, 
         Image.fromarray(rgba).save(partial,format="PNG",optimize=True)
     partial.replace(path)
     reference = queries[-1]
-    if len(layers) > 1 and fractions[-1] < .999999:
+    if has_nac and fractions[-1] < .999999:
         native = 100  # Conservative whole-crop spacing when genuine WAC fallback is needed.
     source = {"url": WMS, "name": title, "nativePixelM": native,
-              "acquisition": ("NAC polar composite: images acquired 2009–2013; " if len(layers)>1 else "") + "WAC global composite: November 2009–February 2011. No mission-time lighting claim.",
+              "acquisition": ("NAC polar composite: images acquired 2009–2013; " if is_polar else "NAC landing-site mosaic (LROC); " if has_nac else "") + "WAC global composite: November 2009–February 2011. No mission-time lighting claim.",
               "site": {"latitudeDeg":site["latDeg"],"longitudeDeg":site["lonDeg"],"surfaceElevationM":site["surfaceElevationM"],"observerHeightM":site["observerHeightM"]},
               "crs":reference["crs"],"transform":reference["transform"],
               "resampling":"Each target pixel centre in observer-centred spherical ENU -> lon/lat -> actual WMS Moon CRS -> bilinear source pixels; north-first output",
               "queries":queries,"validFractionsByLayer":fractions,
               "photographicCoverageFraction":float(mask.mean()),"outputPixelM":size/n,
-              "references":([NAC_PAGE,NAC_README] if len(layers)>1 else []) + [WAC_PAGE,CAPABILITIES,"https://data.lroc.im-ldi.com/config/lunaserv.yml"],
+              "references":([NAC_PAGE,NAC_README] if has_nac else []) + [WAC_PAGE,CAPABILITIES,"https://data.lroc.im-ldi.com/config/lunaserv.yml"],
               "limitations":["Archival photographic mosaic with baked shadows, not albedo or current illumination",
                              "Controlled polar average combines observations and does not represent a single realistic lighting condition",
                              "The NAC mosaic extends to 84 degrees south; its control network extends only to 85 degrees south",
                              "Source pixel spacing is not absolute spatial accuracy; delivered crop may be coarser than native source",
                              "WAC gap fallback is 100 m/pixel even in a NAC photographic crop",
                              "Transparent pixels, if present, are genuine missing source coverage; no synthetic surface fill"]}
-    if len(layers)>1 and fractions[-1] < .999999:
+    if has_nac and fractions[-1] < .999999:
         source["limitations"].append(f"NAC source covers {fractions[-1]*100:.2f}% of this crop; remaining covered pixels use WAC")
     doc = {"version":1,"siteId":site["id"],"file":filename,"sizeM":size,"width":n,"height":n,
            "frame":FRAME,"archiveShadows":True,"sha256":sha256_bytes(path.read_bytes()),"source":source}

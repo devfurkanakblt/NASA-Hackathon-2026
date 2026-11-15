@@ -26,13 +26,14 @@ import { Comparison } from './Comparison.tsx'
 import { Landing } from './Landing.tsx'
 import { mapPointWhere, placeTitle, scenarioTitle } from './placeName.ts'
 import { errorMessage, fmtUtc } from './format.ts'
-import { cellId, isKnownSiteId, parseCellId, resolveSiteData, sitesNeeded } from './extendedSites.ts'
+import { cellId, isKnownSiteId, needsYear, parseCellId, resolveSiteData, sitesNeeded } from './extendedSites.ts'
 import { computeFreePoint, placeForCoordinate } from './freePointLoader.ts'
 import { parseFreePointId } from '../sim/freePoint.ts'
 import { CoordinateForm } from './CoordinateForm.tsx'
 import type { ExtendedState } from './extendedSites.ts'
 import { defaultScenarios, elevationStats, evaluateAll, isEvaluated, newKey, scenarioLabel, scenarioColor, targetScenarioKey } from './scenarios.ts'
 import type { Scenario } from './scenarios.ts'
+import { PlaceList } from './PlaceList.tsx'
 import { ResearchView } from './ResearchView.tsx'
 import { SearchPanel } from './SearchPanel.tsx'
 import { PackageImport } from './PackageImport.tsx'
@@ -51,6 +52,12 @@ import type { View } from './PageNavigation.tsx'
 import type { MoonFlight } from './MoonGlobe.tsx'
 import { prepareSceneTerrain } from '../scene3d/terrainCache.ts'
 import './app.css'
+
+/**
+ * The catalogue (science files of every place, ~14 MB) is fetched once per page: React StrictMode
+ * runs effects twice in development and a remount would otherwise download it all again.
+ */
+let cataloguePending: ReturnType<typeof loadAllData> | null = null
 
 const MoonGlobe = lazy(() => import('./MoonGlobe.tsx'))
 const GlobalPointScene = lazy(() => import('../scene3d/GlobalPointScene.tsx').then(module => ({ default: module.GlobalPointScene })))
@@ -182,7 +189,9 @@ export function MissionApp() {
 
   useEffect(() => {
     let cancelled = false
-    loadAllData(undefined, { visuals: false })
+    cataloguePending ??= loadAllData(undefined, { visuals: false })
+    cataloguePending.catch(() => { cataloguePending = null })
+    cataloguePending
       .then((data) => {
         if (cancelled) return
         const siteIds = data.sites.sites.map((s) => s.id)
@@ -240,8 +249,16 @@ export function MissionApp() {
     const all = [...scenarios, ...picked]
     const need = sitesNeeded(all, loaded.sites.coverage.endUtc, settings.durationDays, loaded.bySite)
     const bases = scenarios.map((s) => parseCellId(s.siteId)?.siteId ?? s.siteId).filter((id) => id in loaded.bySite)
-    return { years: [...new Set([...need.years, ...bases])], cells: need.cells, points: need.points }
-  }, [loaded, scenarios, picked, settings.durationDays])
+    // The Research tab compares catalogue places on the chosen dates: past the two-month period
+    // that needs each place's one-year series, so fetch them only then (≈1.3 MB each). A
+    // south-polar place only gets south-polar alternatives (research.ts), so only those load.
+    const focus = scenarios.find((s) => s.key === activeKey) ?? scenarios[0]
+    const focusBase = focus ? parseCellId(focus.siteId)?.siteId ?? focus.siteId : ''
+    const contrast = loaded.bySite[focusBase]?.site.category === 'contrast'
+    const research = tab === 'research' && focus && needsYear(focusBase, focus.startUtc, loaded.sites.coverage.endUtc, settings.durationDays)
+      ? Object.keys(loaded.bySite).filter((id) => contrast || loaded.bySite[id].site.category !== 'contrast') : []
+    return { years: [...new Set([...need.years, ...bases, ...research])], cells: need.cells, points: need.points }
+  }, [loaded, scenarios, picked, settings.durationDays, tab, activeKey])
   const wantedKey = `${wanted.years.join(',')}|${wanted.cells.join(',')}|${wanted.points.join(',')}`
   useEffect(() => {
     const years = wanted.years.filter((id) => ext.years[id] === undefined)
@@ -548,6 +565,9 @@ export function MissionApp() {
       ))}
     </div>
   )
+  const togglePlace = (site: SiteEntry) => updateLocations(picked.some(s => s.siteId === site.id)
+    ? picked.filter(s => s.siteId !== site.id)
+    : [...picked, { key: newKey(), siteId: site.id, startUtc: scenarios[0]?.startUtc ?? loaded.sites.coverage.startUtc }])
   const updateLocations = (next: Scenario[]) => {
     setPicked(next)
     setScenarios(next)
@@ -625,6 +645,10 @@ export function MissionApp() {
                   <button type="button" aria-label={`Remove ${placeTitle(s.siteId, loaded.bySite)}`} onClick={() => updateLocations(picked.filter(p => p.key !== s.key))}>&times;</button>
                 </div>)}
               </div>
+              <details className="moon-picker__coords moon-picker__places">
+                <summary>Choose from the list ({loaded.sites.sites.length} places)</summary>
+                <PlaceList sites={loaded.sites.sites} chosen={picked.map(p => p.siteId)} colors={picked.map((_, i) => scenarioColor(i))} onToggle={togglePlace} />
+              </details>
               <details className="moon-picker__coords">
                 <summary><span className="moon-picker__coords-icon" aria-hidden="true">⌖</span><span>Enter your own coordinates</span><span className="moon-picker__coords-hint">any point on the Moon</span></summary>
                 <CoordinateForm action="Add point" onUse={addCoordinate} />
@@ -636,9 +660,7 @@ export function MissionApp() {
                 <MoonGlobe active={simulationStage === 'pick' || !!flight} flight={flight ?? undefined} onComplete={() => { if (flight) { setActiveKey(flight.targetKey); setFlight(null) } }} sites={loaded.sites.sites} selected={(flight ? scenarios : picked).flatMap((s, i) => {
                   const site = shownBySite[s.siteId]?.site ?? loaded.sites.sites.find(site => site.id === s.siteId)
                   return site ? [{ key: s.key, site, letter: scenarioLabel(i), color: colors[i] }] : []
-                })} onSelect={(site: SiteEntry) => updateLocations(picked.some(s => s.siteId === site.id)
-                  ? picked.filter(s => s.siteId !== site.id)
-                  : [...picked, { key: newKey(), siteId: site.id, startUtc: scenarios[0]?.startUtc ?? loaded.sites.coverage.startUtc }])}
+                })} onSelect={togglePlace}
                   onPickPoint={(lat, lon) => setPickMessage(addCoordinate(lat, lon))} />
               </Suspense>
               {/* Actions float in the globe's lower-right corner once a place is chosen: no scrolling down. */}

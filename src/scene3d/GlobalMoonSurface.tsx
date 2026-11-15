@@ -6,6 +6,7 @@ import type { Mesh, MeshBasicMaterial, Texture } from 'three'
 import { globalGeometry } from './globalTerrain.ts'
 import type { GlobalTerrain } from './globalTerrain.ts'
 import { useMoonSurfaceTexture } from './moonSurfaceTexture.ts'
+import { loadDetailTerrain } from '../data/load.ts'
 import context from '../../public/assets/moon-south-context.json'
 import polar from '../../public/assets/moon-south-polar.json'
 
@@ -97,7 +98,19 @@ export function GlobalMoonSurface({ terrain, meshRef, refine = true }: {
   const global = useMemo(() => terrain ? globalGeometry(terrain) : new SphereGeometry(1, 256, 128), [terrain])
   const [patch, setPatch] = useState<Patch | null>(null)
   const last = useRef<Patch | null>(null)
-  const patchGeometry = useMemo(() => terrain && patch ? globalGeometry(terrain, patch.direction, patch.angle) : null, [terrain, patch])
+  // The whole-Moon mesh uses the small display grid; once zoomed in, only the full-resolution
+  // tiles under the camera are fetched for the refined patch.
+  const [detail, setDetail] = useState<{ patch: Patch; terrain: GlobalTerrain } | null>(null)
+  useEffect(() => {
+    if (!terrain || !patch) return
+    let cancelled = false
+    const latDeg = Math.asin(Math.max(-1, Math.min(1, patch.direction.y))) * 180 / Math.PI
+    const lonDeg = Math.atan2(-patch.direction.z, patch.direction.x) * 180 / Math.PI
+    void loadDetailTerrain(latDeg, lonDeg, patch.angle * 1737400 * 1.15 + 5000)
+      .then(detailTerrain => { if (!cancelled) setDetail({ patch, terrain: detailTerrain }) }, () => { /* keep the overview mesh */ })
+    return () => { cancelled = true }
+  }, [terrain, patch])
+  const patchGeometry = useMemo(() => patch && detail?.patch === patch ? globalGeometry(detail.terrain, patch.direction, patch.angle) : null, [detail, patch])
   useEffect(() => () => global.dispose(), [global])
   useEffect(() => () => patchGeometry?.dispose(), [patchGeometry])
   useEffect(() => { if (!refine) { last.current = null; setPatch(null) } }, [refine])
