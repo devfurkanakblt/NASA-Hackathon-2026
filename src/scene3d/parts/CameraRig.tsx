@@ -27,6 +27,8 @@ export interface CameraRigProps {
   mode: CameraMode
   /** Half the terrain patch width (m) — sets camera distances. */
   halfExtentM: number
+  /** Closest the orbit camera may get to the lander (it is drawn enlarged by a fixed factor). */
+  minOrbitDistanceM?: number
   /** Far clip plane (m): beyond the sky sphere. */
   farPlaneM: number
   eyeHeightM: number
@@ -47,7 +49,7 @@ export interface CameraRigProps {
  *  - lander: stand at the observer point (2 m above ground) and look at the horizon.
  *    Drag to look around, wheel to zoom. While a look target is set the view follows it.
  */
-export function CameraRig({ animateArrival = false, mode, halfExtentM, farPlaneM, eyeHeightM, lookTarget, sun, earth, onUserLook, terrainMesh, regionalMesh, mapScale }: CameraRigProps) {
+export function CameraRig({ animateArrival = false, mode, halfExtentM, minOrbitDistanceM = 60, farPlaneM, eyeHeightM, lookTarget, sun, earth, onUserLook, terrainMesh, regionalMesh, mapScale }: CameraRigProps) {
   const camera = useThree((s) => s.camera) as PerspectiveCamera
   const gl = useThree((s) => s.gl)
   const viewport = useThree((s) => s.size)
@@ -246,7 +248,7 @@ export function CameraRig({ animateArrival = false, mode, halfExtentM, farPlaneM
       screenSpacePanning={map}
       mouseButtons={map ? { LEFT: MOUSE.PAN, MIDDLE: MOUSE.DOLLY, RIGHT: MOUSE.PAN } : undefined}
       touches={map ? { ONE: TOUCH.PAN, TWO: TOUCH.DOLLY_PAN } : undefined}
-      minDistance={map ? 120 : 60}
+      minDistance={map ? 120 : minOrbitDistanceM}
       maxDistance={map ? Math.min(farPlaneM * 0.8, (regionalMesh?.halfExtentM ?? halfExtentM) * 3) : halfExtentM * 6}
       maxPolarAngle={map ? Math.PI : Math.PI / 2 - 0.02}
     />

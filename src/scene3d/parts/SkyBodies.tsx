@@ -43,28 +43,29 @@ const EARTH_FRAGMENT = /* glsl */ `
   uniform vec3 uColor;
   uniform vec3 uSunDirection;
   uniform float uOpacity;
+  uniform float uFill;
   varying vec3 vWorldNormal;
   varying vec2 vUv;
   void main() {
     vec3 n = normalize(vWorldNormal);
     float incidence = max(dot(n, normalize(uSunDirection)), 0.0);
     vec3 albedo = uHasMap > 0.5 ? texture2D(uMap, vUv).rgb : uColor;
-    gl_FragColor = vec4(albedo * incidence, uOpacity);
+    gl_FragColor = vec4(albedo * (uFill + (1.0 - uFill) * incidence), uOpacity);
     #include <tonemapping_fragment>
     #include <colorspace_fragment>
   }
 `
 
-function EarthSurface({ color, sunDirection, opacity, through, radius, discRadius, rotation, registered }: {
+function EarthSurface({ color, sunDirection, opacity, through, radius, discRadius, rotation, registered, fill }: {
   color: string; sunDirection: Vec3; opacity: number; through: boolean; radius: number; discRadius: number;
-  rotation?: QuaternionXyzw; registered: boolean;
+  rotation?: QuaternionXyzw; registered: boolean; fill: number;
 }) {
   const { texture } = useEarthTexture()
   const invalidate = useThree(s => s.invalidate)
   useEffect(() => { invalidate() }, [texture, invalidate])
   const uniforms = useMemo(() => ({
     uMap: { value: null }, uHasMap: { value: 0 }, uColor: { value: new Color(color) },
-    uSunDirection: { value: [0, 1, 0] as Vec3 }, uOpacity: { value: 1 },
+    uSunDirection: { value: [0, 1, 0] as Vec3 }, uOpacity: { value: 1 }, uFill: { value: 0 },
   }), [color])
   return (
     <mesh position={[0, 0, -radius]} quaternion={rotation} scale={discRadius} renderOrder={through ? 9 : 0}>
@@ -72,7 +73,7 @@ function EarthSurface({ color, sunDirection, opacity, through, radius, discRadiu
       <shaderMaterial
         key={through ? 'through' : 'solid'} vertexShader={EARTH_VERTEX} fragmentShader={EARTH_FRAGMENT}
         uniforms={uniforms} uniforms-uMap-value={texture} uniforms-uHasMap-value={texture && registered ? 1 : 0}
-        uniforms-uSunDirection-value={sunDirection} uniforms-uOpacity-value={opacity}
+        uniforms-uSunDirection-value={sunDirection} uniforms-uOpacity-value={opacity} uniforms-uFill-value={fill}
         transparent={through} depthTest={!through}
       />
     </mesh>
@@ -90,13 +91,15 @@ export interface SkyBodyProps {
   /** Body-fixed to local scene rotation; absent orientation deliberately hides the map. */
   earthOrientation?: QuaternionXyzw
   showAnnotations?: boolean
+  /** View aid: minimum brightness of Earth's night side (0 = physically lit only). */
+  earthFill?: number
   xray: boolean
   labelAnchor?: AnchorRef
 }
 
 /** True apparent sizes; the Sun is an airless-sky disc without an atmospheric halo. */
 export function SkyBody({ kind, color, body, status, radius, angularDiameterDeg, sunDirection, earthOrientation,
-  showAnnotations = true, xray, labelAnchor }: SkyBodyProps) {
+  showAnnotations = true, earthFill = 0, xray, labelAnchor }: SkyBodyProps) {
   const reticleRadius = radius * Math.tan(RETICLE_RADIUS_DEG * DEG2RAD)
   const reticle = useMemo(() => Array.from({ length: 49 }, (_, i) => {
     const t = i / 48 * Math.PI * 2
@@ -118,7 +121,7 @@ export function SkyBody({ kind, color, body, status, radius, angularDiameterDeg,
       ) : (
         <EarthSurface color={color} sunDirection={sunDirection} opacity={opacity} through={through}
           radius={radius} discRadius={apparentSphereRadius(radius, angularDiameterDeg)} rotation={rotation}
-          registered={Boolean(earthOrientation)} />
+          registered={Boolean(earthOrientation)} fill={earthFill} />
       )}
       {showAnnotations && <Line points={reticle} color={STATUS_COLOR[status] ?? color} lineWidth={1.2}
         dashed={!visible} dashSize={reticleRadius * 0.25} gapSize={reticleRadius * 0.18} depthTest={false} renderOrder={10} />}

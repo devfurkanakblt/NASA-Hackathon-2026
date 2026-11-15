@@ -1,7 +1,5 @@
-import { useFrame } from '@react-three/fiber'
-import { useMemo, useRef } from 'react'
+import { useMemo } from 'react'
 import { Matrix4, Quaternion, Vector3 } from 'three'
-import type { Group } from 'three'
 import { OBSERVER_HEIGHT_M, panelSize } from '../coords.ts'
 import { NORTH_COLOR } from '../palette.ts'
 import type { Vec3 } from '../types.ts'
@@ -9,8 +7,8 @@ import type { AnchorRef } from './Labels.tsx'
 
 const UP = new Vector3(0, 1, 0)
 
-/** Camera distance (m) at which the lander is drawn at true size; beyond it, it is enlarged. */
-const TRUE_SCALE_DISTANCE_M = 60
+/** Furthest extent of the model from its centre (north arrow tip), in model metres. */
+export const LANDER_MODEL_RADIUS_M = 4
 
 const PAD_Y = 0.03
 const BODY_BOTTOM_Y = 0.65
@@ -67,27 +65,22 @@ export interface LanderProps {
   panelAreaM2: number
   /** Where the "N" label of the north arrow is pinned. */
   northLabelAnchor: AnchorRef
+  /** Fixed enlargement of the few-metre model so it reads on a kilometre-wide patch. */
+  displayScale: number
 }
 
 /**
  * Representative lander with its solar panel and a north arrow, standing on the site.
- * It is a few metres across on a terrain patch kilometres wide, so in the overview it is
- * enlarged with camera distance to stay readable (the scene caption says so).
+ * It is a few metres across on a terrain patch kilometres wide, so it is drawn enlarged by a
+ * fixed factor (the scene caption says so). The factor never changes with camera distance:
+ * the lander keeps one size in the scene and grows on screen as the camera approaches.
  */
-export function Lander({ panelNormal, panelLit, panelAreaM2, northLabelAnchor }: LanderProps) {
-  const group = useRef<Group>(null)
+export function Lander({ panelNormal, panelLit, panelAreaM2, northLabelAnchor, displayScale }: LanderProps) {
   const panelQuaternion = useMemo(() => quaternionForNormal(panelNormal), [panelNormal])
   const { widthM, heightM } = panelSize(panelAreaM2)
 
-  useFrame(({ camera }) => {
-    const g = group.current
-    if (!g) return
-    const scale = Math.max(1, camera.position.length() / TRUE_SCALE_DISTANCE_M)
-    if (g.scale.x !== scale) g.scale.setScalar(scale)
-  })
-
   return (
-    <group ref={group}>
+    <group scale={displayScale}>
       {LEGS.map((leg, i) => (
         <group key={i}>
           <Strut from={leg.from} to={leg.to} radius={0.04} color="#b9bcc4" />
