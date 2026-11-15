@@ -80,7 +80,7 @@ export async function loadAllData(baseUrl = `${import.meta.env.BASE_URL}data`): 
       latDeg: site.latDeg, lonDeg: site.lonDeg, observerHeightM: site.observerHeightM,
       eyeM: site.surfaceElevationM + site.observerHeightM,
       horizonResolutionDeg: horizon.azStepDeg, horizonSource: 'catalogue',
-      ephemerisSource: ephemeris.source, dataHash: null, precision: 'catalogue', coverageWarnings: [],
+      ephemerisSource: ephemeris.source, dataHash: null, precision: 'catalogue', coverageWarnings: [...(horizon.warnings ?? [])],
     }
     return [site.id, { site, ephemeris, horizon, terrain: displayTerrain, terrainFar: displayFar, earthOrientation, visualWarnings, season, map, provenance }] as const
   }))

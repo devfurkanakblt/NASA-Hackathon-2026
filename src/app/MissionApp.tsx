@@ -213,8 +213,8 @@ export function MissionApp() {
       )
     }
     for (const id of cells) {
-      loadHeader(id).then((h) => setExt((e) => ({ ...e, headers: { ...e.headers, [id]: h } })), () => mark('cells', id, 'error'))
       mark('cells', id, 'loading')
+      loadHeader(id).then((h) => setExt((e) => ({ ...e, headers: { ...e.headers, [id]: h } })), () => mark('cells', id, 'error'))
       loadCells(id).then(
         (c) => mark('cells', id, c),
         () => mark('cells', id, 'error'),

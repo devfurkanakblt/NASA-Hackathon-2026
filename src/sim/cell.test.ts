@@ -126,7 +126,8 @@ describe('cellSiteData', () => {
       observerHeightM: d.site.observerHeightM, ephemerisSource: header.year.source,
     })
     expect(p.dataHash).toBe(header.year.sha256)
-    expect(p.coverageWarnings).toEqual([])
+    expect(p.coverageWarnings).toEqual(d.map!.warnings)
+    expect(p.coverageWarnings.join(' ')).toMatch(/2\.9 % of terrain samples/)
   })
 
   it('cell label says regional screening estimate', () => expect(CELL_LABEL).toMatch(/screening estimate/))

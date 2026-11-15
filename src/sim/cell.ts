@@ -88,7 +88,7 @@ export function cellSiteData(base: SiteData, year: EphemerisDoc, cells: CellHori
   const provenance: Provenance = {
     latDeg: cell.latDeg, lonDeg: cell.lonDeg, observerHeightM: s.observerHeightM, eyeM: cell.eyeM,
     horizonResolutionDeg: cells.azStepDeg, horizonSource: 'map-cell',
-    ephemerisSource: year.source, dataHash: header.year.sha256, precision: 'regional screening estimate', coverageWarnings: [],
+    ephemerisSource: year.source, dataHash: header.year.sha256, precision: 'regional screening estimate', coverageWarnings: [...(map.warnings ?? [])],
   }
   return {
     ...base,
