@@ -6,6 +6,9 @@ import { latestMissionStartUtc } from './missionDates.ts'
 import './sceneMissionControls.css'
 import { useState } from 'react'
 
+/** Duration used when the days field is left empty. */
+const DEFAULT_MISSION_DAYS = 7
+
 interface Props {
   sites: SitesDoc
   scenarios: Scenario[]
@@ -24,6 +27,8 @@ export function SceneMissionControls({ sites, scenarios, chosenKey, durationDays
   const [latitude, setLatitude] = useState('')
   const [longitude, setLongitude] = useState('')
   const [coordinateMessage, setCoordinateMessage] = useState('')
+  // Raw text while editing, so the field can be cleared; null shows the committed duration.
+  const [daysDraft, setDaysDraft] = useState<string | null>(null)
   const chosen = scenarios.find(s => s.key === chosenKey)
   if (!chosen) return null
   const latest = latestMissionStartUtc(endUtc, durationDays)
@@ -46,7 +51,7 @@ export function SceneMissionControls({ sites, scenarios, chosenKey, durationDays
         {onCopy && <button type="button" disabled={scenarios.length >= 3} title="Preserve this scenario, then change the copy’s place or date. Maximum three; remove a location in Edit locations if full." onClick={onCopy}>Keep baseline & add comparison</button>}
       </div>
       {onCoordinate && <details style={{ marginTop: 12 }}><summary>Choose your own coordinates</summary>
-        <p className="scene-mission__hint">Computed coverage: ±3 km around the seven polar research areas. The nearest available 100–200 m grid point is used; its coordinates and snapping distance are reported.</p>
+        <p className="scene-mission__hint">Any point on the Moon. Inside the ±3 km polar maps the nearest 100–200 m grid point is used (distance reported); elsewhere your exact coordinate is computed from the global LOLA terrain as a screening estimate.</p>
         <div className="scene-mission__fields">
           <label>Latitude · degrees<input aria-label="Custom latitude" inputMode="decimal" value={latitude} onChange={e => setLatitude(e.target.value)} /></label>
           <label>Longitude · east positive<input aria-label="Custom longitude" inputMode="decimal" value={longitude} onChange={e => setLongitude(e.target.value)} /></label>
@@ -57,7 +62,7 @@ export function SceneMissionControls({ sites, scenarios, chosenKey, durationDays
       <div className="scene-mission__fields">
         <label><span>Location</span>
           <select aria-label="Simulation location" value={chosen.siteId} onChange={e => onPatch({ siteId: e.target.value })}>
-            {!isCatalogue && <option value={chosen.siteId}>Selected regional map point</option>}
+            {!isCatalogue && <option value={chosen.siteId}>{chosen.siteId.startsWith('pt:') ? 'Your coordinate' : 'Selected regional map point'}</option>}
             <optgroup label="South-pole research points">
               {sites.sites.filter(s => s.category !== 'contrast').map(s => <option key={s.id} value={s.id}>{s.name}{s.derivedFrom ? ' · derived point' : ''} ({s.id})</option>)}
             </optgroup>
@@ -70,7 +75,9 @@ export function SceneMissionControls({ sites, scenarios, chosenKey, durationDays
           <input aria-label="Simulation landing date and time UTC" type="datetime-local" step={600} value={toInputUtc(chosen.startUtc)} min={toInputUtc(sites.coverage.startUtc)} max={latest ? toInputUtc(latest) : undefined} onInput={e => dateChanged(e.currentTarget.value)} onChange={e => dateChanged(e.currentTarget.value)} />
         </label>
         <label className="scene-mission__duration"><span>Mission · days</span>
-          <input aria-label="Simulation mission duration in days" type="number" min={MIN_DURATION_DAYS} max={MAX_DURATION_DAYS} step={1} value={durationDays} onChange={e => { const value = e.currentTarget.valueAsNumber; if (Number.isFinite(value)) onDuration(value) }} />
+          <input aria-label="Simulation mission duration in days" type="number" min={MIN_DURATION_DAYS} max={MAX_DURATION_DAYS} step={1} value={daysDraft ?? String(durationDays)}
+            onChange={e => { setDaysDraft(e.currentTarget.value); const value = e.currentTarget.valueAsNumber; if (Number.isFinite(value)) onDuration(value) }}
+            onBlur={e => { if (!Number.isFinite(e.currentTarget.valueAsNumber)) onDuration(DEFAULT_MISSION_DAYS); setDaysDraft(null) }} />
         </label>
       </div>
       <div className="scene-mission__shifts" role="group" aria-label="Shift selected landing date">

@@ -9,6 +9,10 @@ describe('simulation UTC date controls', () => {
     expect(start).toBe('2027-10-02T00:00:00.000Z')
     expect(Date.parse(start!) + 30 * 86400000).toBe(Date.parse(end))
   })
+  it('reserves a full 90-day mission at the end of annual data', () => {
+    expect(latestMissionStartUtc('2027-11-01T00:00:00Z', 90)).toBe('2027-08-03T00:00:00.000Z')
+    expect(latestMissionStartUtc('2027-11-01T00:00:00Z', 91)).toBe('2027-08-03T00:00:00.000Z')
+  })
   it('does not crash the picker while invalid settings are being corrected', () => {
     for (const days of [1e9, -1e9, NaN, Infinity]) {
       expect(latestMissionStartUtc('2027-11-01T00:00:00Z', days)).toMatch(/^2027-/)

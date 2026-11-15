@@ -252,3 +252,26 @@ Rank correlation (Spearman) over all cells: 0.935.
 Rank correlation (Spearman) over all cells: 0.962.
 
 Reading the table: the bias column shows whether we are systematically brighter or darker than the product; the slope split shows where the differences sit. Most of the difference sits on gentle ground (plateaus and ridge tops), not on steep walls: mean abs diff Sun 0.043 on slopes < 10 deg vs 0.014 on slopes > 25 deg; Earth 0.029 on slopes < 10 deg vs 0.009 on slopes > 25 deg. Inputs differ: the products use the 2016 60 m DEM and an observer on the surface, we use the 5 m DEMs and an observer 2 m above it. Near the pole the Sun stays within a few degrees of the horizon, so on flat high ground a small change in the local horizon (finer terrain, observer height) changes the lit fraction noticeably; on steep walls the horizon is dominated by large terrain that both DEMs resolve. Pearson r is shown as "-" where one side is constant. This is a comparison with an independent published model, not with ground truth.
+
+## Free coordinates in the browser (D, 15 Nov 2026)
+
+Any coordinate outside the catalogue and the polar maps is computed in the browser
+(`src/sim/freePoint.ts`): Sun / Earth from Site01's JPL Horizons year series re-projected to the
+point through Moon-fixed vectors, and a 0.1° horizon ray-marched out to 250 km on
+`public/data/global-dem/` (LOLA LDEM_64, 4 × 4 block mean, ~1.9 km/px). Checked against
+catalogue sites that have their own series and an LDEM_64 (~474 m) horizon
+(`tests/freePoint.test.ts`):
+
+| Site | Surface height Δ | Horizon RMS / max Δ (360 az) | Year Sun % free / catalogue | Year Earth % |
+|---|---|---|---|---|
+| Apollo16 | −1 m | 0.37° / 0.99° | 48.34 / 48.28 | 100 / 100 |
+| SLIM | −3 m | 0.54° / 1.54° | 46.66 / 46.54 | 100 / 100 |
+| CE4 | +1 m | 0.07° / 0.21° | 50.52 / 50.49 | 0 / 0 |
+| CE6 | 0 m | 0.10° / 0.38° | 51.38 / 51.37 | 0 / 0 |
+| Chandrayaan3 | +6 m | 0.12° / 0.36° | 47.11 / 46.68 | 100 / 100 |
+
+Ephemeris: projected Sun / Earth elevations match the sites' own series within 0.003° (azimuth
+0.01°, Apollo16, CE4, SLIM, Chandrayaan3, Site23). One free point takes ~135 ms (Node). The
+coarse DEM cannot resolve hills and crater walls smaller than a few km, so near the poles, where
+the Sun grazes the horizon, the error can be much larger than at these sites: results are always
+labelled "global screening estimate" and the polar maps / catalogue sites are used where they exist.

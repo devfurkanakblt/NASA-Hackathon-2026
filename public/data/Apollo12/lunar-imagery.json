@@ -1,0 +1,99 @@
+{
+  "version": 1,
+  "siteId": "Apollo12",
+  "file": "lunar-imagery.jpg",
+  "sizeM": 10000.0,
+  "width": 2048,
+  "height": 2048,
+  "frame": "local-east-north-metres-image-north-up",
+  "archiveShadows": true,
+  "sha256": "8206457903a1eff50b74cdf47d97a52962653e98382a10b7c5034bed4de33870",
+  "source": {
+    "url": "https://wms.im-ldi.com/",
+    "name": "LROC WAC global photographic mosaic",
+    "nativePixelM": 100,
+    "acquisition": "WAC global composite: November 2009\u2013February 2011. No mission-time lighting claim.",
+    "site": {
+      "latitudeDeg": -3.0128,
+      "longitudeDeg": -23.4219,
+      "surfaceElevationM": -1427.55,
+      "observerHeightM": 2.0
+    },
+    "crs": "GEOGCS[\"unknown\",DATUM[\"unknown\",SPHEROID[\"unknown\",1737400,0]],PRIMEM[\"Reference meridian\",0],UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",\"9122\"]],AXIS[\"Latitude\",NORTH],AXIS[\"Longitude\",EAST]]",
+    "transform": [
+      0.00010779504055989537,
+      0.0,
+      -23.5874731823,
+      0.0,
+      -0.00010763344773372385,
+      -2.847468895167
+    ],
+    "resampling": "Each target pixel centre in observer-centred spherical ENU -> lon/lat -> actual WMS Moon CRS -> bilinear source pixels; north-first output",
+    "queries": [
+      {
+        "url": "https://wms.im-ldi.com/",
+        "layer": "luna_wac_global",
+        "query": {
+          "SERVICE": "WMS",
+          "VERSION": "1.1.1",
+          "REQUEST": "GetMap",
+          "LAYERS": "luna_wac_global",
+          "STYLES": "",
+          "SRS": "IAU2000:30100",
+          "BBOX": "-23.587473182300,-3.178118846605,-23.256326817700,-2.847468895167",
+          "WIDTH": "3072",
+          "HEIGHT": "3072",
+          "FORMAT": "image/tiff",
+          "TRANSPARENT": "TRUE"
+        },
+        "querySha256": "1540ab6045d3b44dec7a894bde2a4f0b5eacd2792ef123fd0d481023a9fc7805",
+        "nativePixelM": 100,
+        "productPage": "https://data.lroc.im-ldi.com/lroc/view_rdr/WAC_GLOBAL",
+        "rawSha256": "4392e11d861cb7f931a99202ae15a337ca7767d0db0be3c499f7ef18a958195c",
+        "rawBytes": 185583,
+        "crs": "GEOGCS[\"unknown\",DATUM[\"unknown\",SPHEROID[\"unknown\",1737400,0]],PRIMEM[\"Reference meridian\",0],UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",\"9122\"]],AXIS[\"Latitude\",NORTH],AXIS[\"Longitude\",EAST]]",
+        "transform": [
+          0.00010779504055989537,
+          0.0,
+          -23.5874731823,
+          0.0,
+          -0.00010763344773372385,
+          -2.847468895167
+        ],
+        "dimensions": [
+          3072,
+          3072
+        ],
+        "bounds": [
+          -23.58747318230046,
+          -3.1781188466053893,
+          -23.25632681769954,
+          -2.847468895166996
+        ],
+        "deliveredProjectedPixelSize": [
+          0.00010779504055989537,
+          0.00010763344773372385
+        ],
+        "deliveredProjectedUnits": "degrees"
+      }
+    ],
+    "validFractionsByLayer": [
+      1.0
+    ],
+    "photographicCoverageFraction": 1.0,
+    "outputPixelM": 4.8828125,
+    "references": [
+      "https://data.lroc.im-ldi.com/lroc/view_rdr/WAC_GLOBAL",
+      "https://wms.im-ldi.com/?SERVICE=WMS&REQUEST=GetCapabilities",
+      "https://data.lroc.im-ldi.com/config/lunaserv.yml"
+    ],
+    "limitations": [
+      "Archival photographic mosaic with baked shadows, not albedo or current illumination",
+      "Controlled polar average combines observations and does not represent a single realistic lighting condition",
+      "The NAC mosaic extends to 84 degrees south; its control network extends only to 85 degrees south",
+      "Source pixel spacing is not absolute spatial accuracy; delivered crop may be coarser than native source",
+      "WAC gap fallback is 100 m/pixel even in a NAC photographic crop",
+      "Transparent pixels, if present, are genuine missing source coverage; no synthetic surface fill"
+    ]
+  }
+}

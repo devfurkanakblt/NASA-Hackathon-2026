@@ -23,6 +23,9 @@ import { Landing } from './Landing.tsx'
 import { mapPointWhere, placeTitle } from './placeName.ts'
 import { errorMessage, fmtDuration, fmtHours, fmtUtc } from './format.ts'
 import { cellId, isKnownSiteId, needsYear, parseCellId, resolveSiteData, sitesNeeded } from './extendedSites.ts'
+import { computeFreePoint, placeForCoordinate } from './freePointLoader.ts'
+import { parseFreePointId } from '../sim/freePoint.ts'
+import { CoordinateForm } from './CoordinateForm.tsx'
 import type { ExtendedState } from './extendedSites.ts'
 import { cellAt } from './mapGrid.ts'
 import { defaultScenarios, evaluateAll, isEvaluated, newKey, targetScenarioKey } from './scenarios.ts'
@@ -33,6 +36,7 @@ import { SettingsForm } from './SettingsForm.tsx'
 import { decodeShare, encodeShare } from './share.ts'
 import { Sources } from './Sources.tsx'
 import { Timelines } from './Timelines.tsx'
+import { earthWobble } from './libration.ts'
 import { Tour } from './Tour.tsx'
 import type { TourStep } from './Tour.tsx'
 import { MissionFooter } from './MissionFooter.tsx'
@@ -99,6 +103,7 @@ export function MissionApp() {
   const [preparedPickKey, setPreparedPickKey] = useState('')
   const [readyTerrain, setReadyTerrain] = useState<TerrainGrid | null>(null)
   const [picked, setPicked] = useState<Scenario[]>([])
+  const [pickMessage, setPickMessage] = useState<{ ok: boolean; text: string } | null>(null)
   const [flight, setFlight] = useState<(MoonFlight & { targetKey: string }) | null>(null)
   const [transitionId, setTransitionId] = useState(0)
   const transitionAction = useRef<(() => void) | null>(null)
@@ -197,24 +202,36 @@ export function MissionApp() {
   // Which per-site files to fetch: what the scenarios need now, plus (in the background) the
   // one-year series of every scenario's site so later dates open without waiting.
   const wanted = useMemo(() => {
-    if (!loaded) return { years: [] as string[], cells: [] as string[] }
-    const need = sitesNeeded(scenarios, loaded.sites.coverage.endUtc, settings.durationDays, loaded.bySite)
+    if (!loaded) return { years: [] as string[], cells: [] as string[], points: [] as string[] }
+    const all = [...scenarios, ...picked]
+    const need = sitesNeeded(all, loaded.sites.coverage.endUtc, settings.durationDays, loaded.bySite)
     const bases = scenarios.map((s) => parseCellId(s.siteId)?.siteId ?? s.siteId).filter((id) => id in loaded.bySite)
-    // The Research tab compares every catalogue place on the chosen dates: past the two-month
-    // period that needs each place's one-year series, so fetch them only then (≈1.3 MB each).
-    // A south-polar place only gets south-polar alternatives (research.ts), so only those load.
+    // The Research tab compares catalogue places on the chosen dates: past the two-month period
+    // that needs each place's one-year series, so fetch them only then (≈1.3 MB each). A
+    // south-polar place only gets south-polar alternatives (research.ts), so only those load.
     const focus = scenarios.find((s) => s.key === activeKey) ?? scenarios[0]
     const focusBase = focus ? parseCellId(focus.siteId)?.siteId ?? focus.siteId : ''
     const contrast = loaded.bySite[focusBase]?.site.category === 'contrast'
     const research = tab === 'research' && focus && needsYear(focusBase, focus.startUtc, loaded.sites.coverage.endUtc, settings.durationDays)
       ? Object.keys(loaded.bySite).filter((id) => contrast || loaded.bySite[id].site.category !== 'contrast') : []
-    return { years: [...new Set([...need.years, ...bases, ...research])], cells: need.cells }
-  }, [loaded, scenarios, settings.durationDays, tab, activeKey])
-  const wantedKey = `${wanted.years.join(',')}|${wanted.cells.join(',')}`
+    return { years: [...new Set([...need.years, ...bases, ...research])], cells: need.cells, points: need.points }
+  }, [loaded, scenarios, picked, settings.durationDays, tab, activeKey])
+  const wantedKey = `${wanted.years.join(',')}|${wanted.cells.join(',')}|${wanted.points.join(',')}`
   useEffect(() => {
     const years = wanted.years.filter((id) => ext.years[id] === undefined)
     const cells = wanted.cells.filter((id) => ext.cells[id] === undefined)
-    if (years.length === 0 && cells.length === 0) return
+    const points = wanted.points.filter((id) => ext.points?.[id] === undefined)
+    if (years.length === 0 && cells.length === 0 && points.length === 0) return
+    for (const id of points) {
+      setExt((e) => ({ ...e, points: { ...e.points, [id]: 'loading' } }))
+      computeFreePoint(id, loaded!.bySite).then(
+        (d) => setExt((e) => ({ ...e, points: { ...e.points, [id]: d } })),
+        (err) => {
+          console.warn(`${id}:`, err)
+          setExt((e) => ({ ...e, points: { ...e.points, [id]: 'error' } }))
+        },
+      )
+    }
     const mark = (kind: 'years' | 'cells', id: string, value: ExtendedState['years'][string] | ExtendedState['cells'][string]) =>
       setExt((e) => ({ ...e, [kind]: { ...e[kind], [id]: value } }))
     for (const id of years) {
@@ -258,6 +275,7 @@ export function MissionApp() {
   const activeColor = COLORS[active ? outcomes.indexOf(active) : 0]
   const activeData = active?.data ?? null
   const activeCell = activeData ? parseCellId(activeData.site.id) : null
+  const activeFree = activeData ? parseFreePointId(activeData.site.id) : null
   // Map-point actions and the highlight stay on the chosen scenario, also while it loads.
   const chosenKey = targetScenarioKey(scenarios, activeKey)
   const chosenOutcome = outcomes.find((o) => o.scenario.key === chosenKey)
@@ -300,6 +318,7 @@ export function MissionApp() {
     const earthPath = { azDeg: slice(earth.azDeg), elDeg: slice(earth.elDeg), visible: active.result.earthVisible }
     return { sunPath, earthPath, sunDist: slice(sun.distanceM), earthDist: slice(earth.distanceM) }
   }, [active, activeData])
+  const wobble = useMemo(() => (tracks ? earthWobble(tracks.earthPath.azDeg, tracks.earthPath.elDeg) : null), [tracks])
 
   const now = useMemo(() => {
     if (!active || !tracks) return null
@@ -345,7 +364,7 @@ export function MissionApp() {
     {
       target: 'tabs',
       title: 'See why',
-      body: 'These tabs show the reason behind the answer: the skyline the lander sees, the battery over time, a map of the area and how things change through the year.',
+      body: 'These tabs show the reason behind the answer: the skyline the lander sees, the battery over time, a map of the area and how things change through the year. The skyline tab also explains why Earth is not fixed in the sky: the Moon wobbles slightly (libration), so Earth draws a small loop and, near the pole, rises and sets.',
       before: () => {
         go('results')
         setTab('sky')
@@ -478,16 +497,33 @@ export function MissionApp() {
     setScenarios(next)
     setActiveKey(current => next.some(place => place.key === current) ? current : next[0]?.key ?? null)
   }
+  /** A typed or clicked coordinate: the best available place for it, added to the picked places. */
+  const addCoordinate = (lat: number, lon: number): { ok: boolean; text: string } => {
+    const choice = placeForCoordinate(lat, lon, loaded.bySite)
+    if ('error' in choice) return { ok: false, text: choice.error }
+    if (picked.some(p => p.siteId === choice.siteId)) return { ok: false, text: 'This point is already in the comparison.' }
+    if (picked.length >= 3) return { ok: false, text: 'Three places already chosen; remove one first.' }
+    updateLocations([...picked, { key: newKey(), siteId: choice.siteId, startUtc: scenarios[0]?.startUtc ?? loaded.sites.coverage.startUtc }])
+    return { ok: true, text: choice.message }
+  }
 
   const missionControls = <SceneMissionControls
     sites={loaded.sites} scenarios={scenarios} chosenKey={chosenKey}
     durationDays={settings.durationDays} endUtc={maxStartFor(chosenScenario?.siteId ?? loaded.sites.sites[0].id)}
     onChoose={key => { setPlaying(false); setStep(0); setActiveKey(key) }} onPatch={patchSceneScenario}
     onDuration={durationDays => { setPlaying(false); setStep(0); setSettings(previous => ({ ...previous, durationDays })) }}
+    onCoordinate={(lat, lon) => {
+      const choice = placeForCoordinate(lat, lon, loaded.bySite)
+      if ('error' in choice) return choice.error
+      patchSceneScenario({ siteId: choice.siteId })
+      return choice.message
+    }}
     onCopy={() => { if (chosenScenario && scenarios.length < 3) { const copy = { ...chosenScenario, key: newKey() }; setScenarios([...scenarios, copy]); setActiveKey(copy.key); setPlaying(false); setStep(0) } }} />
 
+  // Choosing places is a single screen: the globe fills the viewport and the page does not scroll.
+  const picking = view === 'simulation' && simulationStage === 'pick' && !flight
   return (
-    <div className="app">
+    <div className={picking ? 'app app--pick' : 'app'}>
       {header}
       {covered && <div key={transitionId} className="mission-blackout" aria-hidden="true" />}
       <Tour steps={tourSteps} open={tourOpen} onClose={() => setTourOpen(false)} />
@@ -496,27 +532,39 @@ export function MissionApp() {
           <main className="app__main">
             <section className="card moon-picker" data-mode={flight ? 'flight' : simulationStage} aria-hidden={simulationStage !== 'pick' && !flight || undefined} inert={simulationStage !== 'pick' && !flight || undefined} data-tour="places">
               <div className="card__head"><div><h2>Choose places on the Moon</h2>
-                <p className="card__tagline">Click a place on the globe or in the list to add it. You can compare up to three places.</p></div></div>
-              <div className="moon-picker__globe"><Suspense fallback={<p role="status">Loading the Moon&hellip;</p>}>
-                <MoonGlobe active={simulationStage === 'pick' || !!flight} flight={flight ?? undefined} onComplete={() => { if (flight) { setActiveKey(flight.targetKey); setFlight(null) } }} sites={loaded.sites.sites} selected={(flight ? scenarios : picked).flatMap((s, i) => {
-                  const site = shownBySite[s.siteId]?.site ?? loaded.sites.sites.find(site => site.id === s.siteId)
-                  return site ? [{ key: s.key, site, letter: String.fromCharCode(65 + i), color: COLORS[i] }] : []
-                })} onSelect={togglePlace} />
-              </Suspense></div>
-              {flight && <p className="sim__flight-label" role="status">{flight.from.name} <span aria-hidden="true">&rarr;</span> {flight.to.name}</p>}
-              <div className="moon-picker__selection" aria-live="polite">
-                {picked.length === 0 && <p className="muted">No place chosen yet. Click a dot on the globe or a name in the list.</p>}
+                <p className="card__tagline">Click a place on the globe, pick one from the list, click anywhere on the surface or enter coordinates. You can compare up to three places.</p></div>
+                <div className="moon-picker__selection" aria-live="polite">
+                {picked.length === 0 && <p className="muted">No place chosen yet. Click a dot on the globe or pick from the list.</p>}
                 {picked.map((s, i) => <div key={s.key} className="moon-choice" style={{ '--place-color': COLORS[i] } as CSSProperties}>
                   <span className="moon-choice__letter">{String.fromCharCode(65 + i)}</span>
                   <span>{placeTitle(s.siteId, shownBySite)}</span>
                   <button type="button" aria-label={`Remove ${placeTitle(s.siteId, loaded.bySite)}`} onClick={() => updateLocations(picked.filter(p => p.key !== s.key))}>&times;</button>
                 </div>)}
               </div>
-              {!flight && <PlaceList sites={loaded.sites.sites} chosen={picked.map(p => p.siteId)} colors={COLORS} onToggle={togglePlace} />}
-              <div className="moon-picker__actions"><button type="button" className="primary" disabled={picked.length < 2} onClick={() => { setScenarios(picked); setActiveKey(picked[0].key); setPlaying(false); setStep(0); go('results') }}>Compare selected points</button><span className="muted small">{picked.length} / 3 locations</span>
+              <details className="moon-picker__coords moon-picker__places">
+                <summary>Choose from the list ({loaded.sites.sites.length} places)</summary>
+                <PlaceList sites={loaded.sites.sites} chosen={picked.map(p => p.siteId)} colors={COLORS} onToggle={togglePlace} />
+              </details>
+              <details className="moon-picker__coords">
+                <summary>Enter your own coordinates</summary>
+                <CoordinateForm action="Add point" disabled={picked.length >= 3} onUse={addCoordinate} />
+              </details>
+              {pickMessage && <p className={`small moon-picker__message ${pickMessage.ok ? 'muted' : 'bad'}`} role="status">{pickMessage.text}</p>}
+              </div>
+              <div className="moon-picker__globe"><Suspense fallback={<p role="status">Loading the Moon&hellip;</p>}>
+                <MoonGlobe active={simulationStage === 'pick' || !!flight} flight={flight ?? undefined} onComplete={() => { if (flight) { setActiveKey(flight.targetKey); setFlight(null) } }} sites={loaded.sites.sites} selected={(flight ? scenarios : picked).flatMap((s, i) => {
+                  const site = shownBySite[s.siteId]?.site ?? loaded.sites.sites.find(site => site.id === s.siteId)
+                  return site ? [{ key: s.key, site, letter: String.fromCharCode(65 + i), color: COLORS[i] }] : []
+                })} onSelect={togglePlace}
+                  onPickPoint={(lat, lon) => setPickMessage(addCoordinate(lat, lon))} />
+              </Suspense>
+              {/* Actions float in the globe's lower-right corner once a place is chosen: no scrolling down. */}
+              {picked.length > 0 && !flight && <div className="moon-picker__actions" role="group" aria-label="Selected places actions"><button type="button" className="primary" disabled={picked.length < 2} onClick={() => { setScenarios(picked); setActiveKey(picked[0].key); setPlaying(false); setStep(0); go('results') }}>Compare selected points</button><span className="muted small">{picked.length} / 3 locations</span>
                 <button type="button" className="primary" disabled={!picked.length || covered || !selectionReady} onClick={() => darken(() => {
                   setScenarios(picked); setActiveKey(picked[0].key); setStep(0); setSimulationStarted(true); setSimulationStage('watch')
-                })}>{picked.length > 0 && !selectionReady ? 'Preparing terrain…' : 'Show in simulation'} <span aria-hidden="true">&nearr;</span></button></div>
+                })}>{picked.length > 0 && !selectionReady ? 'Preparing terrain…' : 'Show in simulation'} <span aria-hidden="true">↗</span></button></div>}
+              </div>
+              {flight && <p className="sim__flight-label" role="status">{flight.from.name} <span aria-hidden="true">&rarr;</span> {flight.to.name}</p>}
             </section>
             {simulationStarted && <section className="card sim" hidden={simulationStage === 'pick'} inert={simulationStage === 'pick' || undefined}>
               <div className="sim__route">
@@ -546,9 +594,11 @@ export function MissionApp() {
               {active?.scenario.key === chosenKey && now && activeData && tracks ? (
                 <>
                   <SceneMissionSummary result={active.result} settings={settings} />
-                  {activeCell && activeData.map ? (
+                  {(activeCell && activeData.map) || activeFree ? (
                     <div data-tour="scene">
-                      <p className="muted">This grid point is {cellOffset(activeData.map, activeCell.row, activeCell.col)}. Its own 1° terrain horizon drives the calculation. A registered 3D patch is not available here; the chart shows this point's calculated visibility.</p>
+                      {activeCell && activeData.map
+                        ? <p className="muted">This grid point is {cellOffset(activeData.map, activeCell.row, activeCell.col)}. Its own 1° terrain horizon drives the calculation. A registered 3D patch is not available here; the chart shows this point's calculated visibility.</p>
+                        : <p className="muted">Your coordinate is computed in the browser: its own 0.1° terrain horizon from the global LOLA terrain (~1.9 km per pixel, out to 250 km) and the Sun and Earth seen from this exact point. A global screening estimate: small hills and crater walls are not resolved, and there is no 3D terrain patch here. The chart shows this point's calculated visibility.</p>}
                       <SkyVisibilityChart horizon={activeData.horizon} sun={tracks.sunPath} earth={tracks.earthPath} stepH={active.result.stepS / 3600} k={now.kk} />
                     </div>
                   ) : (
@@ -690,6 +740,18 @@ export function MissionApp() {
                       </h3>
                       <SkyVisibilityChart horizon={activeData.horizon} sun={tracks.sunPath} earth={tracks.earthPath} stepH={active.result.stepS / 3600} k={now.kk} />
                       {status}
+                      {wobble && (
+                        <p className="explain libration-note">
+                          <strong>Why <span className="earth">Earth</span> moves in the sky.</strong> The Moon always turns the same face to us, so
+                          Earth should hang still. It does not quite: the Moon&rsquo;s orbit is an ellipse and its axis is tilted, so it seems to
+                          rock by a few degrees (this wobble is called <em>libration</em>). Earth therefore draws a small loop in the sky about once
+                          every 27 days. During this mission it moved across {wobble.azSpanDeg.toFixed(1)}° of azimuth, between{' '}
+                          {wobble.elMinDeg.toFixed(1)}° and {wobble.elMaxDeg.toFixed(1)}° of elevation.{' '}
+                          {wobble.loop === 'crosses-horizon' && 'Here that loop crosses the level horizon, which is why Earth rises and sets at this place.'}
+                          {wobble.loop === 'always-up' && 'Here the whole loop stays above the level horizon, so Earth never sets.'}
+                          {wobble.loop === 'never-up' && 'Here the whole loop stays below the level horizon (far side), so Earth never rises.'}
+                        </p>
+                      )}
                       <h3>In view during the mission</h3>
                       <Timelines outcomes={evaluated} colors={colorsOfEvaluated} k={k} />
                     </>

@@ -7,7 +7,7 @@ import { globeNearPlane } from '../scene3d/globeClip.ts'
 import { Vector3 } from 'three'
 import type { Mesh } from 'three'
 import { keepLabelInFrame, labelOffset } from './globeView.ts'
-import { createMoonRoute, moonPosition, sampleMoonRoute } from './moonFlight.ts'
+import { createMoonRoute, moonLatLon, moonPosition, sampleMoonRoute } from './moonFlight.ts'
 import type { CSSProperties } from 'react'
 import type { SiteEntry } from '../data/contract.ts'
 
@@ -99,8 +99,10 @@ function FlightCamera({ flight, onComplete }: { flight: MoonFlight; onComplete: 
   return null
 }
 
-export default function MoonGlobe({ sites, selected, onSelect, flight, onComplete, active = true }: {
+export default function MoonGlobe({ sites, selected, onSelect, onPickPoint, flight, onComplete, active = true }: {
   sites: SiteEntry[]; selected: MoonPlace[]; onSelect?: (site: SiteEntry) => void
+  /** A click on the surface itself (not a label, not a drag): the clicked latitude / longitude. */
+  onPickPoint?: (latDeg: number, lonDeg: number) => void
   active?: boolean; flight?: MoonFlight; onComplete?: () => void
 }) {
   const moon = useRef<Mesh>(null!)
@@ -122,10 +124,16 @@ export default function MoonGlobe({ sites, selected, onSelect, flight, onComplet
       <GlobeClipPlanes />
       <ambientLight intensity={1.3} />
       <directionalLight position={[3, -4, 5]} intensity={2.5} />
-      {/* Places are chosen by their dot or label only; the surface itself is not clickable. */}
+      {/* A dot or label picks a catalogue place; a click on the surface (not a drag) picks a custom point. */}
       <group>
       {/* The whole Moon (LROC WAC global mosaic); the view opens over the south pole. */}
-      <mesh ref={moon}><sphereGeometry args={[1, 128, 64]} />
+      <mesh ref={moon} onClick={(e) => {
+        if (!onPickPoint || flight || e.delta > 4) return
+        e.stopPropagation()
+        const local = moon.current.worldToLocal(e.point.clone())
+        const { latDeg, lonDeg } = moonLatLon(local)
+        onPickPoint(latDeg, lonDeg)
+      }}><sphereGeometry args={[1, 128, 64]} />
         {texture ? <meshBasicMaterial map={texture} toneMapped={false} /> : <meshStandardMaterial color="#898985" roughness={1} />}
       </mesh>
       <PolarMoonCap />
@@ -164,7 +172,7 @@ export default function MoonGlobe({ sites, selected, onSelect, flight, onComplet
       {flight && onComplete ? <FlightCamera flight={flight} onComplete={onComplete} /> : <OrbitControls makeDefault enablePan={false} minDistance={1.001} maxDistance={4} enableDamping dampingFactor={.12} />}
     </Canvas>
     {!flight && <button type="button" style={{ position: 'absolute', left: 12, bottom: 50, zIndex: 25 }} onClick={() => setPoleRequest(n => n + 1)}>Focus south pole</button>}
-    {!flight && <span className="moon-globe__hint">Drag to turn the Moon · Click a dot to add a place</span>}
+    {!flight && <span className="moon-globe__hint" title="The catalogue covers the southern hemisphere only: the south pole, where the Sun and Earth skim the horizon, is the target region of Artemis and current landers. Northern sites such as Apollo 11 are left out on purpose; Apollo 12 (3.0° S) is the near-side contrast point. Any other point can be clicked on the surface or entered as coordinates.">Drag to turn · Click a dot for a catalogue place, or the surface for any point</span>}
     <span className="moon-globe__credit">{texture ? 'NASA/LROC WAC archive · Catalogue coordinates' : failed ? 'Image unavailable · Untextured catalogue locator' : 'Loading NASA/LROC imagery · Untextured globe'}</span>
   </div>
 }

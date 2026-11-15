@@ -8,6 +8,12 @@ export function moonPosition(site: Coordinate) {
   return new Vector3(Math.cos(lat) * Math.cos(lon), Math.sin(lat), -Math.cos(lat) * Math.sin(lon))
 }
 
+/** Inverse of `moonPosition`: latitude / longitude (east positive, −180..180) of a point on the globe. */
+export function moonLatLon(v: { x: number; y: number; z: number }): Coordinate {
+  const r = Math.hypot(v.x, v.y, v.z)
+  return { latDeg: Math.asin(Math.max(-1, Math.min(1, v.y / r))) * 180 / Math.PI, lonDeg: Math.atan2(-v.z, v.x) * 180 / Math.PI }
+}
+
 export function createMoonRoute(from: Coordinate, to: Coordinate) {
   const start = moonPosition(from)
   return { start, rotation: new Quaternion().setFromUnitVectors(start, moonPosition(to)) }

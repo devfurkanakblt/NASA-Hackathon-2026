@@ -66,8 +66,14 @@ describe('validateSettings', () => {
     expect(validateSettings({ ...DEFAULT_SETTINGS, durationDays: MAX_DURATION_DAYS })).toEqual([])
   })
 
+  it('allows missions up to 90 days', () => {
+    expect(MAX_DURATION_DAYS).toBe(90)
+    expect(validateSettings({ ...DEFAULT_SETTINGS, durationDays: 90 })).toEqual([])
+    expect(validateSettings({ ...DEFAULT_SETTINGS, durationDays: 91 }).join(' ')).toMatch(/1–90 days/)
+  })
+
   it('names every value that is out of range', () => {
-    const issues = validateSettings({ ...DEFAULT_SETTINGS, durationDays: 31, panelEfficiency: 1.2, reserveFraction: -0.1, batteryCapacityWh: 0, baseLoadW: Number.NaN })
+    const issues = validateSettings({ ...DEFAULT_SETTINGS, durationDays: MAX_DURATION_DAYS + 1,panelEfficiency: 1.2, reserveFraction: -0.1, batteryCapacityWh: 0, baseLoadW: Number.NaN })
     expect(issues).toHaveLength(5)
     expect(issues.join(' ')).toMatch(/duration/)
     expect(issues.join(' ')).toMatch(/efficiency/)
@@ -94,6 +100,20 @@ describe('performance (plan: three scenarios in about two seconds)', () => {
     const elapsedMs = performance.now() - t0
     expect(results).toHaveLength(3)
     expect(elapsedMs).toBeLessThan(500)
+  })
+
+  it('evaluates three maximum-length scenarios within the budget', () => {
+    const data = site(MAX_DURATION_DAYS + 30)
+    const bySite = { Test: data }
+    const settings = { ...DEFAULT_SETTINGS, durationDays: MAX_DURATION_DAYS, sunDiskModel: 'partial' as const }
+    const candidates = ['2026-11-01T00:00:00Z', '2026-11-15T00:00:00Z', '2026-12-01T00:00:00Z'].map((startUtc) => ({ siteId: 'Test', startUtc }))
+    evaluateScenarios(candidates, settings, bySite) // warm-up
+    const t0 = performance.now()
+    const results = evaluateScenarios(candidates, settings, bySite)
+    const elapsedMs = performance.now() - t0
+    expect(results).toHaveLength(3)
+    expect(results[0].count).toBe(MAX_DURATION_DAYS * 144 + 1)
+    expect(elapsedMs).toBeLessThan(1500)
   })
 })
 

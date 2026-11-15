@@ -27,630 +27,6 @@
     }
   ],
   "orientationFiles": "public/data/{siteId}/earth-orientation.json; annual coverage from A's year.bin, verified hourly visual nodes with browser SLERP; centre positions and visibility retain their 10-minute scientific source",
-  "orientationValidation": {
-    "method": "Independent JPL Horizons API Q14 (subobserver east longitude/geodetic latitude) and Q17 (north-pole position angle), annual endpoints and three between-node SLERP epochs per site",
-    "source": "https://ssd.jpl.nasa.gov/api/horizons.api",
-    "reference": "https://ssd.jpl.nasa.gov/horizons/manual.html#obsquan",
-    "toleranceDeg": 0.01,
-    "pass": true,
-    "maxAbsoluteDifferenceDeg": {
-      "subobserverLonDifferenceDeg": 0.004322313002063538,
-      "subobserverGeodeticLatDifferenceDeg": 0.007151140579633619,
-      "northPolePositionAngleDifferenceDeg": 0.006767943383124475
-    },
-    "samples": [
-      {
-        "siteId": "Site01",
-        "utc": "2026-11-01T00:00:00Z",
-        "visualNodeFraction": 0.0,
-        "subobserverLonDifferenceDeg": -0.0019298169391959163,
-        "subobserverGeodeticLatDifferenceDeg": 0.0004962575649010148,
-        "northPolePositionAngleDifferenceDeg": -1.993779378040017e-05
-      },
-      {
-        "siteId": "Site01",
-        "utc": "2027-01-31T06:30:00Z",
-        "visualNodeFraction": 0.5,
-        "subobserverLonDifferenceDeg": 0.0028434133400025985,
-        "subobserverGeodeticLatDifferenceDeg": 0.004761488352603038,
-        "northPolePositionAngleDifferenceDeg": -0.0042845983176391655
-      },
-      {
-        "siteId": "Site01",
-        "utc": "2027-05-02T12:30:00Z",
-        "visualNodeFraction": 0.5,
-        "subobserverLonDifferenceDeg": 0.0022063009131443323,
-        "subobserverGeodeticLatDifferenceDeg": 0.0028302894321171612,
-        "northPolePositionAngleDifferenceDeg": 0.006729087439566683
-      },
-      {
-        "siteId": "Site01",
-        "utc": "2027-08-01T18:30:00Z",
-        "visualNodeFraction": 0.5,
-        "subobserverLonDifferenceDeg": 0.0032763847528656243,
-        "subobserverGeodeticLatDifferenceDeg": -0.0071467771042073025,
-        "northPolePositionAngleDifferenceDeg": -0.003649203127082501
-      },
-      {
-        "siteId": "Site01",
-        "utc": "2027-11-01T00:00:00Z",
-        "visualNodeFraction": 0.0,
-        "subobserverLonDifferenceDeg": 0.0043155177583855675,
-        "subobserverGeodeticLatDifferenceDeg": -0.0005826014183334394,
-        "northPolePositionAngleDifferenceDeg": -2.890011197109743e-05
-      },
-      {
-        "siteId": "Site04",
-        "utc": "2026-11-01T00:00:00Z",
-        "visualNodeFraction": 0.0,
-        "subobserverLonDifferenceDeg": -0.0019389599960391024,
-        "subobserverGeodeticLatDifferenceDeg": 0.0004981217059736309,
-        "northPolePositionAngleDifferenceDeg": -4.924022547925233e-05
-      },
-      {
-        "siteId": "Site04",
-        "utc": "2027-01-31T06:30:00Z",
-        "visualNodeFraction": 0.5,
-        "subobserverLonDifferenceDeg": 0.0028346949792137366,
-        "subobserverGeodeticLatDifferenceDeg": 0.004762247590321067,
-        "northPolePositionAngleDifferenceDeg": -0.004313330036410434
-      },
-      {
-        "siteId": "Site04",
-        "utc": "2027-05-02T12:30:00Z",
-        "visualNodeFraction": 0.5,
-        "subobserverLonDifferenceDeg": 0.0022102730052893094,
-        "subobserverGeodeticLatDifferenceDeg": 0.002831373187639097,
-        "northPolePositionAngleDifferenceDeg": 0.006733322027628219
-      },
-      {
-        "siteId": "Site04",
-        "utc": "2027-08-01T18:30:00Z",
-        "visualNodeFraction": 0.5,
-        "subobserverLonDifferenceDeg": 0.0032909390322402032,
-        "subobserverGeodeticLatDifferenceDeg": -0.007149753995872032,
-        "northPolePositionAngleDifferenceDeg": -0.0036055278966955484
-      },
-      {
-        "siteId": "Site04",
-        "utc": "2027-11-01T00:00:00Z",
-        "visualNodeFraction": 0.0,
-        "subobserverLonDifferenceDeg": 0.004317000569926677,
-        "subobserverGeodeticLatDifferenceDeg": -0.0005828886816168222,
-        "northPolePositionAngleDifferenceDeg": -1.5867261708990554e-06
-      },
-      {
-        "siteId": "Site07",
-        "utc": "2026-11-01T00:00:00Z",
-        "visualNodeFraction": 0.0,
-        "subobserverLonDifferenceDeg": -0.0019327804078841382,
-        "subobserverGeodeticLatDifferenceDeg": 0.000496447210583284,
-        "northPolePositionAngleDifferenceDeg": -5.211928470316707e-05
-      },
-      {
-        "siteId": "Site07",
-        "utc": "2027-01-31T06:30:00Z",
-        "visualNodeFraction": 0.5,
-        "subobserverLonDifferenceDeg": 0.002829393902118227,
-        "subobserverGeodeticLatDifferenceDeg": 0.004762829837936522,
-        "northPolePositionAngleDifferenceDeg": -0.0043164278499432385
-      },
-      {
-        "siteId": "Site07",
-        "utc": "2027-05-02T12:30:00Z",
-        "visualNodeFraction": 0.5,
-        "subobserverLonDifferenceDeg": 0.0022015619072703885,
-        "subobserverGeodeticLatDifferenceDeg": 0.002828812840914463,
-        "northPolePositionAngleDifferenceDeg": 0.006728150313620063
-      },
-      {
-        "siteId": "Site07",
-        "utc": "2027-08-01T18:30:00Z",
-        "visualNodeFraction": 0.5,
-        "subobserverLonDifferenceDeg": 0.0032775922253733825,
-        "subobserverGeodeticLatDifferenceDeg": -0.007147545503599417,
-        "northPolePositionAngleDifferenceDeg": -0.003577456615317942
-      },
-      {
-        "siteId": "Site07",
-        "utc": "2027-11-01T00:00:00Z",
-        "visualNodeFraction": 0.0,
-        "subobserverLonDifferenceDeg": 0.004317404885028964,
-        "subobserverGeodeticLatDifferenceDeg": -0.0005842215633649062,
-        "northPolePositionAngleDifferenceDeg": 4.343652818761257e-06
-      },
-      {
-        "siteId": "Site04R",
-        "utc": "2026-11-01T00:00:00Z",
-        "visualNodeFraction": 0.0,
-        "subobserverLonDifferenceDeg": -0.0019383367453542633,
-        "subobserverGeodeticLatDifferenceDeg": 0.0004977659259282063,
-        "northPolePositionAngleDifferenceDeg": 3.84283713970035e-05
-      },
-      {
-        "siteId": "Site04R",
-        "utc": "2027-01-31T06:30:00Z",
-        "visualNodeFraction": 0.5,
-        "subobserverLonDifferenceDeg": 0.002833592243007388,
-        "subobserverGeodeticLatDifferenceDeg": 0.004762346276855567,
-        "northPolePositionAngleDifferenceDeg": -0.004285696435772479
-      },
-      {
-        "siteId": "Site04R",
-        "utc": "2027-05-02T12:30:00Z",
-        "visualNodeFraction": 0.5,
-        "subobserverLonDifferenceDeg": 0.0022102437178546097,
-        "subobserverGeodeticLatDifferenceDeg": 0.0028323125741129274,
-        "northPolePositionAngleDifferenceDeg": 0.00671717828868168
-      },
-      {
-        "siteId": "Site04R",
-        "utc": "2027-08-01T18:30:00Z",
-        "visualNodeFraction": 0.5,
-        "subobserverLonDifferenceDeg": 0.003284826328268764,
-        "subobserverGeodeticLatDifferenceDeg": -0.007148225907322114,
-        "northPolePositionAngleDifferenceDeg": -0.0036228325413674156
-      },
-      {
-        "siteId": "Site04R",
-        "utc": "2027-11-01T00:00:00Z",
-        "visualNodeFraction": 0.0,
-        "subobserverLonDifferenceDeg": 0.004305124244496028,
-        "subobserverGeodeticLatDifferenceDeg": -0.0005816473122877142,
-        "northPolePositionAngleDifferenceDeg": 1.5883952613648944e-05
-      },
-      {
-        "siteId": "Site11",
-        "utc": "2026-11-01T00:00:00Z",
-        "visualNodeFraction": 0.0,
-        "subobserverLonDifferenceDeg": -0.0019347452789588715,
-        "subobserverGeodeticLatDifferenceDeg": 0.0004973458019179589,
-        "northPolePositionAngleDifferenceDeg": -3.462656326291835e-05
-      },
-      {
-        "siteId": "Site11",
-        "utc": "2027-01-31T06:30:00Z",
-        "visualNodeFraction": 0.5,
-        "subobserverLonDifferenceDeg": 0.0028373333900049147,
-        "subobserverGeodeticLatDifferenceDeg": 0.004762133841140326,
-        "northPolePositionAngleDifferenceDeg": -0.0042697471938026865
-      },
-      {
-        "siteId": "Site11",
-        "utc": "2027-05-02T12:30:00Z",
-        "visualNodeFraction": 0.5,
-        "subobserverLonDifferenceDeg": 0.002205906006111036,
-        "subobserverGeodeticLatDifferenceDeg": 0.00282966775691329,
-        "northPolePositionAngleDifferenceDeg": 0.006698622328315196
-      },
-      {
-        "siteId": "Site11",
-        "utc": "2027-08-01T18:30:00Z",
-        "visualNodeFraction": 0.5,
-        "subobserverLonDifferenceDeg": 0.003285331997403773,
-        "subobserverGeodeticLatDifferenceDeg": -0.0071482184345299515,
-        "northPolePositionAngleDifferenceDeg": -0.003572481167282149
-      },
-      {
-        "siteId": "Site11",
-        "utc": "2027-11-01T00:00:00Z",
-        "visualNodeFraction": 0.0,
-        "subobserverLonDifferenceDeg": 0.004309975108014896,
-        "subobserverGeodeticLatDifferenceDeg": -0.000581350174424955,
-        "northPolePositionAngleDifferenceDeg": -1.1666017030620424e-05
-      },
-      {
-        "siteId": "Site20",
-        "utc": "2026-11-01T00:00:00Z",
-        "visualNodeFraction": 0.0,
-        "subobserverLonDifferenceDeg": -0.001938945887900445,
-        "subobserverGeodeticLatDifferenceDeg": 0.000498431828436452,
-        "northPolePositionAngleDifferenceDeg": -5.1926378091593506e-05
-      },
-      {
-        "siteId": "Site20",
-        "utc": "2027-01-31T06:30:00Z",
-        "visualNodeFraction": 0.5,
-        "subobserverLonDifferenceDeg": 0.0028433715763469536,
-        "subobserverGeodeticLatDifferenceDeg": 0.004759938415979548,
-        "northPolePositionAngleDifferenceDeg": -0.004280255279127232
-      },
-      {
-        "siteId": "Site20",
-        "utc": "2027-05-02T12:30:00Z",
-        "visualNodeFraction": 0.5,
-        "subobserverLonDifferenceDeg": 0.0022153810850227273,
-        "subobserverGeodeticLatDifferenceDeg": 0.0028355819910575453,
-        "northPolePositionAngleDifferenceDeg": 0.006694430963250397
-      },
-      {
-        "siteId": "Site20",
-        "utc": "2027-08-01T18:30:00Z",
-        "visualNodeFraction": 0.5,
-        "subobserverLonDifferenceDeg": 0.003286390117494875,
-        "subobserverGeodeticLatDifferenceDeg": -0.007148711820065046,
-        "northPolePositionAngleDifferenceDeg": -0.0036143927587488633
-      },
-      {
-        "siteId": "Site20",
-        "utc": "2027-11-01T00:00:00Z",
-        "visualNodeFraction": 0.0,
-        "subobserverLonDifferenceDeg": 0.004322313002063538,
-        "subobserverGeodeticLatDifferenceDeg": -0.0005842161620250863,
-        "northPolePositionAngleDifferenceDeg": -5.9972592680423986e-05
-      },
-      {
-        "siteId": "Site23",
-        "utc": "2026-11-01T00:00:00Z",
-        "visualNodeFraction": 0.0,
-        "subobserverLonDifferenceDeg": -0.0019341102864700588,
-        "subobserverGeodeticLatDifferenceDeg": 0.0004973520536601939,
-        "northPolePositionAngleDifferenceDeg": 2.501753442629706e-06
-      },
-      {
-        "siteId": "Site23",
-        "utc": "2027-01-31T06:30:00Z",
-        "visualNodeFraction": 0.5,
-        "subobserverLonDifferenceDeg": 0.002837583383893616,
-        "subobserverGeodeticLatDifferenceDeg": 0.004761442189074927,
-        "northPolePositionAngleDifferenceDeg": -0.004272002582922596
-      },
-      {
-        "siteId": "Site23",
-        "utc": "2027-05-02T12:30:00Z",
-        "visualNodeFraction": 0.5,
-        "subobserverLonDifferenceDeg": 0.0022083557410041976,
-        "subobserverGeodeticLatDifferenceDeg": 0.0028318086833108436,
-        "northPolePositionAngleDifferenceDeg": 0.006767943383124475
-      },
-      {
-        "siteId": "Site23",
-        "utc": "2027-08-01T18:30:00Z",
-        "visualNodeFraction": 0.5,
-        "subobserverLonDifferenceDeg": 0.0032959029367134463,
-        "subobserverGeodeticLatDifferenceDeg": -0.007151140579633619,
-        "northPolePositionAngleDifferenceDeg": -0.0036076681568886215
-      },
-      {
-        "siteId": "Site23",
-        "utc": "2027-11-01T00:00:00Z",
-        "visualNodeFraction": 0.0,
-        "subobserverLonDifferenceDeg": 0.004312272324654032,
-        "subobserverGeodeticLatDifferenceDeg": -0.0005825662514489238,
-        "northPolePositionAngleDifferenceDeg": -1.8578769584109978e-05
-      },
-      {
-        "siteId": "CE6",
-        "utc": "2026-11-01T00:00:00Z",
-        "visualNodeFraction": 0.0,
-        "subobserverLonDifferenceDeg": -0.0019300134290460846,
-        "subobserverGeodeticLatDifferenceDeg": 0.0005045998789725559,
-        "northPolePositionAngleDifferenceDeg": 2.8094453938365405e-05
-      },
-      {
-        "siteId": "CE6",
-        "utc": "2027-01-31T06:30:00Z",
-        "visualNodeFraction": 0.5,
-        "subobserverLonDifferenceDeg": 0.002838562856112503,
-        "subobserverGeodeticLatDifferenceDeg": 0.004777291682323437,
-        "northPolePositionAngleDifferenceDeg": -0.004229265283015593
-      },
-      {
-        "siteId": "CE6",
-        "utc": "2027-05-02T12:30:00Z",
-        "visualNodeFraction": 0.5,
-        "subobserverLonDifferenceDeg": 0.0022236839198512826,
-        "subobserverGeodeticLatDifferenceDeg": 0.002834278962523057,
-        "northPolePositionAngleDifferenceDeg": 0.006722307771497071
-      },
-      {
-        "siteId": "CE6",
-        "utc": "2027-08-01T18:30:00Z",
-        "visualNodeFraction": 0.5,
-        "subobserverLonDifferenceDeg": 0.003282346782867762,
-        "subobserverGeodeticLatDifferenceDeg": -0.007142092270491673,
-        "northPolePositionAngleDifferenceDeg": -0.0036580029162109895
-      },
-      {
-        "siteId": "CE6",
-        "utc": "2027-11-01T00:00:00Z",
-        "visualNodeFraction": 0.0,
-        "subobserverLonDifferenceDeg": 0.004299855380736517,
-        "subobserverGeodeticLatDifferenceDeg": -0.0005845014567746887,
-        "northPolePositionAngleDifferenceDeg": -4.625398344160203e-05
-      },
-      {
-        "siteId": "Apollo11",
-        "utc": "2026-11-01T00:00:00Z",
-        "visualNodeFraction": 0.0,
-        "subobserverLonDifferenceDeg": -0.001936416806216812,
-        "subobserverGeodeticLatDifferenceDeg": 0.0005278843454341597,
-        "northPolePositionAngleDifferenceDeg": 1.5351257331985835e-06
-      },
-      {
-        "siteId": "Apollo11",
-        "utc": "2027-01-31T06:30:00Z",
-        "visualNodeFraction": 0.5,
-        "subobserverLonDifferenceDeg": 0.0028105427103355396,
-        "subobserverGeodeticLatDifferenceDeg": 0.004784561412169097,
-        "northPolePositionAngleDifferenceDeg": -0.004270430771413203
-      },
-      {
-        "siteId": "Apollo11",
-        "utc": "2027-05-02T12:30:00Z",
-        "visualNodeFraction": 0.5,
-        "subobserverLonDifferenceDeg": 0.002212572688961245,
-        "subobserverGeodeticLatDifferenceDeg": 0.0028768496326914,
-        "northPolePositionAngleDifferenceDeg": 0.0067093143433112346
-      },
-      {
-        "siteId": "Apollo11",
-        "utc": "2027-08-01T18:30:00Z",
-        "visualNodeFraction": 0.5,
-        "subobserverLonDifferenceDeg": 0.003277169836081839,
-        "subobserverGeodeticLatDifferenceDeg": -0.007145324385515295,
-        "northPolePositionAngleDifferenceDeg": -0.003661765323272448
-      },
-      {
-        "siteId": "Apollo11",
-        "utc": "2027-11-01T00:00:00Z",
-        "visualNodeFraction": 0.0,
-        "subobserverLonDifferenceDeg": 0.004305401591665259,
-        "subobserverGeodeticLatDifferenceDeg": -0.0006010036939834151,
-        "northPolePositionAngleDifferenceDeg": 3.1039227224027854e-05
-      }
-    ],
-    "queries": [
-      {
-        "siteId": "Site01",
-        "params": {
-          "format": "json",
-          "COMMAND": "'399'",
-          "OBJ_DATA": "'NO'",
-          "MAKE_EPHEM": "'YES'",
-          "EPHEM_TYPE": "'OBSERVER'",
-          "CENTER": "'coord@301'",
-          "COORD_TYPE": "'GEODETIC'",
-          "SITE_COORD": "'-137.490000,-89.463200,1.946770'",
-          "TIME_TYPE": "'UT'",
-          "QUANTITIES": "'14,17'",
-          "APPARENT": "'AIRLESS'",
-          "ANG_FORMAT": "'DEG'",
-          "CSV_FORMAT": "'YES'",
-          "EXTRA_PREC": "'YES'",
-          "CAL_FORMAT": "'CAL'",
-          "TIME_DIGITS": "'SECONDS'",
-          "TLIST": "'2461345.500000000' '2461436.770833333' '2461528.020833333' '2461619.270833333' '2461710.500000000'",
-          "TLIST_TYPE": "'JD'"
-        },
-        "resultSha256": "f492788e516a0954d74f0cd5da878d60393f19cab0eb01cac19cd81e9c8395dc",
-        "targetOrientation": "Target pole/equ : ITRF93 (high precision)         {East-longitude positive}",
-        "eop": "EOP file        : eop.261113.p270209",
-        "orientationSha256": "ecf27448fd02ab2cd97568b817497c4971fb09ed48f58892c9a7516fc71b287f"
-      },
-      {
-        "siteId": "Site04",
-        "params": {
-          "format": "json",
-          "COMMAND": "'399'",
-          "OBJ_DATA": "'NO'",
-          "MAKE_EPHEM": "'YES'",
-          "EPHEM_TYPE": "'OBSERVER'",
-          "CENTER": "'coord@301'",
-          "COORD_TYPE": "'GEODETIC'",
-          "SITE_COORD": "'-171.870000,-89.766800,0.771680'",
-          "TIME_TYPE": "'UT'",
-          "QUANTITIES": "'14,17'",
-          "APPARENT": "'AIRLESS'",
-          "ANG_FORMAT": "'DEG'",
-          "CSV_FORMAT": "'YES'",
-          "EXTRA_PREC": "'YES'",
-          "CAL_FORMAT": "'CAL'",
-          "TIME_DIGITS": "'SECONDS'",
-          "TLIST": "'2461345.500000000' '2461436.770833333' '2461528.020833333' '2461619.270833333' '2461710.500000000'",
-          "TLIST_TYPE": "'JD'"
-        },
-        "resultSha256": "05d62f4e50730535283b69adf790d159befa0892732f698d78afdad28e72983a",
-        "targetOrientation": "Target pole/equ : ITRF93 (high precision)         {East-longitude positive}",
-        "eop": "EOP file        : eop.261113.p270209",
-        "orientationSha256": "0dc42ea4aad34ee5109e8d1a6c04c4f2aa00d6aaf0886d63a4efc2a38b99543e"
-      },
-      {
-        "siteId": "Site07",
-        "params": {
-          "format": "json",
-          "COMMAND": "'399'",
-          "OBJ_DATA": "'NO'",
-          "MAKE_EPHEM": "'YES'",
-          "EPHEM_TYPE": "'OBSERVER'",
-          "CENTER": "'coord@301'",
-          "COORD_TYPE": "'GEODETIC'",
-          "SITE_COORD": "'123.690100,-88.811000,1.647270'",
-          "TIME_TYPE": "'UT'",
-          "QUANTITIES": "'14,17'",
-          "APPARENT": "'AIRLESS'",
-          "ANG_FORMAT": "'DEG'",
-          "CSV_FORMAT": "'YES'",
-          "EXTRA_PREC": "'YES'",
-          "CAL_FORMAT": "'CAL'",
-          "TIME_DIGITS": "'SECONDS'",
-          "TLIST": "'2461345.500000000' '2461436.770833333' '2461528.020833333' '2461619.270833333' '2461710.500000000'",
-          "TLIST_TYPE": "'JD'"
-        },
-        "resultSha256": "b09a964e2690a3b03b5237aab1b1476f0c593103f976c5e646ea0de86ba6538f",
-        "targetOrientation": "Target pole/equ : ITRF93 (high precision)         {East-longitude positive}",
-        "eop": "EOP file        : eop.261113.p270209",
-        "orientationSha256": "3be1df8b525f4c8cb64900b8ed12681081e955e734cbfa2debe24433b0996cfb"
-      },
-      {
-        "siteId": "Site04R",
-        "params": {
-          "format": "json",
-          "COMMAND": "'399'",
-          "OBJ_DATA": "'NO'",
-          "MAKE_EPHEM": "'YES'",
-          "EPHEM_TYPE": "'OBSERVER'",
-          "CENTER": "'coord@301'",
-          "COORD_TYPE": "'GEODETIC'",
-          "SITE_COORD": "'-156.196951,-89.780403,1.741120'",
-          "TIME_TYPE": "'UT'",
-          "QUANTITIES": "'14,17'",
-          "APPARENT": "'AIRLESS'",
-          "ANG_FORMAT": "'DEG'",
-          "CSV_FORMAT": "'YES'",
-          "EXTRA_PREC": "'YES'",
-          "CAL_FORMAT": "'CAL'",
-          "TIME_DIGITS": "'SECONDS'",
-          "TLIST": "'2461345.500000000' '2461436.770833333' '2461528.020833333' '2461619.270833333' '2461710.500000000'",
-          "TLIST_TYPE": "'JD'"
-        },
-        "resultSha256": "4cd6e414b495b116b324c4ab4a4b8a17c945d0341a3087d694ca7c4cd564aeac",
-        "targetOrientation": "Target pole/equ : ITRF93 (high precision)         {East-longitude positive}",
-        "eop": "EOP file        : eop.261113.p270209",
-        "orientationSha256": "37e4f0c12aab1749975120758700ad0e0613ce7276c421bd878877df39548e06"
-      },
-      {
-        "siteId": "Site11",
-        "params": {
-          "format": "json",
-          "COMMAND": "'399'",
-          "OBJ_DATA": "'NO'",
-          "MAKE_EPHEM": "'YES'",
-          "EPHEM_TYPE": "'OBSERVER'",
-          "CENTER": "'coord@301'",
-          "COORD_TYPE": "'GEODETIC'",
-          "SITE_COORD": "'-67.932100,-88.683400,1.795740'",
-          "TIME_TYPE": "'UT'",
-          "QUANTITIES": "'14,17'",
-          "APPARENT": "'AIRLESS'",
-          "ANG_FORMAT": "'DEG'",
-          "CSV_FORMAT": "'YES'",
-          "EXTRA_PREC": "'YES'",
-          "CAL_FORMAT": "'CAL'",
-          "TIME_DIGITS": "'SECONDS'",
-          "TLIST": "'2461345.500000000' '2461436.770833333' '2461528.020833333' '2461619.270833333' '2461710.500000000'",
-          "TLIST_TYPE": "'JD'"
-        },
-        "resultSha256": "8f2db3f38db4c4495b9ddda72fec0ff2c6773e36c4f0e8debfa0cbdcbfd247ae",
-        "targetOrientation": "Target pole/equ : ITRF93 (high precision)         {East-longitude positive}",
-        "eop": "EOP file        : eop.261113.p270209",
-        "orientationSha256": "caaea02f508837ded0a2a2103c353b16406242f48d8fc846bdc205a92205b6f9"
-      },
-      {
-        "siteId": "Site20",
-        "params": {
-          "format": "json",
-          "COMMAND": "'399'",
-          "OBJ_DATA": "'NO'",
-          "MAKE_EPHEM": "'YES'",
-          "EPHEM_TYPE": "'OBSERVER'",
-          "CENTER": "'coord@301'",
-          "COORD_TYPE": "'GEODETIC'",
-          "SITE_COORD": "'31.742760,-85.426600,6.400590'",
-          "TIME_TYPE": "'UT'",
-          "QUANTITIES": "'14,17'",
-          "APPARENT": "'AIRLESS'",
-          "ANG_FORMAT": "'DEG'",
-          "CSV_FORMAT": "'YES'",
-          "EXTRA_PREC": "'YES'",
-          "CAL_FORMAT": "'CAL'",
-          "TIME_DIGITS": "'SECONDS'",
-          "TLIST": "'2461345.500000000' '2461436.770833333' '2461528.020833333' '2461619.270833333' '2461710.500000000'",
-          "TLIST_TYPE": "'JD'"
-        },
-        "resultSha256": "deba836d467caf1df899b9cf2c0e12ba02e2f1dc834ee25b4e54c0ce65880ce6",
-        "targetOrientation": "Target pole/equ : ITRF93 (high precision)         {East-longitude positive}",
-        "eop": "EOP file        : eop.261113.p270209",
-        "orientationSha256": "b4a40428278efbe749e4abd13ef3463b31766ddb09aaa7dc52b369255a3ce752"
-      },
-      {
-        "siteId": "Site23",
-        "params": {
-          "format": "json",
-          "COMMAND": "'399'",
-          "OBJ_DATA": "'NO'",
-          "MAKE_EPHEM": "'YES'",
-          "EPHEM_TYPE": "'OBSERVER'",
-          "CENTER": "'coord@301'",
-          "COORD_TYPE": "'GEODETIC'",
-          "SITE_COORD": "'-0.235780,-85.994800,4.785790'",
-          "TIME_TYPE": "'UT'",
-          "QUANTITIES": "'14,17'",
-          "APPARENT": "'AIRLESS'",
-          "ANG_FORMAT": "'DEG'",
-          "CSV_FORMAT": "'YES'",
-          "EXTRA_PREC": "'YES'",
-          "CAL_FORMAT": "'CAL'",
-          "TIME_DIGITS": "'SECONDS'",
-          "TLIST": "'2461345.500000000' '2461436.770833333' '2461528.020833333' '2461619.270833333' '2461710.500000000'",
-          "TLIST_TYPE": "'JD'"
-        },
-        "resultSha256": "a3b0ccc71500dce3a00616adfc0bf82197b58df4350ed37adf3bba76c55fef3b",
-        "targetOrientation": "Target pole/equ : ITRF93 (high precision)         {East-longitude positive}",
-        "eop": "EOP file        : eop.261113.p270209",
-        "orientationSha256": "957ccf5eddc7a2d9d85ef0988f151ae889d2c8be7fdfe56538de38801d47297b"
-      },
-      {
-        "siteId": "CE6",
-        "params": {
-          "format": "json",
-          "COMMAND": "'399'",
-          "OBJ_DATA": "'NO'",
-          "MAKE_EPHEM": "'YES'",
-          "EPHEM_TYPE": "'OBSERVER'",
-          "CENTER": "'coord@301'",
-          "COORD_TYPE": "'GEODETIC'",
-          "SITE_COORD": "'-153.985200,-41.638500,-5.252770'",
-          "TIME_TYPE": "'UT'",
-          "QUANTITIES": "'14,17'",
-          "APPARENT": "'AIRLESS'",
-          "ANG_FORMAT": "'DEG'",
-          "CSV_FORMAT": "'YES'",
-          "EXTRA_PREC": "'YES'",
-          "CAL_FORMAT": "'CAL'",
-          "TIME_DIGITS": "'SECONDS'",
-          "TLIST": "'2461345.500000000' '2461436.770833333' '2461528.020833333' '2461619.270833333' '2461710.500000000'",
-          "TLIST_TYPE": "'JD'"
-        },
-        "resultSha256": "55b1b77c24c487f1bc4bb6f1ad15ed67e00fb8aeaa15cf2c1ff6182dcf0b0fb9",
-        "targetOrientation": "Target pole/equ : ITRF93 (high precision)         {East-longitude positive}",
-        "eop": "EOP file        : eop.261113.p270209",
-        "orientationSha256": "c26768d03aa2c79ee16060f41161bcbf637ec7fef223f3b5b35fb190c26a2e0f"
-      },
-      {
-        "siteId": "Apollo11",
-        "params": {
-          "format": "json",
-          "COMMAND": "'399'",
-          "OBJ_DATA": "'NO'",
-          "MAKE_EPHEM": "'YES'",
-          "EPHEM_TYPE": "'OBSERVER'",
-          "CENTER": "'coord@301'",
-          "COORD_TYPE": "'GEODETIC'",
-          "SITE_COORD": "'23.473140,0.674160,-1.923600'",
-          "TIME_TYPE": "'UT'",
-          "QUANTITIES": "'14,17'",
-          "APPARENT": "'AIRLESS'",
-          "ANG_FORMAT": "'DEG'",
-          "CSV_FORMAT": "'YES'",
-          "EXTRA_PREC": "'YES'",
-          "CAL_FORMAT": "'CAL'",
-          "TIME_DIGITS": "'SECONDS'",
-          "TLIST": "'2461345.500000000' '2461436.770833333' '2461528.020833333' '2461619.270833333' '2461710.500000000'",
-          "TLIST_TYPE": "'JD'"
-        },
-        "resultSha256": "2c80f1c2d64a6fdc9b46bc66b08409e9c84f9aa5d1d1d26302fa76f65f1a2b5c",
-        "targetOrientation": "Target pole/equ : ITRF93 (high precision)         {East-longitude positive}",
-        "eop": "EOP file        : eop.261113.p270209",
-        "orientationSha256": "ab700be04d22da9862212b4d1df188d046c81cc52a9ec74ca93bd82b78598d90"
-      }
-    ],
-    "limits": [
-      "Sampled consistency check, not an absolute orientation accuracy guarantee",
-      "Horizons uses ITRF93 plus current EOP; Skyfield uses its bundled UT1 prediction and omits polar motion",
-      "Geodetic latitude comparison accounts for the reference ellipsoid; rendered Earth remains spherical"
-    ]
-  },
   "orientationDisplay": {
     "files": [
       {
@@ -878,26 +254,474 @@
         }
       },
       {
-        "siteId": "Apollo11",
-        "path": "public/data/Apollo11/earth-orientation.json",
-        "sha256": "ab700be04d22da9862212b4d1df188d046c81cc52a9ec74ca93bd82b78598d90",
-        "bytes": 859470,
+        "siteId": "Apollo12",
+        "path": "public/data/Apollo12/earth-orientation.json",
+        "sha256": "ea3e4e5e538b8a6cf1d96340f53911d476b48ccd2f37353de4d0a5496150b03c",
+        "bytes": 859683,
         "startUtc": "2026-11-01T00:00:00Z",
         "endUtc": "2027-11-01T00:00:00Z",
         "stepS": 3600,
         "count": 8761,
         "input": {
           "file": "year.bin",
-          "sha256": "9f3b7e24eeea3399c81ec3a682821621955e2ce320939f316aa6c07aa8e12810",
+          "sha256": "6a9c90f9bee93fd3b4d50d44b15d566ca54f2446cdd336c026d981e838ac22e8",
           "headerFile": "extended.json",
-          "headerSha256": "d05dac3f829965af6b7b57b21d6a35985da7ce4322191d853feb5ef9e266b951",
+          "headerSha256": "56a14df8817bd0d573acec8b315b73631f902c577c406f093527c04d251ad525",
           "encoding": "six little-endian float32 blocks: Sun az/el/distance, Earth az/el/distance; degrees/metres"
         },
         "interpolation": {
           "referenceSamples": 52561,
           "intermediateSamples": 43800,
-          "maxAttitudeInterpolationErrorDeg": 0.00691595269933033,
-          "maxSunVectorInterpolationErrorDeg": 1.5133438698871002e-05,
+          "maxAttitudeInterpolationErrorDeg": 0.006915951022379728,
+          "maxSunVectorInterpolationErrorDeg": 1.5133715232601068e-05,
+          "toleranceDeg": 0.01,
+          "pass": true,
+          "referenceStepS": 600,
+          "displayStepS": 3600,
+          "method": "All native 10-minute source epochs compared with hourly shortest-arc quaternion SLERP and normalised linear Earth-to-Sun vectors"
+        }
+      },
+      {
+        "siteId": "Apollo14",
+        "path": "public/data/Apollo14/earth-orientation.json",
+        "sha256": "db292009c61df6a96a5f69c68761c2bb98d0d26554c82f1df59d4ff30fbc7bba",
+        "bytes": 859703,
+        "startUtc": "2026-11-01T00:00:00Z",
+        "endUtc": "2027-11-01T00:00:00Z",
+        "stepS": 3600,
+        "count": 8761,
+        "input": {
+          "file": "year.bin",
+          "sha256": "051502ddf14f93eb83c4f7376183d07402f01bca1c45257505b655ebfc9064e6",
+          "headerFile": "extended.json",
+          "headerSha256": "cb63366371c19ca7484c8049968bb2ca99ba4f3f27a15a0e0765a156274f329e",
+          "encoding": "six little-endian float32 blocks: Sun az/el/distance, Earth az/el/distance; degrees/metres"
+        },
+        "interpolation": {
+          "referenceSamples": 52561,
+          "intermediateSamples": 43800,
+          "maxAttitudeInterpolationErrorDeg": 0.006915950534880744,
+          "maxSunVectorInterpolationErrorDeg": 1.5134643689906338e-05,
+          "toleranceDeg": 0.01,
+          "pass": true,
+          "referenceStepS": 600,
+          "displayStepS": 3600,
+          "method": "All native 10-minute source epochs compared with hourly shortest-arc quaternion SLERP and normalised linear Earth-to-Sun vectors"
+        }
+      },
+      {
+        "siteId": "Apollo16",
+        "path": "public/data/Apollo16/earth-orientation.json",
+        "sha256": "399d4607d714bb1139b5091dad580019813769765251fdab02f94c84bcd853b2",
+        "bytes": 859712,
+        "startUtc": "2026-11-01T00:00:00Z",
+        "endUtc": "2027-11-01T00:00:00Z",
+        "stepS": 3600,
+        "count": 8761,
+        "input": {
+          "file": "year.bin",
+          "sha256": "5a020df7078a6adfdaa082399ab709b3ba5c0adb66bcf37162855d370b831d5e",
+          "headerFile": "extended.json",
+          "headerSha256": "9c6c3aa20c3469cf82b4a8dec9cf55db50539552975c6c7405aea6467c458c42",
+          "encoding": "six little-endian float32 blocks: Sun az/el/distance, Earth az/el/distance; degrees/metres"
+        },
+        "interpolation": {
+          "referenceSamples": 52561,
+          "intermediateSamples": 43800,
+          "maxAttitudeInterpolationErrorDeg": 0.006915951931310863,
+          "maxSunVectorInterpolationErrorDeg": 1.5133529642012269e-05,
+          "toleranceDeg": 0.01,
+          "pass": true,
+          "referenceStepS": 600,
+          "displayStepS": 3600,
+          "method": "All native 10-minute source epochs compared with hourly shortest-arc quaternion SLERP and normalised linear Earth-to-Sun vectors"
+        }
+      },
+      {
+        "siteId": "IM1",
+        "path": "public/data/IM1/earth-orientation.json",
+        "sha256": "3a11f4b7f7ee2eb4d60796f170d933deaa15bfceb615b586622399faafa7e12c",
+        "bytes": 859618,
+        "startUtc": "2026-11-01T00:00:00Z",
+        "endUtc": "2027-11-01T00:00:00Z",
+        "stepS": 3600,
+        "count": 8761,
+        "input": {
+          "file": "year.bin",
+          "sha256": "eb081e8aa4949b8ca29f2c010cf45f65718c40c323ffc81961cb4a2a7faaa2fd",
+          "headerFile": "extended.json",
+          "headerSha256": "a2ff46c438460a25ff0928628a4451452cd949df318b1df183ac76d650a5c0b7",
+          "encoding": "six little-endian float32 blocks: Sun az/el/distance, Earth az/el/distance; degrees/metres"
+        },
+        "interpolation": {
+          "referenceSamples": 52561,
+          "intermediateSamples": 43800,
+          "maxAttitudeInterpolationErrorDeg": 0.006915954666491546,
+          "maxSunVectorInterpolationErrorDeg": 1.5133135988245174e-05,
+          "toleranceDeg": 0.01,
+          "pass": true,
+          "referenceStepS": 600,
+          "displayStepS": 3600,
+          "method": "All native 10-minute source epochs compared with hourly shortest-arc quaternion SLERP and normalised linear Earth-to-Sun vectors"
+        }
+      },
+      {
+        "siteId": "IM2",
+        "path": "public/data/IM2/earth-orientation.json",
+        "sha256": "f0c7cc3a3f6718f61bc516f44b6feb243b29ce62138f06ee1ded1bcb7340e8f9",
+        "bytes": 859583,
+        "startUtc": "2026-11-01T00:00:00Z",
+        "endUtc": "2027-11-01T00:00:00Z",
+        "stepS": 3600,
+        "count": 8761,
+        "input": {
+          "file": "year.bin",
+          "sha256": "5ec6cd062193883bcea4c9d97e69a60ce0dcd8eabf5729688b77d6b273822872",
+          "headerFile": "extended.json",
+          "headerSha256": "64290db051f5f6dfcf5e3892f563991ff2523d483f5318499a6c5efd8450dc31",
+          "encoding": "six little-endian float32 blocks: Sun az/el/distance, Earth az/el/distance; degrees/metres"
+        },
+        "interpolation": {
+          "referenceSamples": 52561,
+          "intermediateSamples": 43800,
+          "maxAttitudeInterpolationErrorDeg": 0.006915954083914973,
+          "maxSunVectorInterpolationErrorDeg": 1.5134607751185259e-05,
+          "toleranceDeg": 0.01,
+          "pass": true,
+          "referenceStepS": 600,
+          "displayStepS": 3600,
+          "method": "All native 10-minute source epochs compared with hourly shortest-arc quaternion SLERP and normalised linear Earth-to-Sun vectors"
+        }
+      },
+      {
+        "siteId": "Chandrayaan3",
+        "path": "public/data/Chandrayaan3/earth-orientation.json",
+        "sha256": "10c84025feff77920ce79b5830241333e4f6530062ddfff24baeebf0bc9bd4ca",
+        "bytes": 859530,
+        "startUtc": "2026-11-01T00:00:00Z",
+        "endUtc": "2027-11-01T00:00:00Z",
+        "stepS": 3600,
+        "count": 8761,
+        "input": {
+          "file": "year.bin",
+          "sha256": "c2849c52e038e37ac73c0f4443d5304bf7e86002f590ebd82b095b744b8c1306",
+          "headerFile": "extended.json",
+          "headerSha256": "df14ffce104766577b8e1dd6d92056ec48ba56722b1a596c40ca804d1f2c202c",
+          "encoding": "six little-endian float32 blocks: Sun az/el/distance, Earth az/el/distance; degrees/metres"
+        },
+        "interpolation": {
+          "referenceSamples": 52561,
+          "intermediateSamples": 43800,
+          "maxAttitudeInterpolationErrorDeg": 0.0069159566322138264,
+          "maxSunVectorInterpolationErrorDeg": 1.5134082041635126e-05,
+          "toleranceDeg": 0.01,
+          "pass": true,
+          "referenceStepS": 600,
+          "displayStepS": 3600,
+          "method": "All native 10-minute source epochs compared with hourly shortest-arc quaternion SLERP and normalised linear Earth-to-Sun vectors"
+        }
+      },
+      {
+        "siteId": "SLIM",
+        "path": "public/data/SLIM/earth-orientation.json",
+        "sha256": "f5328a7cae8e8c191b735d721564733daebe9b8b0d8756d2bcace6b80e1deec6",
+        "bytes": 859557,
+        "startUtc": "2026-11-01T00:00:00Z",
+        "endUtc": "2027-11-01T00:00:00Z",
+        "stepS": 3600,
+        "count": 8761,
+        "input": {
+          "file": "year.bin",
+          "sha256": "faa585adb34589781c77b5d553be06c6df7b49c915784fbb779e02b1ad696732",
+          "headerFile": "extended.json",
+          "headerSha256": "62d0248f67f10f451f0bee9a6bcb6481b7fc46170382e2af3f526bf583ee5c18",
+          "encoding": "six little-endian float32 blocks: Sun az/el/distance, Earth az/el/distance; degrees/metres"
+        },
+        "interpolation": {
+          "referenceSamples": 52561,
+          "intermediateSamples": 43800,
+          "maxAttitudeInterpolationErrorDeg": 0.006915954114085562,
+          "maxSunVectorInterpolationErrorDeg": 1.5134620691541275e-05,
+          "toleranceDeg": 0.01,
+          "pass": true,
+          "referenceStepS": 600,
+          "displayStepS": 3600,
+          "method": "All native 10-minute source epochs compared with hourly shortest-arc quaternion SLERP and normalised linear Earth-to-Sun vectors"
+        }
+      },
+      {
+        "siteId": "CE4",
+        "path": "public/data/CE4/earth-orientation.json",
+        "sha256": "e7d057f1a36e92e5a5c960ef0f9d30a48c96fd0e32cec3bf083718a2135f7cc5",
+        "bytes": 859531,
+        "startUtc": "2026-11-01T00:00:00Z",
+        "endUtc": "2027-11-01T00:00:00Z",
+        "stepS": 3600,
+        "count": 8761,
+        "input": {
+          "file": "year.bin",
+          "sha256": "45e0c010559ae847296810696b8222612e9faa14d2965a0045ef2824c65e0e39",
+          "headerFile": "extended.json",
+          "headerSha256": "12c69ace30022f2e1d8a9af0280673abac06c92be4f7c947c18cbb471dfb6449",
+          "encoding": "six little-endian float32 blocks: Sun az/el/distance, Earth az/el/distance; degrees/metres"
+        },
+        "interpolation": {
+          "referenceSamples": 52561,
+          "intermediateSamples": 43800,
+          "maxAttitudeInterpolationErrorDeg": 0.006915954865794441,
+          "maxSunVectorInterpolationErrorDeg": 1.5133781022761089e-05,
+          "toleranceDeg": 0.01,
+          "pass": true,
+          "referenceStepS": 600,
+          "displayStepS": 3600,
+          "method": "All native 10-minute source epochs compared with hourly shortest-arc quaternion SLERP and normalised linear Earth-to-Sun vectors"
+        }
+      },
+      {
+        "siteId": "ArtemisCabeusB",
+        "path": "public/data/ArtemisCabeusB/earth-orientation.json",
+        "sha256": "df441de94501562b36c785a3f96dd6c6e0c360be7396e9ac319838b10353bd30",
+        "bytes": 859683,
+        "startUtc": "2026-11-01T00:00:00Z",
+        "endUtc": "2027-11-01T00:00:00Z",
+        "stepS": 3600,
+        "count": 8761,
+        "input": {
+          "file": "year.bin",
+          "sha256": "6e19a232383a553744c6fad828b861c14f732ac515e7a236b286b1374350f46f",
+          "headerFile": "extended.json",
+          "headerSha256": "5559b7eae9ba0ddee7687dd174f36ac5f9b58b52a295527e13759ce7d5672e0c",
+          "encoding": "six little-endian float32 blocks: Sun az/el/distance, Earth az/el/distance; degrees/metres"
+        },
+        "interpolation": {
+          "referenceSamples": 52561,
+          "intermediateSamples": 43800,
+          "maxAttitudeInterpolationErrorDeg": 0.006915952818817523,
+          "maxSunVectorInterpolationErrorDeg": 1.5133018894938229e-05,
+          "toleranceDeg": 0.01,
+          "pass": true,
+          "referenceStepS": 600,
+          "displayStepS": 3600,
+          "method": "All native 10-minute source epochs compared with hourly shortest-arc quaternion SLERP and normalised linear Earth-to-Sun vectors"
+        }
+      },
+      {
+        "siteId": "ArtemisHaworth",
+        "path": "public/data/ArtemisHaworth/earth-orientation.json",
+        "sha256": "e6d9a1554d3d805b1ac7d2f126052f5febe56f3e1539e1e1786bb1ce8244840b",
+        "bytes": 859668,
+        "startUtc": "2026-11-01T00:00:00Z",
+        "endUtc": "2027-11-01T00:00:00Z",
+        "stepS": 3600,
+        "count": 8761,
+        "input": {
+          "file": "year.bin",
+          "sha256": "132390f37583be2ee39c4114812a684be5c3f2d587a93a2558e7ed980034d820",
+          "headerFile": "extended.json",
+          "headerSha256": "76e51ee187dcaea7ec8d7a8106565b43b4eaf34df01f1566fb358e64e7fd61e1",
+          "encoding": "six little-endian float32 blocks: Sun az/el/distance, Earth az/el/distance; degrees/metres"
+        },
+        "interpolation": {
+          "referenceSamples": 52561,
+          "intermediateSamples": 43800,
+          "maxAttitudeInterpolationErrorDeg": 0.0069159501418090555,
+          "maxSunVectorInterpolationErrorDeg": 1.5134445257305059e-05,
+          "toleranceDeg": 0.01,
+          "pass": true,
+          "referenceStepS": 600,
+          "displayStepS": 3600,
+          "method": "All native 10-minute source epochs compared with hourly shortest-arc quaternion SLERP and normalised linear Earth-to-Sun vectors"
+        }
+      },
+      {
+        "siteId": "ArtemisMalapert",
+        "path": "public/data/ArtemisMalapert/earth-orientation.json",
+        "sha256": "8e23690c532dd3fb59c16528e5fd2f33f6fa7b69dedd7268037d4b75fbbf49a3",
+        "bytes": 859458,
+        "startUtc": "2026-11-01T00:00:00Z",
+        "endUtc": "2027-11-01T00:00:00Z",
+        "stepS": 3600,
+        "count": 8761,
+        "input": {
+          "file": "year.bin",
+          "sha256": "8a50af0e1419dc1db8f02a00a0991784d39ad3856f0d76a9953cfbf7a139ef0a",
+          "headerFile": "extended.json",
+          "headerSha256": "ec4a309503b9111c1334b2ea15846e716195fde73604910adcbc220807b74752",
+          "encoding": "six little-endian float32 blocks: Sun az/el/distance, Earth az/el/distance; degrees/metres"
+        },
+        "interpolation": {
+          "referenceSamples": 52561,
+          "intermediateSamples": 43800,
+          "maxAttitudeInterpolationErrorDeg": 0.006915955875127959,
+          "maxSunVectorInterpolationErrorDeg": 1.5133023036237813e-05,
+          "toleranceDeg": 0.01,
+          "pass": true,
+          "referenceStepS": 600,
+          "displayStepS": 3600,
+          "method": "All native 10-minute source epochs compared with hourly shortest-arc quaternion SLERP and normalised linear Earth-to-Sun vectors"
+        }
+      },
+      {
+        "siteId": "ArtemisMoutonPlateau",
+        "path": "public/data/ArtemisMoutonPlateau/earth-orientation.json",
+        "sha256": "ed2176e7f411cc55f347e08a5726ca7116a7ca53bde9e93e0996285c46b40122",
+        "bytes": 859584,
+        "startUtc": "2026-11-01T00:00:00Z",
+        "endUtc": "2027-11-01T00:00:00Z",
+        "stepS": 3600,
+        "count": 8761,
+        "input": {
+          "file": "year.bin",
+          "sha256": "6ff1c23e2e26f15b03242725b86910025130557b957741a6733cea8163781ae3",
+          "headerFile": "extended.json",
+          "headerSha256": "0bb008a8da36eefcda14a7378ac75c22b0d7a68e8bf5bcaab00cff70817efd5e",
+          "encoding": "six little-endian float32 blocks: Sun az/el/distance, Earth az/el/distance; degrees/metres"
+        },
+        "interpolation": {
+          "referenceSamples": 52561,
+          "intermediateSamples": 43800,
+          "maxAttitudeInterpolationErrorDeg": 0.006915950235102361,
+          "maxSunVectorInterpolationErrorDeg": 1.513246100417359e-05,
+          "toleranceDeg": 0.01,
+          "pass": true,
+          "referenceStepS": 600,
+          "displayStepS": 3600,
+          "method": "All native 10-minute source epochs compared with hourly shortest-arc quaternion SLERP and normalised linear Earth-to-Sun vectors"
+        }
+      },
+      {
+        "siteId": "ArtemisMouton",
+        "path": "public/data/ArtemisMouton/earth-orientation.json",
+        "sha256": "ccbf5983d835bc5f5f848f505b38c4248cac104e57e2bb2a9ec1cdb182d07bd7",
+        "bytes": 859573,
+        "startUtc": "2026-11-01T00:00:00Z",
+        "endUtc": "2027-11-01T00:00:00Z",
+        "stepS": 3600,
+        "count": 8761,
+        "input": {
+          "file": "year.bin",
+          "sha256": "1bea99edafa2e332340b9f68bc30384af0e116567a9b06dd9c36568e744bef91",
+          "headerFile": "extended.json",
+          "headerSha256": "3ef04d2c12351c71064ff7c92148b771262a81986c2858b43128ec3bc9b18c1a",
+          "encoding": "six little-endian float32 blocks: Sun az/el/distance, Earth az/el/distance; degrees/metres"
+        },
+        "interpolation": {
+          "referenceSamples": 52561,
+          "intermediateSamples": 43800,
+          "maxAttitudeInterpolationErrorDeg": 0.00691595550222859,
+          "maxSunVectorInterpolationErrorDeg": 1.5133925010068919e-05,
+          "toleranceDeg": 0.01,
+          "pass": true,
+          "referenceStepS": 600,
+          "displayStepS": 3600,
+          "method": "All native 10-minute source epochs compared with hourly shortest-arc quaternion SLERP and normalised linear Earth-to-Sun vectors"
+        }
+      },
+      {
+        "siteId": "ArtemisNobile1",
+        "path": "public/data/ArtemisNobile1/earth-orientation.json",
+        "sha256": "f31ece0158c527e20e86e13a374c081b6bb6f76953969030747f0160af51fb02",
+        "bytes": 859443,
+        "startUtc": "2026-11-01T00:00:00Z",
+        "endUtc": "2027-11-01T00:00:00Z",
+        "stepS": 3600,
+        "count": 8761,
+        "input": {
+          "file": "year.bin",
+          "sha256": "3f7c96c206d320f4ebeb48719f0d9574be36f8b8c4ed2c80657d7b665a39c904",
+          "headerFile": "extended.json",
+          "headerSha256": "ad867e8f94b2ab7b42e9d7c18500bc9aeb36db705c0380a49075b94a8555335c",
+          "encoding": "six little-endian float32 blocks: Sun az/el/distance, Earth az/el/distance; degrees/metres"
+        },
+        "interpolation": {
+          "referenceSamples": 52561,
+          "intermediateSamples": 43800,
+          "maxAttitudeInterpolationErrorDeg": 0.006915953912396851,
+          "maxSunVectorInterpolationErrorDeg": 1.5132453604976148e-05,
+          "toleranceDeg": 0.01,
+          "pass": true,
+          "referenceStepS": 600,
+          "displayStepS": 3600,
+          "method": "All native 10-minute source epochs compared with hourly shortest-arc quaternion SLERP and normalised linear Earth-to-Sun vectors"
+        }
+      },
+      {
+        "siteId": "ArtemisNobile2",
+        "path": "public/data/ArtemisNobile2/earth-orientation.json",
+        "sha256": "37c9f8cf1ed1988e7b1084689c09e9b509e495d0a1f552d87dc2c998cb3ef454",
+        "bytes": 859518,
+        "startUtc": "2026-11-01T00:00:00Z",
+        "endUtc": "2027-11-01T00:00:00Z",
+        "stepS": 3600,
+        "count": 8761,
+        "input": {
+          "file": "year.bin",
+          "sha256": "05fe5ecaf65ae90f1505e5ef3f8b37d010b644f97eaa64eb01b01236db21c1da",
+          "headerFile": "extended.json",
+          "headerSha256": "1f54842cce333ac3f6d1026d28c30bb4eca455ac1c239ab082358820cad9422d",
+          "encoding": "six little-endian float32 blocks: Sun az/el/distance, Earth az/el/distance; degrees/metres"
+        },
+        "interpolation": {
+          "referenceSamples": 52561,
+          "intermediateSamples": 43800,
+          "maxAttitudeInterpolationErrorDeg": 0.006915955556796988,
+          "maxSunVectorInterpolationErrorDeg": 1.5134014363272307e-05,
+          "toleranceDeg": 0.01,
+          "pass": true,
+          "referenceStepS": 600,
+          "displayStepS": 3600,
+          "method": "All native 10-minute source epochs compared with hourly shortest-arc quaternion SLERP and normalised linear Earth-to-Sun vectors"
+        }
+      },
+      {
+        "siteId": "ArtemisGerlache2",
+        "path": "public/data/ArtemisGerlache2/earth-orientation.json",
+        "sha256": "be74da8ff7839dbc8a61045237ed6b71c7ef7d20af69ac725f507c225528af93",
+        "bytes": 859599,
+        "startUtc": "2026-11-01T00:00:00Z",
+        "endUtc": "2027-11-01T00:00:00Z",
+        "stepS": 3600,
+        "count": 8761,
+        "input": {
+          "file": "year.bin",
+          "sha256": "a9199864cfcb411f6e5fcecc805b0a9c7aa1821460ba50190f7546b456dfca7b",
+          "headerFile": "extended.json",
+          "headerSha256": "0780eb347d82fd7bf0b95a45e3231d8f75ac0749207361af0044fb1116e405d6",
+          "encoding": "six little-endian float32 blocks: Sun az/el/distance, Earth az/el/distance; degrees/metres"
+        },
+        "interpolation": {
+          "referenceSamples": 52561,
+          "intermediateSamples": 43800,
+          "maxAttitudeInterpolationErrorDeg": 0.0069159504509858135,
+          "maxSunVectorInterpolationErrorDeg": 1.5132847815659157e-05,
+          "toleranceDeg": 0.01,
+          "pass": true,
+          "referenceStepS": 600,
+          "displayStepS": 3600,
+          "method": "All native 10-minute source epochs compared with hourly shortest-arc quaternion SLERP and normalised linear Earth-to-Sun vectors"
+        }
+      },
+      {
+        "siteId": "ArtemisSlater",
+        "path": "public/data/ArtemisSlater/earth-orientation.json",
+        "sha256": "b6f424625177f569c6b6d5358f59d788d58d71795e236980a87a17ef0ee11a5f",
+        "bytes": 859375,
+        "startUtc": "2026-11-01T00:00:00Z",
+        "endUtc": "2027-11-01T00:00:00Z",
+        "stepS": 3600,
+        "count": 8761,
+        "input": {
+          "file": "year.bin",
+          "sha256": "41c44b68fdecff8d190866bdd19811b52fbad14bb92275a06b856a4d4e9d50ed",
+          "headerFile": "extended.json",
+          "headerSha256": "d38472e9b289d4cd3cf3aadb6f8751156eed5f8b116ddd4f0bc842965120b58f",
+          "encoding": "six little-endian float32 blocks: Sun az/el/distance, Earth az/el/distance; degrees/metres"
+        },
+        "interpolation": {
+          "referenceSamples": 52561,
+          "intermediateSamples": 43800,
+          "maxAttitudeInterpolationErrorDeg": 0.006915959769162542,
+          "maxSunVectorInterpolationErrorDeg": 1.5133691888352779e-05,
           "toleranceDeg": 0.01,
           "pass": true,
           "referenceStepS": 600,
@@ -906,12 +730,12 @@
         }
       }
     ],
-    "totalBytes": 7735395,
+    "totalBytes": 21488743,
     "interpolationMethod": "Shortest-arc quaternion SLERP; normalised linear Earth-to-Sun direction vectors",
     "toleranceDeg": 0.01,
-    "testedIntermediateEpochs": 394200,
-    "maxAttitudeInterpolationErrorDeg": 0.0069159573821309574,
-    "maxSunVectorInterpolationErrorDeg": 1.5134584161354418e-05,
+    "testedIntermediateEpochs": 1095000,
+    "maxAttitudeInterpolationErrorDeg": 0.006915959769162542,
+    "maxSunVectorInterpolationErrorDeg": 1.5134643689906338e-05,
     "limits": [
       "Interpolation error is relative to the native Skyfield model, not an absolute accuracy guarantee",
       "Independent sampled Horizons checks, including between-node display epochs, are recorded separately",

@@ -53,7 +53,10 @@ The catalogue contains **25 points**, all in the southern hemisphere. The origin
 the Chang'e-6 contrast point are listed below. The 17 additions cover Apollo 12/14/16, IM-1/IM-2,
 Chandrayaan-3, SLIM, Chang'e-4, and one published research candidate for each of NASA's nine
 October 2024 Artemis III candidate regions. Northern landing sites (Apollo 11/15/17, Blue Ghost 1,
-Chang'e-3/5, Peregrine) are not included. Research representatives are not approved landing
+Chang'e-3/5, Peregrine) are left out on purpose: the tool is about the south pole, where the Sun and
+Earth skim the horizon and where Artemis III and current landers aim, and the globe shows only the
+southern hemisphere. Apollo 12 (3.0° S) takes Apollo 11's place as the near-side equatorial
+contrast point (Earth always up, two-week day and night). Research representatives are not approved landing
 sites. Coordinate status, primary sources and DEM resolution
 travel with each point. Details: [mission catalogue](preprocess/mission_catalogue.py),
 [independent validation and DEM coverage](docs/validation-missions.md).
@@ -69,8 +72,15 @@ travel with each point. Details: [mission catalogue](preprocess/mission_catalogu
 | Site23 | Malapert Massif | −85.9948° | −0.23578° | |
 | CE6 | Chang'e-6 landing site | −41.6385° | −153.9852° | contrast point (far side, Earth never rises); global 474 m/px DEM |
 
+**Libration.** Earth is not fixed in the lunar sky. The Moon's elliptical orbit and tilted axis make it
+appear to rock (libration), so Earth draws a loop about once every 27 days. The JPL Horizons /
+DE421 positions already contain this motion; nothing is added on top. At the polar sites the loop
+spans ~11–15° of azimuth and ~13–14° of elevation per month (Site01: −7.5° to +6.2° over the year),
+so it crosses the horizon and Earth rises and sets. The "Skyline" tab explains this and gives the
+numbers for the current mission. Details: [Data & Methods](docs/data-methods.md#libration).
+
 Coordinates: NASA Lunar Surface Data Book (M2M-30044, 2025), Table A2.1-1; contrast points from
-LROC (Chang'e-6) and NASA NSSDC (Apollo). Missions of 1–30 days can start anywhere from
+LROC (Chang'e-6) and NASA NSSDC (Apollo). Missions of 1–90 days can start anywhere from
 1 Nov 2026 to 1 Nov 2027 UTC (10-minute steps; a site's one-year series loads when a mission runs past
 1 Jan 2027; the entire mission must fit the available series). Each original polar site also has a regional map (`map.json`: Sun / Earth visibility
 and slope on a ±3 km grid) whose points can be simulated as missions, and a one-year monthly summary
@@ -80,8 +90,17 @@ For longer studies the repository includes a **2026–2029 Connecting Ridge pack
 `python -m preprocess.custom_point` generates other coordinates/periods with an explicit terrain
 choice: local 5 m (strict default), south-polar 80 m, or global ~474 m screening. Dates may be
 within 2000–2040, up to 1830 days per package. A hash-checking TypeScript importer and generation
-contract are ready for B/D; the current coordinate form still snaps to existing regional cells.
-See [preprocessing](preprocess/README.md) and [package contract](docs/data-contract.md).
+contract are wired into the engine and the searches.
+
+**Your own coordinate.** "Enter your own coordinates" (place picker and Simulation) accepts any
+point on the Moon. Inside the ±3 km polar maps the nearest map cell is used and its distance is
+shown; anywhere else the app computes that exact point in the browser: the Sun and Earth from the
+loaded JPL Horizons year series re-projected to the point (checked against five catalogue sites'
+own series, ≤ 0.003° elevation), and a 0.1° terrain horizon ray-marched out to 250 km on the
+global LOLA LDEM_64 tiles (`public/data/global-dem/`, 4 × 4 block mean, ~1.9 km/px,
+`python -m preprocess.global_tiles`). Such points are labelled **global screening estimate**:
+hills and crater walls smaller than a few km are not resolved. See
+[preprocessing](preprocess/README.md) and [package contract](docs/data-contract.md).
 
 ### Model
 

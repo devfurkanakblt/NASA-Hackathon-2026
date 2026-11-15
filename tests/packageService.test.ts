@@ -124,7 +124,7 @@ describe('engine wiring of a multi-year package', () => {
     const catalogueEnd = '2027-01-01T00:00:00Z'
     const r = resolveSiteData(id, '2029-03-01T00:00:00Z', catalogueEnd, bySite, { years: {}, cells: {} }, 7)
     expect('data' in r && r.data).toBe(pkg.data)
-    expect(sitesNeeded([{ siteId: id, startUtc: '2029-03-01T00:00:00Z' }], catalogueEnd, 7, bySite)).toEqual({ years: [], cells: [] })
+    expect(sitesNeeded([{ siteId: id, startUtc: '2029-03-01T00:00:00Z' }], catalogueEnd, 7, bySite)).toEqual({ years: [], cells: [], points: [] })
     const range = missionStartRange(pkg.data.ephemeris, 7)!
     expect(range).toEqual({ firstStartUtc: '2026-11-01T00:00:00Z', lastStartUtc: '2029-10-25T00:00:00Z' })
     expect(evaluateScenario(pkg.data, range.lastStartUtc, DEFAULT_SETTINGS).count).toBe(1009)

@@ -17,9 +17,7 @@ from .dem import LONLAT, to_xy
 from .regional_map import MAP_AZ_STEP_DEG
 from .writer import write
 
-FREE_POINTS = ("App coordinate input snaps only to existing map cells. Generate a portable package with "
-               "python -m preprocess.custom_point: --terrain local5m (strict, default), regional (south of 80 S), "
-               "or global (~474 m; unresolved small hills). Package importer: src/data/scientificPackage.ts.")
+FREE_POINTS = "Any coordinate can be entered in the app: inside the polar maps it uses the nearest map cell (distance shown); elsewhere the exact point is computed in the browser from the global LDEM_64 tiles (public/data/global-dem, ~1.9 km/px block mean) as a global screening estimate. For catalogue-quality terrain generate a portable package with python -m preprocess.custom_point: --terrain local5m (strict, default), regional (south of 80 S), or global (~474 m; unresolved small hills). Package importer: src/data/scientificPackage.ts."
 REGIONAL_LAT_MAX_DEG = -80.0
 GLOBAL_NAME = "LDEM_64"
 REGIONAL_NAME = "LDEM_80S_80MPP_ADJ"

@@ -369,6 +369,27 @@ New packages and the three-year example are independently checked against Horizo
 14 epochs per body spanning the full period, with 32-azimuth horizon convergence checks.
 See [validation-missions.md](validation-missions.md); hashes bind the measurements to files.
 
+## `global-dem/` (free coordinates in the browser, D)
+
+Written by `python -m preprocess.global_tiles [--ppd 16] [--tile-deg 30]` from the project's global
+DEM, LOLA LDEM_64 (read with HTTP range requests; parts cached in `data_raw/global/` with the same
+names as `preprocess/global_dem.py`). Default: the 4 × 4 block mean of LDEM_64 (16 px/deg,
+~1.9 km/px, 72 tiles of 30° × 30°, ~33 MB); `--ppd 64` publishes full resolution (~530 MB).
+
+- `manifest.json`: `ppd`, `pixelM`, `scaleM` (0.5 m), `radiusM` (1737400), `rows`/`cols` (whole Moon),
+  `tileDeg`/`tilePx`, `method`, `source`, `sourceUrl`, and per tile `{ sha256, bytes }`.
+- `t_<r>_<c>.bin`: int16 little-endian, row-major. Row 0 centre at 90 − 0.5/ppd °N, column 0 centre
+  at 0.5/ppd °E; height = value × `scaleM` above `radiusM`.
+- `src/data/globalDem.ts` loads only the tiles within 250 km of the point, checks size and SHA-256,
+  interpolates bilinearly with periodic longitude, and throws for a tile that is not loaded (never
+  zero terrain).
+- `src/sim/freePoint.ts`: scenario id `pt:<lat>:<lon>` (5 decimals). Ephemeris = Moon-fixed vectors of
+  one loaded year series (Site01, JPL Horizons) projected to the point (`moonFixed.ts`); horizon =
+  `preprocess/horizon.py` rule on the tiles, 0.1° azimuth, 250 km, eye 2 m above the DEM surface.
+  `provenance.horizonSource: 'global-dem'`, `precision: 'global screening estimate'`; never a
+  catalogue result. Coordinate order in the app: catalogue site within 1 m → polar map cell →
+  free point.
+
 ## Sample fixtures
 
 `public/data/_sample/` holds synthetic JSON fixtures (`source: "synthetic"`). Published binary scientific packages accept only `jpl-horizons` or `skyfield-de421` sources.

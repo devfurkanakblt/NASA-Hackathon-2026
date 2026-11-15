@@ -2082,8 +2082,37 @@
 .moon-choice { display: flex; align-items: center; gap: 10px; font-size: 13px; }
 .moon-choice__letter { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--place-color); color: white; font-weight: 600; }
 .app .moon-choice button { min-width: 36px; min-height: 36px; background: transparent; font-size: 20px; }
-.moon-picker__actions { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; border-top: 1px solid var(--line); padding-top: 20px; }
-.app .moon-picker__actions .primary { min-height: 46px; padding: 12px 20px; }
+/* Selection actions float in the globe box's lower-right corner, above the image credit. */
+.moon-picker__globe { position: relative; }
+.moon-picker__actions {
+  position: absolute;
+  right: 16px;
+  bottom: 40px;
+  z-index: 26; /* above the globe's place labels */
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+  max-width: calc(100% - 32px);
+  box-sizing: border-box;
+  padding: 10px;
+  border: 1px solid rgba(232, 236, 243, .14);
+  border-radius: 10px;
+  background: rgba(12, 17, 26, .86);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, .45);
+}
+.moon-picker__actions > .muted { padding-inline: 4px; white-space: nowrap; }
+.app .moon-picker__actions .primary { min-height: 40px; padding: 9px 16px; }
+@media (prefers-reduced-motion: no-preference) {
+  .moon-picker__actions { animation: moon-actions-in 260ms cubic-bezier(0.23, 1, 0.32, 1) both; }
+}
+@keyframes moon-actions-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
 .sim { position: relative; }
 .sim__route { display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; margin-bottom: 24px; }
 .sim__route-nav { display: flex; align-items: center; gap: 16px; }
@@ -2105,6 +2134,8 @@
   .moon-globe { height: 510px; }
   .moon-globe__hint { bottom: 36px; font-size: 10px; }
   .moon-globe__credit { left: 20px; right: auto; bottom: 16px; }
+  .moon-picker__actions { left: 12px; right: 12px; bottom: 58px; max-width: none; justify-content: space-between; }
+  .app .moon-picker__actions .primary { flex: 1 1 auto; }
   .sim__route-nav { width: 100%; justify-content: space-between; gap: 8px; }
   .sim__route-nav > span { font-size: 12px; }
 }
@@ -2437,6 +2468,42 @@
   .pages { gap: 6px; }
   .app .pages button, .app .pages button.is-on { padding: 6px 10px; }
 }
+
+/* Simulation, choosing places: one screen, no page scroll; the globe takes all remaining height. */
+.app--pick {
+  height: 100vh;
+  height: 100svh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  padding-bottom: 16px;
+}
+.app--pick > .simulation-layout { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.app--pick .simulation-layout > .app__main { flex: 1; min-height: 0; }
+.app--pick .moon-picker { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 12px; }
+.app--pick .moon-picker__globe { flex: 1; min-height: 0; }
+.app--pick .moon-globe { height: 100%; min-height: 0; }
+/* Chosen places sit beside the title instead of in a row under the globe. */
+.moon-picker .card__head { align-items: center; flex-wrap: wrap; }
+.moon-picker .card__head h2 { margin-bottom: 4px; }
+.moon-picker .card__tagline { margin: 0; }
+.moon-picker .moon-picker__selection { min-height: 0; padding-block: 0; gap: 8px 14px; justify-content: flex-end; }
+.moon-picker .moon-picker__selection > .muted { margin: 0; font-size: 13px; }
+/* Very short windows: let the page scroll rather than squeeze the globe to nothing. */
+@media (max-height: 540px) {
+  .app--pick { height: auto; overflow: visible; }
+  .app--pick .moon-globe { height: 420px; }
+}
+
+/* Free coordinate entry (D) */
+.moon-picker__coords { flex-basis: 100%; }
+.moon-picker__message { flex-basis: 100%; margin: 0; }
+.moon-picker__coords > summary { cursor: pointer; }
+.coordinate-form { display: grid; gap: 8px; margin-top: 8px; }
+.coordinate-form__row { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+.coordinate-form__row label { display: grid; gap: 4px; flex: 1 1 120px; min-width: 0; }
+.coordinate-form__row input { width: 100%; min-width: 0; }
 /* Globe dots (unchosen places) and the picker list under the globe. */
 .app button.moon-dot { position: relative; display: grid; place-items: center; width: 24px; height: 24px; min-height: 0; padding: 0; border: 0; background: transparent; cursor: pointer; }
 .app button.moon-dot::before { content: ''; width: 9px; height: 9px; border-radius: 50%; background: #ddd8cc; box-shadow: 0 0 0 2px #0c111acc; }
@@ -2450,3 +2517,5 @@
 .place-list__items { display: flex; flex-wrap: wrap; gap: 6px; }
 .app .place-list__items button { font-size: 12px; padding: 4px 9px; min-height: 30px; border-radius: 14px; text-align: left; }
 .app .place-list__items button[aria-pressed='true'] { background: var(--place-color, #1a2032); border-color: var(--place-color, currentColor); color: white; }
+/* Place list inside the one-screen picker: scrolls inside itself so the globe keeps its room. */
+.moon-picker__places .place-list { max-height: min(38vh, 320px); overflow: auto; padding-right: 4px; }
