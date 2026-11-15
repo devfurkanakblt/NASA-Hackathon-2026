@@ -2,6 +2,8 @@ import type { Scenario } from '../app/scenarios.ts'
 import type { SitesDoc } from '../data/contract.ts'
 import { fromInputUtc, shiftUtc, toInputUtc } from '../app/format.ts'
 import { MIN_DURATION_DAYS } from '../sim/evaluate.ts'
+import { scenarioLabel } from '../app/scenarios.ts'
+import { REFERENCE_LANDINGS } from '../app/referenceLandings.ts'
 import { latestMissionStartUtc } from './missionDates.ts'
 import './sceneMissionControls.css'
 import { useState } from 'react'
@@ -19,11 +21,18 @@ interface Props {
   onPatch: (patch: Partial<Pick<Scenario, 'siteId' | 'startUtc'>>) => void
   onDuration: (days: number) => void
   onCoordinate?: (latitude: number, longitude: number) => string
-  onCopy?: () => void
+  /** Adds a scenario at the chosen place with this start (another date for the same site). */
+  onCopy?: (startUtc: string) => void
+  onRemove?: (key: string) => void
+  /** Name shown for a scenario in the switcher (place, plus date when the place repeats). */
+  titleOf?: (scenario: Scenario) => string
 }
 
+/** Days a copied scenario is moved forward, so the new date differs from the original. */
+const COPY_SHIFT_DAYS = 7
+
 /** A short editor for the same scenario state used by Results and shared links. */
-export function SceneMissionControls({ sites, scenarios, chosenKey, durationDays, endUtc, onPatch, onDuration, onCoordinate }: Props) {
+export function SceneMissionControls({ sites, scenarios, chosenKey, durationDays, endUtc, onChoose, onPatch, onDuration, onCoordinate, onCopy, onRemove, titleOf }: Props) {
   const [latitude, setLatitude] = useState('')
   const [longitude, setLongitude] = useState('')
   const [coordinateMessage, setCoordinateMessage] = useState('')
@@ -44,12 +53,25 @@ export function SceneMissionControls({ sites, scenarios, chosenKey, durationDays
   }
   return (
     <div className="scene-mission" data-tour="places">
+      <div className="scene-mission__scenarios" role="group" aria-label="Scenarios">
+        <span>Scenario</span>
+        {scenarios.map((s, i) => <button key={s.key} type="button" aria-pressed={s.key === chosen.key} onClick={() => onChoose(s.key)}>
+          {scenarioLabel(i)} · {titleOf ? titleOf(s) : s.siteId}
+        </button>)}
+        {onCopy && <button type="button" onClick={() => onCopy(canShift(COPY_SHIFT_DAYS) ? shiftUtc(chosen.startUtc, COPY_SHIFT_DAYS * 24) : chosen.startUtc)}
+          title="Adds a new scenario at this place, one week later; then change its date below.">+ Another date here</button>}
+        {onRemove && scenarios.length > 1 && <button type="button" onClick={() => onRemove(chosen.key)}>Remove {scenarioLabel(scenarios.indexOf(chosen))}</button>}
+      </div>
       {onCoordinate && <details><summary>Choose your own coordinates</summary>
         <p className="scene-mission__hint">Any point on the Moon. Inside the ±3 km polar maps the nearest 100–200 m grid point is used (distance reported); elsewhere your exact coordinate is computed from the global LOLA terrain as a screening estimate.</p>
         <div className="scene-mission__fields">
           <label>Latitude · degrees<input aria-label="Custom latitude" inputMode="decimal" value={latitude} onChange={e => setLatitude(e.target.value)} /></label>
           <label>Longitude · east positive<input aria-label="Custom longitude" inputMode="decimal" value={longitude} onChange={e => setLongitude(e.target.value)} /></label>
           <button type="button" onClick={() => setCoordinateMessage(onCoordinate(latitude.trim() ? Number(latitude) : NaN, longitude.trim() ? Number(longitude) : NaN))}>Use coordinates</button>
+        </div>
+        <div className="scene-mission__shifts" role="group" aria-label="Past landings outside the south-polar catalogue">
+          <span>Past landings</span>
+          {REFERENCE_LANDINGS.map(p => <button key={p.name} type="button" onClick={() => { setLatitude(String(p.latDeg)); setLongitude(String(p.lonDeg)); setCoordinateMessage(onCoordinate(p.latDeg, p.lonDeg)) }}>{p.name}</button>)}
         </div>
         {coordinateMessage && <p role="status">{coordinateMessage}</p>}
       </details>}
@@ -77,7 +99,7 @@ export function SceneMissionControls({ sites, scenarios, chosenKey, durationDays
       <div className="scene-mission__shifts" role="group" aria-label="Shift selected landing date">
         <span>Move this start</span>
         {[-1, 1, 5].map(days => <button key={days} type="button" disabled={!canShift(days)} onClick={() => onPatch({ startUtc: shiftUtc(chosen.startUtc, days * 24) })}>{days > 0 ? '+' : '−'}{Math.abs(days)} {Math.abs(days) === 1 ? 'day' : 'days'}</button>)}
-        <span className="scene-mission__hint">Duration is shared by all selected scenarios.</span>
+        <span className="scene-mission__hint">Changes apply to the selected scenario only. Duration is shared by all scenarios.</span>
       </div>
     </div>
   )

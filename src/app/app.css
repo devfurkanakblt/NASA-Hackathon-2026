@@ -2123,7 +2123,7 @@
 .sim__flight .moon-globe { height: 100%; min-height: 480px; }
 .sim__flight-label { position: absolute; bottom: 44px; left: 24px; right: 24px; text-align: center; color: var(--text); font-size: 14px; }
 .sim__flight-label span { margin-inline: 12px; color: var(--sun); }
-.mission-blackout { position: fixed; inset: 0; z-index: 10000; background: #000; animation: mission-blackout 800ms ease both; }
+.mission-blackout { position: fixed; inset: 0; z-index: 10000; background: #000; animation: mission-blackout 1200ms ease both; }
 @keyframes mission-blackout { 0% { opacity: 0; } 35%, 52% { opacity: 1; } 100% { opacity: 0; } }
 @media (hover: hover) and (pointer: fine) {
   .app button.moon-pin:hover:not(:disabled) { background: #242c3d; border-color: currentColor; }
@@ -2246,6 +2246,14 @@
 .research__type p.small { margin: 4px 0; }
 .research__type a { color: var(--earth); }
 .research__alts ul { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 6px; }
+.research__alts ol { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 16px; counter-reset: research-location; }
+.research__alts ol > li { counter-increment: research-location; align-items: flex-start; padding-block: 12px; border-bottom: 1px solid var(--line); }
+.research__alts ol > li > div { flex: 1 1 280px; min-width: 0; }
+.research__alts ol > li strong::before { content: counter(research-location) '. '; font-variant-numeric: tabular-nums; }
+.research__alts ol p { margin: 6px 0; max-width: 72ch; overflow-wrap: anywhere; }
+.research__alts h4 { margin: 20px 0 8px; font-size: 14px; }
+.research__search { padding-block: 16px; border-block: 1px solid var(--line); }
+.research__search button:focus-visible, .research__alts button:focus-visible { outline: 2px solid var(--earth); outline-offset: 3px; }
 .research__alts li { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; justify-content: space-between; font-size: 13px; }
 .research__alts li span { flex: 1 1 260px; }
 .research__dates { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line); }
@@ -2504,6 +2512,8 @@
 .coordinate-form__row { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
 .coordinate-form__row label { display: grid; gap: 4px; flex: 1 1 120px; min-width: 0; }
 .coordinate-form__row input { width: 100%; min-width: 0; }
+.coordinate-form__presets { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.coordinate-form__presets button { font-size: 12px; padding: 4px 10px; }
 
 /* Globe dots stay small; names are disclosed by pointer or keyboard focus. */
 .app button.moon-dot {
@@ -2563,3 +2573,11 @@
 .app .tabs button { transition: color 200ms ease; }
 .results-layout .meter { grid-template-columns: 96px minmax(0, 1fr) auto; }
 .results-layout .meter__value { white-space: nowrap; min-width: 62px; text-align: right; }
+
+/* Sun elevation on each result card (challenge: show it prominently). */
+.result__elevation { margin: 0; color: var(--muted); }
+.result__elevation b { color: var(--sun); font-weight: 600; margin-right: 6px; }
+.results-layout .result__elevation { font-size: 15px; }
+
+.card__actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+.timebar__speed { flex: 0 0 auto; width: auto; }

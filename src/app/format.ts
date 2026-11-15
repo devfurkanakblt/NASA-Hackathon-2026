@@ -31,6 +31,15 @@ export function fmtUtc(isoOrMs: string | number): string {
   return `${new Date(ms).toISOString().slice(0, 16).replace('T', ' ')} UTC`
 }
 
+/** 0.674, 23.473 → "0.674°N, 23.473°E"; a value that rounds to zero has no hemisphere letter. */
+export function fmtLatLon(latDeg: number, lonDeg: number, digits = 3): string {
+  const f = (v: number, pos: string, neg: string) => {
+    const text = Math.abs(v).toFixed(digits)
+    return Number(text) === 0 ? `${text}°` : `${text}°${v > 0 ? pos : neg}`
+  }
+  return `${f(latDeg, 'N', 'S')}, ${f(lonDeg, 'E', 'W')}`
+}
+
 export function isoUtc(ms: number): string {
   return new Date(ms).toISOString().replace('.000Z', 'Z')
 }

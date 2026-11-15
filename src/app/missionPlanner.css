@@ -1,0 +1,11 @@
+.planner__fields { display: flex; flex-wrap: wrap; gap: 16px; border: 0; padding: 0; margin: 20px 0; min-width: 0; }
+.planner .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.planner__fields label { display: flex; flex: 1 1 190px; flex-direction: column; gap: 8px; min-width: 0; }
+.planner__fields select, .planner__fields input { width: 100%; min-width: 0; min-height: 42px; background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 8px; font: inherit; color-scheme: dark; }
+.planner__fields :focus-visible, .planner button:focus-visible { outline: 2px solid var(--earth); outline-offset: 3px; }
+.planner__actions { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+.planner__results { margin-top: 24px; }
+.planner__option { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 18px 0; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+.planner__option p { margin: 6px 0 0; }
+.planner__option button { flex-shrink: 0; }
+@media (max-width: 600px) { .planner__option { align-items: flex-start; flex-direction: column; } }

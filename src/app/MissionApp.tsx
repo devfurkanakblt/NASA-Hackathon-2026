@@ -13,6 +13,9 @@ import { earthOrientationAt, earthOrientationCoverageWarning, earthSunDirectionA
 import { DEFAULT_SETTINGS, validateSettings } from '../sim/evaluate.ts'
 import type { MissionSettings } from '../sim/evaluate.ts'
 import { nextTransition } from '../sim/visibility.ts'
+import { dailyVisibility, nextEvent, type NextEvent } from '../sim/events.ts'
+import { scenarioExport, toCsv } from '../sim/export.ts'
+import { downloadText, fileStem } from './download.ts'
 import type { VisibilityWindow } from '../sim/visibility.ts'
 import { LineChart } from './charts/LineChart.tsx'
 import { SkyVisibilityChart } from './charts/SkyVisibilityChart.tsx'
@@ -21,22 +24,21 @@ import { SiteMap } from './charts/SiteMap.tsx'
 import { RimlightMark } from './Brand.tsx'
 import { Comparison } from './Comparison.tsx'
 import { Landing } from './Landing.tsx'
-import { mapPointWhere, placeTitle } from './placeName.ts'
-import { errorMessage, fmtDuration, fmtHours, fmtUtc } from './format.ts'
+import { mapPointWhere, placeTitle, scenarioTitle } from './placeName.ts'
+import { errorMessage, fmtDuration, fmtUtc } from './format.ts'
 import { cellId, isKnownSiteId, parseCellId, resolveSiteData, sitesNeeded } from './extendedSites.ts'
 import { computeFreePoint, placeForCoordinate } from './freePointLoader.ts'
 import { parseFreePointId } from '../sim/freePoint.ts'
 import { CoordinateForm } from './CoordinateForm.tsx'
 import type { ExtendedState } from './extendedSites.ts'
-import { cellAt } from './mapGrid.ts'
-import { defaultScenarios, evaluateAll, isEvaluated, newKey, scenarioLabel, scenarioColor, targetScenarioKey } from './scenarios.ts'
+import { defaultScenarios, elevationStats, evaluateAll, isEvaluated, newKey, scenarioLabel, scenarioColor, targetScenarioKey } from './scenarios.ts'
 import type { Scenario } from './scenarios.ts'
 import { ResearchView } from './ResearchView.tsx'
 import { SettingsForm } from './SettingsForm.tsx'
+import { MissionPlanner } from './MissionPlanner.tsx'
 import { decodeShare, encodeShare } from './share.ts'
 import { Sources } from './Sources.tsx'
 import { Timelines } from './Timelines.tsx'
-import { earthWobble } from './libration.ts'
 import { Tour } from './Tour.tsx'
 import type { TourStep } from './Tour.tsx'
 import { MissionFooter } from './MissionFooter.tsx'
@@ -66,22 +68,28 @@ function viewFromLocation(): View {
   return /(^#|&)s=/.test(window.location.hash) ? 'results' : 'home'
 }
 
-const STEPS_PER_FRAME = 2
+/** Playback speeds: mission seconds per real second. */
+const SPEEDS: { value: number; label: string }[] = [
+  { value: 6 * 3600, label: '6 h / s' },
+  { value: 86400, label: '1 day / s' },
+  { value: 3 * 86400, label: '3 days / s' },
+  { value: 10 * 86400, label: '10 days / s' },
+]
 
-/** "the same point" / "200 m east, 600 m north of it". */
-function cellOffset(map: Parameters<typeof cellAt>[0], row: number, col: number): string {
-  const c = cellAt(map, row, col)
-  if (c.distanceM === 0) return 'the same point'
-  return `${fmtM(Math.abs(c.eastM))} ${c.eastM >= 0 ? 'east' : 'west'}, ${fmtM(Math.abs(c.northM))} ${c.northM >= 0 ? 'north' : 'south'} of it`
-}
-const fmtM = (m: number) => (Math.abs(m) < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(1)} km`)
 
-/** "in view, sets in 5 d 20 h" / "hidden for the rest of the mission". */
-function countdown(windows: VisibilityWindow[], visibleNow: boolean, tS: number): string {
+/**
+ * "in view, sets in 5 d 20 h". When nothing changes before the mission ends, the whole loaded
+ * series is searched (`nextEvent`), so the real next sunset after the mission is still given.
+ */
+function countdown(windows: VisibilityWindow[], visibleNow: boolean, tS: number, beyond: () => NextEvent | null): string {
   const next = nextTransition(windows, tS)
   const now = visibleNow ? 'in view' : 'hidden'
-  if (!next) return `${now} for the rest of the mission`
-  return `${now}, ${next.kind === 'set' ? 'sets' : 'rises'} in ${fmtDuration(next.atS - tS)}`
+  if (next) return `${now}, ${next.kind === 'set' ? 'sets' : 'rises'} in ${fmtDuration(next.atS - tS)}`
+  let e: NextEvent | null = null
+  try { e = beyond() } catch { e = null }
+  if (e?.kind === 'rise' || e?.kind === 'set') return `${now}, ${e.kind === 'set' ? 'sets' : 'rises'} in ${fmtDuration(e.inS)} (${fmtUtc(e.utc)}, after the mission ends)`
+  if (e?.kind === 'none') return `${now} for the rest of the mission. ${e.message}`
+  return `${now} for the rest of the mission`
 }
 
 /**
@@ -97,6 +105,7 @@ export function MissionApp() {
   const [activeKey, setActiveKey] = useState<string | null>(null)
   const [step, setStep] = useState(0)
   const [playing, setPlaying] = useState(false)
+  const [speed, setSpeed] = useState(86400)
   const [view, setView] = useState<View>(viewFromLocation)
   const [simulationStage, setSimulationStage] = useState<'pick' | 'watch'>('pick')
   const [simulationStarted, setSimulationStarted] = useState(false)
@@ -111,8 +120,8 @@ export function MissionApp() {
   useEffect(() => {
     if (!transitionId) return
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    const swap = window.setTimeout(() => transitionAction.current?.(), reduced ? 80 : 320)
-    const finish = window.setTimeout(() => setCovered(false), reduced ? 200 : 800)
+    const swap = window.setTimeout(() => transitionAction.current?.(), reduced ? 80 : 480)
+    const finish = window.setTimeout(() => setCovered(false), reduced ? 200 : 1200)
     return () => { clearTimeout(swap); clearTimeout(finish) }
   }, [transitionId])
   const darken = (action: () => void) => {
@@ -170,6 +179,8 @@ export function MissionApp() {
         if (shared) setSettings(shared.settings)
         setLoaded(data)
         setScenarios(initial)
+        // The Simulation page opens with the same places Results shows, not an empty globe.
+        setPicked(initial)
         setActiveKey(initial[shared?.active ?? 0]?.key ?? null)
       })
       .catch((e) => !cancelled && setLoadError(errorMessage(e)))
@@ -291,6 +302,7 @@ export function MissionApp() {
     setPlaying(false)
     setStep(0)
     setScenarios(list => list.map(s => s.key === chosenKey ? { ...s, ...patch } : s))
+    setPicked(list => list.map(s => s.key === chosenKey ? { ...s, ...patch } : s))
   }
   const setActiveSite = (siteId: string) => {
     const previous = scenarios.find(s => s.key === chosenKey)
@@ -298,21 +310,32 @@ export function MissionApp() {
     setMapUpdate({ key: previous.key, siteId, previous: placeTitle(previous.siteId, shownBySite) })
     setPlaying(false)
     setScenarios(list => list.map(s => s.key === previous.key ? { ...s, siteId } : s))
+    setPicked(list => list.map(s => s.key === previous.key ? { ...s, siteId } : s))
   }
   const mapUpdateOutcome = mapUpdate && outcomes.find(o => o.scenario.key === mapUpdate.key && o.scenario.siteId === mapUpdate.siteId)
 
   const colorsOfEvaluated = evaluated.map((o) => colors[outcomes.indexOf(o)])
 
   const lastStep = evaluated.length ? evaluated[0].result.count - 1 : 0
+  const playStepS = evaluated.length ? evaluated[0].result.stepS : 600
   const k = Math.min(step, lastStep)
   useEffect(() => {
     if (!playing || lastStep === 0) return
-    let frame = requestAnimationFrame(function tick() {
-      setStep((s) => (s + STEPS_PER_FRAME > lastStep ? 0 : s + STEPS_PER_FRAME))
+    // Time-based: the chosen speed holds on any display refresh rate.
+    let last = performance.now()
+    let carry = 0
+    let frame = requestAnimationFrame(function tick(t) {
+      carry += ((t - last) / 1000) * speed / playStepS
+      last = t
+      const n = Math.floor(carry)
+      if (n > 0) {
+        carry -= n
+        setStep((s) => (s + n > lastStep ? 0 : s + n))
+      }
       frame = requestAnimationFrame(tick)
     })
     return () => cancelAnimationFrame(frame)
-  }, [playing, lastStep])
+  }, [playing, lastStep, speed, playStepS])
 
   // Mission tracks of the active scenario (panorama + 3D).
   const tracks = useMemo(() => {
@@ -324,7 +347,6 @@ export function MissionApp() {
     const earthPath = { azDeg: slice(earth.azDeg), elDeg: slice(earth.elDeg), visible: active.result.earthVisible }
     return { sunPath, earthPath, sunDist: slice(sun.distanceM), earthDist: slice(earth.distanceM) }
   }, [active, activeData])
-  const wobble = useMemo(() => (tracks ? earthWobble(tracks.earthPath.azDeg, tracks.earthPath.elDeg) : null), [tracks])
 
   const now = useMemo(() => {
     if (!active || !tracks) return null
@@ -464,18 +486,32 @@ export function MissionApp() {
         {playing ? 'Pause' : 'Play'}
       </button>
       <input type="range" min={0} max={lastStep} value={k} aria-label="Time in mission" onChange={(e) => setStep(Number(e.target.value))} />
+      <select className="timebar__speed" aria-label="Playback speed" value={speed} onChange={(e) => setSpeed(Number(e.target.value))}>
+        {SPEEDS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+      </select>
       <span className="timebar__time">
         Day {Math.floor(now.tS / 86400) + 1}, {fmtUtc(Date.parse(active.result.alignedStartUtc) + now.tS * 1000)}
       </span>
     </div>
   )
+  // Longest series available for this place: its one-year file when loaded, else the scenario's own.
+  const yearOfActive = activeData ? ext.years[activeData.site.id] : undefined
+  const fullSeries = yearOfActive && yearOfActive !== 'loading' && yearOfActive !== 'error' ? yearOfActive : activeData?.ephemeris
+  const beyond = (body: 'sun' | 'earth') => () => (fullSeries && activeData && now ? nextEvent(fullSeries, activeData.horizon, body, now.utc) : null)
+  // Per-UTC-day visibility over the whole one-year series of the shown place.
+  const dailyCsv = yearOfActive && yearOfActive !== 'loading' && yearOfActive !== 'error' && activeData ? () => {
+    const rows = dailyVisibility(yearOfActive, activeData.horizon)
+    const lines = [`# ${activeData.site.name} (${activeData.site.id}); share of each UTC day with the body centre above the terrain horizon`, 'day,sun_pct,earth_pct,both_pct']
+    for (const r of rows) lines.push(`${r.day},${r.sunPct},${r.earthPct},${r.bothPct}`)
+    downloadText(`${activeData.site.id}_daily-visibility.csv`, lines.join('\n') + '\n')
+  } : null
   const status = active && now && (
     <p className="status">
       <span className={now.sun.visible ? 'ok' : 'bad'}>
-        <b>Sun</b> {countdown(active.result.sunWindows, now.sun.visible, now.tS)}
+        <b>Sun</b> {now.sun.elDeg.toFixed(1)}° elevation · {countdown(active.result.sunWindows, now.sun.visible, now.tS, beyond('sun'))}
       </span>
       <span className={now.earth.visible ? 'ok' : 'bad'}>
-        <b>Earth</b> {countdown(active.result.earthWindows, now.earth.visible, now.tS)}
+        <b>Earth</b> {now.earth.elDeg.toFixed(1)}° elevation · {countdown(active.result.earthWindows, now.earth.visible, now.tS, beyond('earth'))}
       </span>
     </p>
   )
@@ -490,7 +526,7 @@ export function MissionApp() {
           aria-pressed={o === active}
           onClick={() => setActiveKey(o.scenario.key)}
         >
-          {o.letter} {placeTitle(o.scenario.siteId, shownBySite)}
+          {o.letter} {scenarioTitle(o.scenario, scenarios, shownBySite)}
         </button>
       ))}
     </div>
@@ -509,7 +545,7 @@ export function MissionApp() {
     return { ok: true, text: choice.message }
   }
 
-  const missionControls = <SceneMissionControls
+  const missionControls = <><SceneMissionControls
     sites={loaded.sites} scenarios={scenarios} chosenKey={chosenKey}
     durationDays={settings.durationDays} endUtc={maxStartFor(chosenScenario?.siteId ?? loaded.sites.sites[0].id)}
     onChoose={key => { setPlaying(false); setStep(0); setActiveKey(key) }} onPatch={patchSceneScenario}
@@ -520,7 +556,19 @@ export function MissionApp() {
       patchSceneScenario({ siteId: choice.siteId })
       return choice.message
     }}
-    onCopy={() => { if (chosenScenario) { const copy = { ...chosenScenario, key: newKey() }; setScenarios([...scenarios, copy]); setActiveKey(copy.key); setPlaying(false); setStep(0) } }} />
+    titleOf={s => scenarioTitle(s, scenarios, shownBySite)}
+    onCopy={startUtc => { if (chosenScenario) { const copy = { ...chosenScenario, key: newKey(), startUtc }; const next = [...scenarios, copy]; setScenarios(next); setPicked(next); setActiveKey(copy.key); setPlaying(false); setStep(0) } }}
+    onRemove={key => { const next = scenarios.filter(s => s.key !== key); if (!next.length) return; setScenarios(next); setPicked(next); setActiveKey(next[0].key); setPlaying(false); setStep(0) }} />
+    <MissionPlanner key={JSON.stringify([settings, chosenScenario?.siteId, chosenScenario?.startUtc])}
+      catalogue={loaded.bySite} selected={chosenOutcome?.data ?? undefined} settings={settings}
+      startUtc={chosenScenario?.startUtc ?? loaded.sites.coverage.startUtc}
+      onUse={(siteId, startUtc, durationDays) => {
+        setSettings(previous => ({ ...previous, durationDays }))
+        const next = { key: chosenScenario?.key ?? newKey(), siteId, startUtc }
+        const updated = chosenScenario ? scenarios.map(s => s.key === next.key ? next : s) : [...scenarios, next]
+        setScenarios(updated); setPicked(updated); setActiveKey(next.key); setPlaying(false); setStep(0)
+      }} />
+  </>
 
   // Choosing places is a single screen: the globe fills the viewport and the page does not scroll.
   const picking = view === 'simulation' && simulationStage === 'pick' && !flight
@@ -533,13 +581,12 @@ export function MissionApp() {
         <div className="simulation-layout">
           <main className="app__main">
             <section className="card moon-picker" data-mode={flight ? 'flight' : simulationStage} aria-hidden={simulationStage !== 'pick' && !flight || undefined} inert={simulationStage !== 'pick' && !flight || undefined} data-tour="places">
-              <div className="card__head"><div><h2>Choose places on the Moon</h2>
-                <p className="card__tagline">Click a place name or anywhere on the globe, or enter coordinates. Add places to compare them.</p></div>
+              <div className="card__head"><div><h2>Choose places on the Moon</h2></div>
                 <div className="moon-picker__selection" aria-live="polite">
                 {picked.length === 0 && <p className="muted">No place chosen yet. Click a name on the globe.</p>}
                 {picked.map((s, i) => <div key={s.key} className="moon-choice" style={{ '--place-color': colors[i] } as CSSProperties}>
                   <span className="moon-choice__letter">{scenarioLabel(i)}</span>
-                  <span>{placeTitle(s.siteId, shownBySite)}</span>
+                  <span>{scenarioTitle(s, picked, shownBySite)}</span>
                   <button type="button" aria-label={`Remove ${placeTitle(s.siteId, loaded.bySite)}`} onClick={() => updateLocations(picked.filter(p => p.key !== s.key))}>&times;</button>
                 </div>)}
               </div>
@@ -571,14 +618,14 @@ export function MissionApp() {
                 <button type="button" disabled={!!flight || covered} onClick={() => darken(() => { setPicked(scenarios); setActiveKey(scenarios[0]?.key ?? null); setSimulationStage('pick') })}>&larr; Edit locations</button>
                 <div className="sim__route-nav" aria-label="Selected location navigation">
                   <button type="button" aria-label="Previous location" disabled={activeIndex === 0 || !!flight || covered} onClick={() => travelTo(activeIndex - 1)}>&larr;</button>
-                  <span role="status" style={{ color: colors[activeIndex] }}>{scenarioLabel(activeIndex)} &middot; {placeTitle(scenarios[activeIndex]?.siteId ?? '', shownBySite)} <small>{activeIndex + 1} / {scenarios.length}</small></span>
+                  <span role="status" style={{ color: colors[activeIndex] }}>{scenarioLabel(activeIndex)} &middot; {scenarios[activeIndex] ? scenarioTitle(scenarios[activeIndex], scenarios, shownBySite) : ''} <small>{activeIndex + 1} / {scenarios.length}</small></span>
                   <button type="button" aria-label="Next location" disabled={activeIndex >= scenarios.length - 1 || !!flight || covered} onClick={() => travelTo(activeIndex + 1)}>&rarr;</button>
                 </div>
               </div>
               <div className="card__head">
                 <div>
                   <h2>
-                    <span className="step">2</span> Simulation
+                    Simulation
                     {active?.scenario.key === chosenKey && activeData && (
                       <>
                         {' '}
@@ -586,7 +633,6 @@ export function MissionApp() {
                       </>
                     )}
                   </h2>
-                  <p className="card__tagline">Choose a place and UTC start, then explore its terrain, sunlight and view of Earth.</p>
                 </div>
               </div>
               {missionControls}
@@ -596,7 +642,6 @@ export function MissionApp() {
                   <SceneMissionSummary result={active.result} settings={settings} />
                   {(activeCell && activeData.map) || activeFree || !activeData.terrain ? (
                     <div data-tour="scene">
-                      {activeCell && activeData.map && <p className="muted">This grid point is {cellOffset(activeData.map, activeCell.row, activeCell.col)}. The calculation uses this point's own terrain horizon; the global display is coarser.</p>}
                       <Suspense fallback={<p role="status">Loading point view…</p>}><GlobalPointScene
                         key={activeData.site.id} site={activeData.site} horizon={activeData.horizon}
                         sun={now.sun} earth={now.earth} sunPath={tracks.sunPath} earthPath={tracks.earthPath}
@@ -634,13 +679,11 @@ export function MissionApp() {
                   )}
                   {timebar}
                   {status}
-                  <details className="scene-summary"><summary>Angles, battery and power · details</summary>
                   <dl className="scene-mission__facts" aria-label="Selected mission facts">
-                    <div><dt>Sun elevation · local horizontal</dt><dd>{now.sun.elDeg.toFixed(2)}°</dd><small>Sun centre above the terrain: {fmtHours(active.result.summary.sunVisibleFraction * active.result.durationS)} of this mission.</small></div>
-                    <div><dt>Earth elevation · local horizontal</dt><dd>{now.earth.elDeg.toFixed(2)}°</dd><small>Direct view of Earth: {fmtHours(active.result.summary.earthVisibleFraction * active.result.durationS)}. Longest outage: {fmtDuration(active.result.summary.longestEarthOutageS)}.</small></div>
-                    <div><dt>Battery now</dt><dd>{(100 * active.result.socJ[now.kk] / active.result.batteryCapacityJ).toFixed(1)}%</dd><small>Panel: {Math.round(active.result.generationW[now.kk])} W. {active.result.summary.keepsBatteryReserve ? 'Reserve protected throughout this mission.' : 'Battery falls below reserve during this mission.'}</small></div>
+                    <div><dt>Sun elevation · local horizontal</dt><dd>{now.sun.elDeg.toFixed(2)}°</dd>{elevationStats(active, 'sun') && <small>Highest {elevationStats(active, 'sun')!.maxDeg.toFixed(1)}°, average {elevationStats(active, 'sun')!.meanDeg.toFixed(1)}° this mission</small>}</div>
+                    <div><dt>Earth elevation · local horizontal</dt><dd>{now.earth.elDeg.toFixed(2)}°</dd></div>
+                    <div><dt>Battery now</dt><dd>{(100 * active.result.socJ[now.kk] / active.result.batteryCapacityJ).toFixed(1)}%</dd></div>
                   </dl>
-                  </details>
                   <div className="sim__next">
                     <button type="button" className="primary" onClick={() => go('results')}>
                       See the results
@@ -663,7 +706,6 @@ export function MissionApp() {
             <p>{isEvaluated(mapUpdateOutcome)
               ? `${mapUpdate.previous} updated to ${mapPointWhere(mapUpdate.siteId, shownBySite) ?? placeTitle(mapUpdate.siteId, shownBySite)}`
               : mapUpdateOutcome.error ?? 'Recalculating power and Earth contact for this spot.'}</p>
-            {isEvaluated(mapUpdateOutcome) && <p>Power and Earth contact recalculated. Map colors stay the same.</p>}
           </div>
           {isEvaluated(mapUpdateOutcome) && <div className="map-update__actions">
             <button type="button" onClick={() => {
@@ -679,6 +721,35 @@ export function MissionApp() {
       {view === 'results' && (
         <div className="results-layout">
           <main className="app__main">
+            <section className="card" data-tour="result">
+              <div className="card__head">
+                <div>
+                  <h2>
+                    Results
+                  </h2>
+                </div>
+                <div className="card__actions">
+                  {active && activeData && issues.length === 0 && (
+                    <button type="button" onClick={() => downloadText(`${fileStem(activeData.site.id, active.result.alignedStartUtc)}.csv`, toCsv(scenarioExport(activeData, active.result, settings)))}
+                      title="Every 10-minute sample of the selected scenario, with its place, settings, data sources and model limits">
+                      Download CSV ({active.letter})
+                    </button>
+                  )}
+                  <button type="button" onClick={copyLink} data-tour="share" title="Copy a link that opens this comparison (places, dates and lander settings)">
+                    {copied === 'done' ? 'Link copied' : 'Copy link'}
+                  </button>
+                </div>
+              </div>
+              {copied === 'failed' && <p className="small muted">This browser blocked copying. Copy the address bar instead; it already holds this comparison.</p>}
+              {issues.length > 0 ? (
+                <p className="bad">Some lander settings are out of range. Open Lander settings below to fix them.</p>
+              ) : (
+                scenarios.length ? <Comparison outcomes={outcomes} settings={settings} bySite={shownBySite} colors={colors} /> : (
+                  <div className="results-empty"><p>Choose locations to see your results.</p><button type="button" className="primary" onClick={() => go('simulation')}>Choose locations</button></div>
+                )
+              )}
+            </section>
+
             {missionControls}
             <section className="card" data-tour="settings">
               <details className="settings-box" open={issues.length > 0 || undefined}>
@@ -690,27 +761,6 @@ export function MissionApp() {
                 </summary>
                 <SettingsForm settings={settings} issues={issues} onChange={(patch) => setSettings((s) => ({ ...s, ...patch }))} onReset={() => setSettings(DEFAULT_SETTINGS)} />
               </details>
-            </section>
-
-            <section className="card" data-tour="result">
-              <div className="card__head">
-                <div>
-                  <h2>
-                    Results
-                  </h2>
-                </div>
-                <button type="button" onClick={copyLink} data-tour="share" title="Copy a link that opens this comparison (places, dates and lander settings)">
-                  {copied === 'done' ? 'Link copied' : 'Copy link'}
-                </button>
-              </div>
-              {copied === 'failed' && <p className="small muted">This browser blocked copying. Copy the address bar instead; it already holds this comparison.</p>}
-              {issues.length > 0 ? (
-                <p className="bad">Some lander settings are out of range. Open Lander settings above to fix them.</p>
-              ) : (
-                scenarios.length ? <Comparison outcomes={outcomes} settings={settings} bySite={shownBySite} colors={colors} /> : (
-                  <div className="results-empty"><p>Choose locations to see your results.</p><button type="button" className="primary" onClick={() => go('simulation')}>Choose locations</button></div>
-                )
-              )}
             </section>
 
             {active && now && activeData && tracks && (
@@ -747,27 +797,12 @@ export function MissionApp() {
                     transition={{ duration: 0.38, ease: [0.23, 1, 0.32, 1] }}>
                   {tab === 'sky' && (
                     <>
-                      <p className="explain">
-                        Above the line: in view. Below it: hidden by the Moon.
-                      </p>
                       {timebar}
                       <h3>
                         Sun &amp; Earth visibility
                       </h3>
                       <SkyVisibilityChart horizon={activeData.horizon} sun={tracks.sunPath} earth={tracks.earthPath} stepH={active.result.stepS / 3600} k={now.kk} />
                       {status}
-                      {wobble && (
-                        <p className="explain libration-note">
-                          <strong>Why <span className="earth">Earth</span> moves in the sky.</strong> The Moon always turns the same face to us, so
-                          Earth should hang still. It does not quite: the Moon&rsquo;s orbit is an ellipse and its axis is tilted, so it seems to
-                          rock by a few degrees (this wobble is called <em>libration</em>). Earth therefore draws a small loop in the sky about once
-                          every 27 days. During this mission it moved across {wobble.azSpanDeg.toFixed(1)}° of azimuth, between{' '}
-                          {wobble.elMinDeg.toFixed(1)}° and {wobble.elMaxDeg.toFixed(1)}° of elevation.{' '}
-                          {wobble.loop === 'crosses-horizon' && 'Here that loop crosses the level horizon, which is why Earth rises and sets at this place.'}
-                          {wobble.loop === 'always-up' && 'Here the whole loop stays above the level horizon, so Earth never sets.'}
-                          {wobble.loop === 'never-up' && 'Here the whole loop stays below the level horizon (far side), so Earth never rises.'}
-                        </p>
-                      )}
                       <h3>In view during the mission</h3>
                       <Timelines outcomes={evaluated} colors={colorsOfEvaluated} k={k} />
                     </>
@@ -801,7 +836,6 @@ export function MissionApp() {
 
                   {tab === 'power' && (
                     <>
-                      <p className="explain">Below the red dashed line the lander is into its safety reserve.</p>
                       {timebar}
                       <h3>Battery charge</h3>
                       <LineChart
@@ -835,7 +869,6 @@ export function MissionApp() {
 
                   {tab === 'map' && (
                     <>
-                      <p className="explain">Brighter means more time in view. Click a spot to test it.</p>
                       {activeData.map ? (
                         <SiteMap
                           map={activeData.map}
@@ -855,11 +888,10 @@ export function MissionApp() {
 
                   {tab === 'year' && (
                     <>
-                      <p className="explain">One point per month.</p>
                       {activeData.season && (!activeCell || activeData.season.siteId === activeData.site.id) ? (
                         <>
-                          {activeCell && <p className="muted">This map point’s own monthly summary (its 1° terrain horizon and re-projected ephemeris), not the catalogue centre’s.</p>}
                           <SeasonChart season={activeData.season} missionStartUtc={active.result.alignedStartUtc} />
+                          {dailyCsv && <p><button type="button" onClick={dailyCsv}>Download daily Sun &amp; Earth visibility (CSV)</button></p>}
                         </>
                       ) : (
                         <p className="muted">No monthly summary for this exact point. Mission results above use this point’s own horizon; the catalogue centre’s annual summary is not substituted.</p>

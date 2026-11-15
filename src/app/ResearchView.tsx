@@ -1,14 +1,16 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { EphemerisDoc, Psr, SiteData } from '../data/contract.ts'
 import { betterDatesFor, scanStartDates } from '../sim/betterDates.ts'
 import type { DateAdvice, StartWindow } from '../sim/betterDates.ts'
 import { evaluateScenario } from '../sim/evaluate.ts'
 import type { MissionSettings, ScenarioResult } from '../sim/evaluate.ts'
 import { MAX_ALTERNATIVE_SLOPE_DEG, RESEARCH_TYPES, alternativesFor, researchMetrics } from '../sim/research.ts'
-import type { Fit, ResearchMetrics } from '../sim/research.ts'
+import type { Fit, ResearchMetrics, ResearchType } from '../sim/research.ts'
 import type { Loadable, Resolved } from './extendedSites.ts'
 import { fmtUtc } from './format.ts'
 import { placeTitle } from './placeName.ts'
+import { runResearchLocations } from '../sim/researchLocationsClient.ts'
+import type { RankedResearchLocation, ResearchLocationsInput, ResearchLocationsResult } from '../sim/researchLocations.ts'
 
 const FIT_LABEL: Record<Fit, string> = { strong: 'Good fit', possible: 'Possible', no: 'Not suited' }
 const fmtKm = (km: number) => (km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(km < 10 ? 1 : 0)} km`)
@@ -18,8 +20,8 @@ const fmtRange = (w: { firstUtc: string; lastUtc: string }) =>
   w.firstUtc === w.lastUtc ? fmtUtc(w.firstUtc) : `${fmtUtc(w.firstUtc).replace(' UTC', '')} – ${fmtUtc(w.lastUtc)}`
 
 /**
- * Research the chosen place suits, measured for this mission, and the best other catalogue
- * places for the same research with the same dates and hardware.
+ * Suitable research at the chosen place, with per-type southern-hemisphere rankings
+ * for the same dates and hardware. Catalogue fallbacks remain for unsuitable types.
  */
 export function ResearchView({ data, result, startUtc, settings, catalogue, resolveCatalogue, psrs, inScenarios, canAdd, onCompare, year, chosenDates, onUseDate }: {
   data: SiteData
@@ -72,20 +74,49 @@ export function ResearchView({ data, result, startUtc, settings, catalogue, reso
 
   const assessed = RESEARCH_TYPES.map((type) => ({ type, ...type.assess(selected) }))
   const suited = assessed.filter((a) => a.fit !== 'no')
+  const typeKey = suited.map(a => a.type.id).join(',')
+  const [attempt, setAttempt] = useState(0)
+  const [paused, setPaused] = useState(false)
+  const typeIds = useMemo(() => (typeKey ? typeKey.split(',') as ResearchType['id'][] : []), [typeKey])
+  const searchInput = useMemo<ResearchLocationsInput>(() => ({
+    reference: catalogue.Site01, catalogue: Object.values(catalogue), selected, psrs, startUtc, settings,
+    typeIds,
+  }), [catalogue, selected, psrs, startUtc, settings, typeIds])
+  const [searchState, setSearchState] = useState<{ input: ResearchLocationsInput; result?: ResearchLocationsResult; progress?: string; error?: string } | null>(null)
+  const currentSearch = searchState?.input === searchInput ? searchState : null
+  const globalResult = currentSearch?.result
+  useEffect(() => {
+    if (paused || !searchInput.typeIds.length) return
+    const controller = new AbortController()
+    runResearchLocations(searchInput, { signal: controller.signal, onProgress: (done, planned) => {
+      if (!controller.signal.aborted) setSearchState({ input: searchInput, progress: `${done} / ${planned} locations in the current stage` })
+    } }).then(result => {
+      if (!controller.signal.aborted) setSearchState({ input: searchInput, result })
+    }).catch((error: unknown) => {
+      if (!controller.signal.aborted) setSearchState({ input: searchInput, error: error instanceof Error ? error.message : String(error) })
+    })
+    return () => controller.abort()
+  }, [searchInput, attempt, paused])
 
   return (
     <div className="research">
-      <p className="explain">
-        What can be done at <strong>{placeTitle(data.site.id, catalogue)}</strong> during this mission, screened using NASA data.
-        Alternatives below support the same listed research criterion, with the same dates and lander.
-        This screening does not confirm the same samples, geology or access to a specific science target.
-      </p>
       {selected.slopeDeg !== null && selected.slopeDeg > MAX_ALTERNATIVE_SLOPE_DEG && (
         <p className="research__warning">Slope here is {selected.slopeDeg.toFixed(0)}°: above the app’s {MAX_ALTERNATIVE_SLOPE_DEG}° alternative-site threshold. This is not a landing-safety assessment.</p>
       )}
       <p className="research__summary">
         {suited.length ? <>Suited for: {suited.map((a) => a.type.title).join(' · ')}.</> : 'No research type below is suited here for this mission.'}
       </p>
+      {suited.length > 0 && <div className="research__search">
+        <h3>Best places for each research type</h3>
+        <p className="small muted">Each suitable research type below has its own southern-hemisphere ranking for this mission. Research merit and hardware feasibility are shown separately.</p>
+        {globalResult ? <>
+          <p className="small" role="status">Compared {globalResult.testedLocations} locations. {globalResult.skippedCatalogue > 0 ? `${globalResult.skippedCatalogue} catalogue locations lacked usable data.` : ''}</p>
+          <details className="small muted"><summary>Search coverage and limits</summary>{globalResult.notes.map(note => <p key={note}>{note}</p>)}</details>
+        </> : currentSearch?.error ? <p role="alert" className="bad">Could not compare research locations: {currentSearch.error}</p>
+          : <p role="status">{paused ? 'Surface search paused.' : currentSearch?.progress ?? 'Searching the southern hemisphere for each suitable research type…'}</p>}
+        {!globalResult && !paused && !currentSearch?.error && <button type="button" onClick={() => setPaused(true)}>Cancel research search</button>}
+        {(paused || currentSearch?.error) && <button type="button" onClick={() => { setSearchState(null); setPaused(false); setAttempt(value => value + 1) }}>Retry research search</button>}
+      </div>}
 
       {assessed.map(({ type, fit, value }) => {
         const alternatives = alternativesFor(type, selected, candidates)
@@ -100,9 +131,10 @@ export function ResearchView({ data, result, startUtc, settings, catalogue, reso
               <summary>Why this research? Criteria and source</summary>
               <p>{type.basis} <a href={type.source.url} target="_blank" rel="noreferrer">{type.source.label}</a>. {type.rule}</p>
             </details>
-            {alternatives.length > 0 ? (
+            {fit !== 'no' ? <BestResearchPlaces options={globalResult?.rankings[type.id] ?? []} completed={!!globalResult}
+              catalogue={catalogue} inScenarios={inScenarios} canAdd={canAdd} onCompare={onCompare} /> : alternatives.length > 0 ? (
               <div className="research__alts">
-                <span className="small">{fit === 'strong' ? 'Also good for this:' : 'Better places for this:'}</span>
+                <span className="small">Better catalogue places for this:</span>
                 <ul>
                   {alternatives.map((a) => {
                     const added = inScenarios.includes(a.metrics.siteId)
@@ -110,8 +142,7 @@ export function ResearchView({ data, result, startUtc, settings, catalogue, reso
                       <li key={a.metrics.siteId}>
                         <span>
                           <strong>{placeTitle(a.metrics.siteId, catalogue)}</strong> · {FIT_LABEL[a.fit].toLowerCase()} · {a.value} · {fmtKm(a.distanceKm)} away
-                          <br /><span className="small muted">Start {fmtUtc(startUtc)} · {settings.durationDays} days · same research criterion and hardware
-                            {a.metrics.slopeDeg === null ? ' · slope unverified' : ` · slope ${a.metrics.slopeDeg.toFixed(1)}°`}</span>
+
                         </span>
                         <button type="button" disabled={added} onClick={() => onCompare(a.metrics.siteId)}
                           title={added ? 'Already in the comparison' : canAdd ? 'Add to the comparison' : 'Replace the chosen place with this one'}>
@@ -133,21 +164,39 @@ export function ResearchView({ data, result, startUtc, settings, catalogue, reso
         )
       })}
 
-      <p className="small muted">
-        Alternatives: catalogue places evaluated for the same
-        start date, duration and lander. Known slopes above {MAX_ALTERNATIVE_SLOPE_DEG}° are excluded (app assumption); unknown slopes remain unverified. PSRs: NASA Moon Trek layer PSR_SP (PSRs of 10 km² or more; smaller PSRs can be closer).
-        {loading > 0 && ` Loading the one-year data of ${loading} more place(s) for these dates; they join the alternatives when ready.`}
-        {skipped > 0 && ` ${skipped} place(s) skipped: their data does not cover this mission (pre-computed period 1 Nov 2026 – 1 Nov 2027).`}
-      </p>
-      <p className="small muted">
-        Other start dates: every start 6 hours apart{dateCandidates.length > 0 && ` from ${fmtUtc(dateCandidates[0].startUtc)} to ${fmtUtc(dateCandidates.at(-1)!.startUtc)}`},
-        same place, duration and lander; JPL Horizons positions against the LOLA terrain horizon.
-        A start window is a run of starts that all reach the same fit: any start inside it works.
-        {year === 'loading' && ' The one-year series is still loading, so only the two-month period is scanned for now.'}
-        {year === 'error' && ' The one-year series could not be loaded, so only the two-month period is scanned.'}
-      </p>
+      {loading > 0 && <p role="status">Loading {loading} locations?</p>}
+      {skipped > 0 && <p>{skipped} locations have no data for these dates.</p>}
+      {year === 'loading' && <p role="status">Loading annual data?</p>}
+      {year === 'error' && <p role="status">Annual data unavailable. Showing two months.</p>}
     </div>
   )
+}
+
+function BestResearchPlaces({ options, completed, catalogue, inScenarios, canAdd, onCompare }: {
+  options: RankedResearchLocation[]; completed: boolean; catalogue: Record<string, SiteData>; inScenarios: string[]; canAdd: boolean; onCompare: (siteId: string) => void
+}) {
+  if (!completed) return <p className="small muted">Best locations will appear here when the surface search finishes.</p>
+  if (!options.length) return <p className="small muted">No other tested location meets this research criterion. This does not rule out unsampled locations.</p>
+  return <div className="research__alts">
+    <h4>Best other locations among tested candidates</h4>
+    <ol>
+      {options.map(a => {
+        const added = inScenarios.includes(a.metrics.siteId)
+        const name = catalogue[a.metrics.siteId] ? placeTitle(a.metrics.siteId, catalogue)
+          : `${Math.abs(a.metrics.latDeg).toFixed(3)}° S, ${Math.abs(a.metrics.lonDeg).toFixed(3)}° ${a.metrics.lonDeg < 0 ? 'W' : 'E'}`
+        return <li key={a.metrics.siteId}>
+          <div>
+            <strong>{name}</strong> · {FIT_LABEL[a.fit]} · {fmtKm(a.distanceKm)} away
+            <p>{a.value}</p>
+            <p className="small">{a.comparison === 'better' ? 'Better than the selected point on this criterion.' : a.comparison === 'equal' ? 'Matches the selected point on this criterion.' : 'The selected point ranks higher on this criterion.'}</p>
+            <p className="small muted">{a.precisionLabel}. {a.metrics.slopeDeg === null ? 'Local slope is unverified.' : `Local slope ${a.metrics.slopeDeg.toFixed(1)}°.`}</p>
+            <p className={`small${a.failures.length ? ' bad' : ''}`}>{a.failures.length ? `Hardware limits not met: ${a.failures.map(f => f.message).join(' ')}` : 'Battery reserve, energy supply and Earth outage limits met.'}</p>
+          </div>
+          <button type="button" disabled={added} onClick={() => onCompare(a.metrics.siteId)}>{added ? 'In comparison' : canAdd ? 'Add to compare' : 'Use instead'}</button>
+        </li>
+      })}
+    </ol>
+  </div>
 }
 
 /** Start windows at the same place for one research type, with buttons to try a date. */
