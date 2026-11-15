@@ -693,32 +693,12 @@ export function MissionApp() {
               {flight && <p className="sim__flight-label" role="status">{flight.from.name} <span aria-hidden="true">&rarr;</span> {flight.to.name}</p>}
             </section>
             {simulationStarted && <section className="card sim" hidden={simulationStage === 'pick'} inert={simulationStage === 'pick' || undefined}>
-              <div className="sim__route">
+              {/* The view itself comes first (only "Edit locations" above it); navigation, settings and the summary sit under it. */}
+              <div className="sim__top">
                 <button type="button" disabled={!!flight || covered} onClick={() => darken(() => { setPicked(scenarios); setActiveKey(scenarios[0]?.key ?? null); setSimulationStage('pick') })}>&larr; Edit locations</button>
-                <div className="sim__route-nav" aria-label="Selected location navigation">
-                  <button type="button" aria-label="Previous location" disabled={activeIndex === 0 || !!flight || covered} onClick={() => travelTo(activeIndex - 1)}>&larr;</button>
-                  <span role="status" style={{ color: colors[activeIndex] }}>{scenarioLabel(activeIndex)} &middot; {scenarios[activeIndex] ? scenarioTitle(scenarios[activeIndex], scenarios, shownBySite) : ''} <small>{activeIndex + 1} / {scenarios.length}</small></span>
-                  <button type="button" aria-label="Next location" disabled={activeIndex >= scenarios.length - 1 || !!flight || covered} onClick={() => travelTo(activeIndex + 1)}>&rarr;</button>
-                </div>
               </div>
-              <div className="card__head">
-                <div>
-                  <h2>
-                    Simulation
-                    {active?.scenario.key === chosenKey && activeData && (
-                      <>
-                        {' '}
-                        at <span style={{ color: activeColor }}>{active.letter}</span>, {placeTitle(activeData.site.id, shownBySite)}
-                      </>
-                    )}
-                  </h2>
-                </div>
-              </div>
-              {missionControls}
-              {issues.length > 0 && <p className="bad">Check the mission duration here or the lander settings on Results to run the simulation.</p>}
               {active?.scenario.key === chosenKey && now && activeData && tracks ? (
                 <>
-                  <SceneMissionSummary result={active.result} settings={settings} />
                   {(activeCell && activeData.map) || activeFree || !activeData.terrain ? (
                     <div data-tour="scene">
                       <Suspense fallback={<p role="status">Loading point view…</p>}><GlobalPointScene
@@ -759,6 +739,35 @@ export function MissionApp() {
                   )}
                   {timebar}
                   {status}
+                </>
+              ) : (
+                !issues.length && <p className="muted">{chosenOutcome?.error ?? 'Preparing the simulation…'}</p>
+              )}
+              <div className="sim__route">
+                <div className="sim__route-nav" aria-label="Selected location navigation">
+                  <button type="button" aria-label="Previous location" disabled={activeIndex === 0 || !!flight || covered} onClick={() => travelTo(activeIndex - 1)}>&larr;</button>
+                  <span role="status" style={{ color: colors[activeIndex] }}>{scenarioLabel(activeIndex)} &middot; {scenarios[activeIndex] ? scenarioTitle(scenarios[activeIndex], scenarios, shownBySite) : ''} <small>{activeIndex + 1} / {scenarios.length}</small></span>
+                  <button type="button" aria-label="Next location" disabled={activeIndex >= scenarios.length - 1 || !!flight || covered} onClick={() => travelTo(activeIndex + 1)}>&rarr;</button>
+                </div>
+              </div>
+              <div className="card__head">
+                <div>
+                  <h2>
+                    Simulation
+                    {active?.scenario.key === chosenKey && activeData && (
+                      <>
+                        {' '}
+                        at <span style={{ color: activeColor }}>{active.letter}</span>, {placeTitle(activeData.site.id, shownBySite)}
+                      </>
+                    )}
+                  </h2>
+                </div>
+              </div>
+              {missionControls}
+              {issues.length > 0 && <p className="bad">Check the mission duration here or the lander settings on Results to run the simulation.</p>}
+              {active?.scenario.key === chosenKey && now && activeData && tracks && (
+                <>
+                  <SceneMissionSummary result={active.result} settings={settings} />
                   <dl className="scene-mission__facts" aria-label="Selected mission facts">
                     <div><dt>Sun elevation · local horizontal</dt><dd>{now.sun.elDeg.toFixed(2)}°</dd>{elevationStats(active, 'sun') && <small>Highest {elevationStats(active, 'sun')!.maxDeg.toFixed(1)}°, average {elevationStats(active, 'sun')!.meanDeg.toFixed(1)}° this mission</small>}</div>
                     <div><dt>Earth elevation · local horizontal</dt><dd>{now.earth.elDeg.toFixed(2)}°</dd></div>
@@ -770,8 +779,6 @@ export function MissionApp() {
                     </button>
                   </div>
                 </>
-              ) : (
-                !issues.length && <p className="muted">{chosenOutcome?.error ?? 'Preparing the simulation…'}</p>
               )}
             </section>}
           </main>
