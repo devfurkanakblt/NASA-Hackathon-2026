@@ -204,7 +204,21 @@ export interface SiteData {
   season?: SeasonDoc
 }
 
+/** `coverage.json`: the supported area and time range, written by `python -m preprocess.coverage`. */
+export interface CoverageDoc {
+  version: 1
+  time: { startUtc: string; endUtc: string; stepS: number; mainPeriodEndUtc: string }
+  catalogue: { siteId: string; latDeg: number; lonDeg: number; horizonResolutionDeg: number }[]
+  maps: { siteId: string; halfSizeM: number; spacingM: number; horizonResolutionDeg: number; summaryResolutionDeg: number; summaryPeriod: [string, string] }[]
+  dems: ({ name: string; kind: 'local-5m'; bounds: { crs: string; xMin: number; yMin: number; xMax: number; yMax: number } }
+    | { name: string; kind: 'regional-80m'; latMaxDeg: number }
+    | { name: string; kind: 'global-474m' })[]
+  freePoints: string
+}
+
 export interface LoadedData {
   sites: SitesDoc
   bySite: Record<string, SiteData>
+  /** Supported area and time range; absent when `coverage.json` has not been generated. */
+  coverage?: CoverageDoc
 }

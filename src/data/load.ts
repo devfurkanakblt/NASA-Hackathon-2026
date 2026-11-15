@@ -1,4 +1,5 @@
 import type { LoadedData } from './contract.ts'
+import { validateCoverage } from './coverage.ts'
 import { validateTerrainNormal } from './terrainNormal.ts'
 import { validateLunarImagery } from './lunarImagery.ts'
 import { validateEarthOrientation, validateEphemeris, validateHorizon, validateMap, validateSeason, validateSites, validateTerrain } from './validate.ts'
@@ -77,5 +78,7 @@ export async function loadAllData(baseUrl = `${import.meta.env.BASE_URL}data`): 
     const displayFar = terrainFar && farImagery ? { ...terrainFar, imagery: { manifest: farImagery, textureUrl: `${root}/${farImagery.file}?v=${farImagery.sha256}` } } : terrainFar
     return [site.id, { site, ephemeris, horizon, terrain: displayTerrain, terrainFar: displayFar, earthOrientation, visualWarnings, season, map }] as const
   }))
-  return { sites, bySite: Object.fromEntries(entries) }
+  // Optional: a missing or invalid coverage.json only removes the supported-area report.
+  const coverage = await optionalVisual(`${base}/coverage.json`, doc => validateCoverage(doc, `${base}/coverage.json`), [])
+  return { sites, bySite: Object.fromEntries(entries), ...(coverage && { coverage }) }
 }

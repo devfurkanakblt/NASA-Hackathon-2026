@@ -194,6 +194,28 @@ Written by `python -m preprocess.extended` from existing caches only. Not part o
 - **`cells.bin`**: little-endian int16, unit `unitDeg` (0.01°). Row = cell in `map.json` order (row 0 = south, col 0 = west, row-major), 360 columns = azimuth `j × 1°`. Taken as every second column of the 0.5° map horizons (decimation, not averaging: a horizon value is a maximum, an average would invent a value). No `distanceM`.
 - `cells.eyeM[i]`: eye height of cell `i` above the 1737.4 km sphere (surface + 2 m).
 
+## `coverage.json` (supported area and time range, added in v1 without breaking changes)
+
+Written by `python -m preprocess.coverage` from `sites.json`, each site's `map.json`, `extended.json`, `horizon.json` and the DEM tile bounds. Optional: if it is missing or invalid the app still loads (`LoadedData.coverage` is then undefined).
+
+```jsonc
+{ "version": 1,
+  "time": { "startUtc": "2026-11-01T00:00:00Z", "endUtc": "2027-11-01T00:00:00Z", "stepS": 600,
+            "mainPeriodEndUtc": "2027-01-01T00:00:00Z" },
+  "catalogue": [ { "siteId": "Site01", "latDeg": -89.4632, "lonDeg": -137.49, "horizonResolutionDeg": 0.1 } ],
+  "maps": [ { "siteId": "Site01", "halfSizeM": 3000, "spacingM": 100, "horizonResolutionDeg": 1,
+              "summaryResolutionDeg": 0.5, "summaryPeriod": ["2026-11-01T00:00:00Z", "2027-01-01T00:00:00Z"] } ],
+  "dems": [ { "name": "LOLA 5 m/px Site01", "kind": "local-5m", "bounds": { "crs": "...", "xMin": -19000, "yMin": -20000, "xMax": -3000, "yMax": -4000 } },
+            { "name": "LDEM_80S_80MPP_ADJ", "kind": "regional-80m", "latMaxDeg": -80 },
+            { "name": "LDEM_64", "kind": "global-474m" } ],
+  "freePoints": "not supported in the app; generate a package with python -m preprocess.custom_point" }
+```
+
+- `catalogue` lists every site in `sites.json` (including contrast points); `maps` only those with `map.json`. Read resolutions from here, never assume them.
+- `bounds` are in the DEM's own south-polar-stereographic metres. `preprocess.coverage.classify_point(lat, lon)` returns `kind` = `map-cell`, `local-5m`, `regional-80m`, `global-only` or `invalid`, plus `tile` and an English `reason`. `local-5m` only when the whole 7 km near range lies inside a 5 m tile; a point nearer the tile edge is `regional-80m`.
+- Longitude wraps at 180 degrees (one normalisation per language): 222.51 and -137.49 are the same point, as are 180 and -180.
+- TypeScript: `pointCoverage(lat, lon, cov, bySite)` in `src/data/coverage.ts` returns `catalogue`, `map-cell` (via `snapToCell`) or `outside`; the `outside` message names the nearest map and its distance.
+
 ## `{siteId}/terrain-far.json`, `earth-orientation.json` (3D only, visual; written by C)
 
 Optional display files for the 3D scene. They are not used for visibility or energy, and the loader treats a missing or invalid file as a visual warning only.
