@@ -1185,3 +1185,11 @@
   height: 10px !important;
   background: rgba(157, 183, 255, 0.18) !important;
 }
+
+.scenario__point summary {
+  cursor: pointer;
+  color: #9db7ff;
+}
+.scenario__point[open] summary {
+  margin-bottom: 4px;
+}

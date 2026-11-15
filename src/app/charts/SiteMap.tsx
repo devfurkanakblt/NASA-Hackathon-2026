@@ -182,10 +182,10 @@ export function SiteMap({ map, sites, selected, onSimulate, busy }: Props) {
               onClick={() => onSimulate(map.siteId, picked.row, picked.col)}
               title="Run the full mission at this cell in the active scenario"
             >
-              {busy ?? (isSimulated ? 'Simulated in the active scenario' : 'Simulate this point')}
+              {busy ?? (isSimulated ? 'This spot is in the comparison' : 'Test this spot as a landing place')}
             </button>
           )}
-          <p className="small muted">Share of time from {periodLabel}. Spots every {spacingM} m. “Simulate this point” runs the full mission there (1° skyline).</p>
+          <p className="small muted">Share of time from {periodLabel}. Spots every {spacingM} m. Testing a spot runs the full mission there with a coarser (1°) skyline.</p>
         </div>
       </div>
     </div>

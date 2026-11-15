@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import type { SitesDoc } from '../data/contract.ts'
+import type { SiteData, SitesDoc } from '../data/contract.ts'
 import { MAX_SCENARIOS } from '../sim/evaluate.ts'
 import { fromInputUtc, shiftUtc, toInputUtc } from './format.ts'
+import { mapPointWhere } from './placeName.ts'
 import { LETTERS, newKey, siteTitle } from './scenarios.ts'
 import type { Scenario, ScenarioOutcome } from './scenarios.ts'
 
@@ -20,10 +21,12 @@ interface Props {
   cellId: (siteId: string, row: number, col: number) => string
   /** The chosen scenario is still loading its files: "Use point" waits. */
   busy?: boolean
+  /** For plain names of map points. */
+  bySite: Record<string, SiteData>
 }
 
 /** Up to three scenarios (site + start time). The active one drives the panorama, 3D view and power chart. */
-export function ScenarioList({ sites, scenarios, outcomes, colors, activeKey, onChange, onActivate, maxStartFor, snap, cellId, busy }: Props) {
+export function ScenarioList({ sites, scenarios, outcomes, colors, activeKey, onChange, onActivate, maxStartFor, snap, cellId, busy, bySite }: Props) {
   const [lat, setLat] = useState('')
   const [lon, setLon] = useState('')
   const [snapMsg, setSnapMsg] = useState<{ ok: boolean; text: string } | null>(null)
@@ -31,13 +34,16 @@ export function ScenarioList({ sites, scenarios, outcomes, colors, activeKey, on
   const polar = sites.sites.filter((s) => s.category !== 'contrast')
   const contrast = sites.sites.filter((s) => s.category === 'contrast')
   const { startUtc: minUtc } = sites.coverage
+  const activeIndex = Math.max(0, scenarios.findIndex((s) => s.key === activeKey))
+  const activeLetter = LETTERS[activeIndex]
   const usePoint = () => {
     const target = scenarios.find((s) => s.key === activeKey) ?? scenarios[0]
     const r = snap(Number(lat.trim() === '' ? NaN : lat), Number(lon.trim() === '' ? NaN : lon))
     if ('error' in r) return setSnapMsg({ ok: false, text: r.error })
     const id = cellId(r.siteId, r.row, r.col)
     if (target) update(target.key, { siteId: id })
-    setSnapMsg({ ok: true, text: `Snapped to ${id} (${Math.round(r.distanceM)} m away).` })
+    const where = mapPointWhere(id, bySite) ?? id
+    setSnapMsg({ ok: true, text: `${activeLetter} now uses the map spot ${where} (the nearest spot, ${Math.round(r.distanceM)} m from your point).` })
   }
   const update = (key: string, patch: Partial<Scenario>) => onChange(scenarios.map((s) => (s.key === key ? { ...s, ...patch } : s)))
   const updateStartDate = (scenario: Scenario, value: string) => {
@@ -66,7 +72,7 @@ export function ScenarioList({ sites, scenarios, outcomes, colors, activeKey, on
                 </optgroup>
                 {!siteIds.has(s.siteId) && (
                   <optgroup label="Regional map point">
-                    <option value={s.siteId}>{s.siteId} — map point (1° horizon)</option>
+                    <option value={s.siteId}>Map point, {mapPointWhere(s.siteId, bySite) ?? s.siteId}</option>
                   </optgroup>
                 )}
                 {contrast.length > 0 && (
@@ -137,13 +143,14 @@ export function ScenarioList({ sites, scenarios, outcomes, colors, activeKey, on
           + Add another place or date (up to {MAX_SCENARIOS})
         </button>
       )}
-      <div className="scenario__point">
-        <span className="small">Lat / Lon (±3 km of a site)</span>
+      <details className="scenario__point">
+        <summary className="small">Use exact coordinates</summary>
+        <span className="small">Within 3 km of a south-pole site. Replaces the place of {activeLetter}.</span>
         <div className="scenario__point-row">
           <input aria-label="Latitude in degrees" inputMode="decimal" placeholder="lat −89.46" value={lat} onChange={(e) => setLat(e.target.value)} />
           <input aria-label="Longitude in degrees (east positive)" inputMode="decimal" placeholder="lon −137.49" value={lon} onChange={(e) => setLon(e.target.value)} />
-          <button type="button" onClick={usePoint} disabled={busy} title="Move the active scenario to the nearest regional map cell">
-            Use point
+          <button type="button" onClick={usePoint} disabled={busy} title="Move the selected place to the nearest map spot">
+            Move {activeLetter} here
           </button>
         </div>
         {snapMsg && (
@@ -151,8 +158,7 @@ export function ScenarioList({ sites, scenarios, outcomes, colors, activeKey, on
             {snapMsg.text}
           </p>
         )}
-      </div>
-      <p className="muted small">Dates up to 2027-11-01 UTC. Later dates and map points load extra data for that site first.</p>
+      </details>
     </div>
   )
 }

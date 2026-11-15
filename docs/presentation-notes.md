@@ -13,12 +13,12 @@ efficiency, 200 W base load + 100 W while Earth is in view, 6 h accepted Earth o
 | # | Title | On the slide | Visual |
 |---|---|---|---|
 | 1 | Problem & promise | At the south pole the Sun and Earth skim the horizon: a few hundred metres of terrain decide power and contact. We show it and let planners test it. | Polar map with the 9 sites (7 south-pole sites + 2 contrast points: Chang'e-6, Apollo 11) |
-| 2 | User flow | Pick up to 3 places / dates → (optional) lander settings → result cards answer "Power?" and "Talk to Earth?" → "See why" tabs. Built-in "How it works" tour. No server, instant updates. | App screenshot with the 3 steps labelled |
+| 2 | User flow | Pick up to 3 places (a catalogue site, a map point or a lat / lon within 3 km of a site) and any start date from 1 Nov 2026 to 1 Nov 2027 → (optional) lander settings → result cards answer "Power?" and "Talk to Earth?" → "See why" tabs. Built-in "How it works" tour. No server, instant updates. | App screenshot with the 3 steps labelled |
 | 3 | Terrain evidence | Horizon panorama: real skyline vs. flat horizon, Sun/Earth tracks; Site04 Earth hidden behind the crater wall all week. | Panorama screenshot (+ 3D view if ready) |
 | 4 | Energy evidence | Same site, change the hardware or date → battery result changes (Site04: +72 h start → unmet 1.0 → 15.4 kWh). | "Battery" tab screenshot |
-| 5 | Comparison | Site04 vs. Site04R vs. Site04R +72 h with the same hardware; plain answers, no score. | Result cards A / B / C screenshot (+ "All numbers" table if needed) |
+| 5 | Comparison | Site04 vs. Site04R vs. Site04R +72 h with the same hardware; plain answers, no score. Then two quick changes on the same screen: a map point 630 m from Site01 (story 2) and the same site in April 2027 (story 3). | Result cards A / B / C screenshot; optional second screenshot of story 2 or 3 |
 | 6 | Scientific basis | NASA data, validation numbers, model limits (sections below). | Small table of checks |
-| 7 | Impact & access | Live app, source (MIT), offline build, team, next steps (simulation for any map cell, full-year series, thermal / relay models). | Links + QR code, team names |
+| 7 | Impact & access | Live app, source (MIT), offline build, team, next steps (free coordinates anywhere on the Moon, thermal / relay-satellite models). | Links + QR code, team names |
 
 ## Story: the catalogue point vs. the ridge 1.9 km away (slides 3–5)
 
@@ -69,6 +69,36 @@ Talking points:
 - Each result card answers two questions in plain words ("Enough power" / "Runs short of power",
   "Always in contact" / "Long silences" / "No contact with Earth"), not a hidden-weight score.
 
+## Story 2: a map point 630 m from the catalogue point (slide 5, optional)
+
+"Area map" tab of Site01 → click the cell 200 m east, 600 m north of the centre → "Simulate this
+point" (or type its lat / lon). Same hardware, 15 Nov 2026, 7 days:
+
+| Place | Sun | Earth | Longest Earth outage | Battery reserve |
+|---|---|---|---|---|
+| Site01 catalogue point | 100 % | 46.4 % | 90 h | kept |
+| Map point `Site01:r36c32`, 630 m north (200 m E, 600 m N; 4.7° slope) | 100 % | 78.2 % | 36.7 h | kept |
+
+Talking point: the planner is not limited to the catalogue coordinate; a spot a few hundred metres
+away can more than halve the longest silence. The card says "Regional map point (1° horizon), not
+a catalogue site", and the 3D view stays on the catalogue point.
+
+## Story 3: same site, another season (slide 4 or Q&A)
+
+The two months behind the main tables (Nov–Dec 2026) are the sunny season at the pole. Change only
+the start date to 15 Apr 2027 (7 days, same hardware):
+
+| Site | Start | Sun | Earth | Battery reserve | Unmet demand |
+|---|---|---|---|---|---|
+| Site04R | 15 Nov 2026 | 100 % | 72 % | kept | 0 |
+| Site04R | 15 Apr 2027 | 31.2 % | 11.6 % | below after 68 h | 18.2 kWh |
+| Site07 | 15 Nov 2026 | 100 % | 74.8 % | kept | 0 |
+| Site07 | 15 Apr 2027 | 0.2 % | 19.8 % | below after 9 h | 33.1 kWh |
+
+Talking point: a site that looks perfect in November can be dark in April; the date is part of the
+landing-site decision. "Through the year" tab shows the monthly picture.
+
+
 ## Scientific basis and validation (slide 6)
 
 - **Sun/Earth positions:** JPL Horizons, observer on the lunar surface (`coord@301`, MEAN_ME),
@@ -86,7 +116,12 @@ Talking points:
   RMS 1.3–2.4 m on gentle ground (< 10°), 16–18 m on Shackleton's steep wall (> 25°).
 - **Engine:** the TypeScript engine reproduces the Python pipeline's reference values (visibility
   percentages, every window, horizon test vectors, mean Sun-disk fraction) exactly on all nine
-  sites; 203 automated tests.
+  sites; 314 automated tests (235 TypeScript, 79 Python).
+- **One-year series:** `year.bin` reproduces `ephemeris.json` sample by sample over the two shared
+  months, and its monthly Sun / Earth / both shares match `season.json` (`tests/extended.test.ts`).
+- **Map points:** the Sun / Earth direction re-projected into a cell's frame matches Python within
+  0.001°; two-month shares with the 1° cell horizon stay within 0.15 points of `map.json` at all 7
+  map sites (`docs/validation.md` §7).
 
 ## Model limits (say them out loud)
 
@@ -99,5 +134,7 @@ Talking points:
   (about 0.5–4 h) of rise/set time at the polar sites (`docs/validation.md` §4).
 - Site04R's near terrain partly falls back to the 80 m DEM where the 5 m product has no data
   (warning carried in `horizon.json`).
+- Map points use a 1° horizon (catalogue sites 0.1°) and have no ridge distance; the 3D view
+  stays on the catalogue point. Coordinates must lie within 3 km of a polar site.
 - Sites are research region centres, not certified landing sites. Pixel size and these checks are
   not a statement of the DEM's absolute accuracy.

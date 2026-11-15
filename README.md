@@ -62,10 +62,11 @@ NASA data ──► Python preprocessing (offline) ──► public/data/*.json 
 | Apollo11 | Apollo 11 landing site | 0.67416° | 23.47314° | contrast point (near-side equator); global 474 m/px DEM |
 
 Coordinates: NASA Lunar Surface Data Book (M2M-30044, 2025), Table A2.1-1; contrast points from
-LROC (Chang'e-6) and NASA NSSDC (Apollo 11). Data covers 1 Nov 2026 – 1 Jan 2027 UTC at 10-minute
-steps; missions of 1–30 days must fit inside it. Each polar site also has a regional map
-(`map.json`: Sun / Earth visibility and slope on a ±3 km grid) and a one-year monthly summary
-(`season.json`, Nov 2026 – Nov 2027); see the [data contract](docs/data-contract.md).
+LROC (Chang'e-6) and NASA NSSDC (Apollo 11). Missions of 1–30 days can start anywhere from
+1 Nov 2026 to 1 Nov 2027 UTC (10-minute steps; a site's one-year series loads when a mission runs past
+1 Jan 2027). Each polar site also has a regional map (`map.json`: Sun / Earth visibility
+and slope on a ±3 km grid) whose points can be simulated as missions, and a one-year monthly summary
+(`season.json`); see the [data contract](docs/data-contract.md).
 
 ### Model
 
@@ -116,6 +117,8 @@ rise/set time. DEM pixel size and the checks below are not a statement of absolu
 - LOLA 5 m/px south-pole site DEMs: Barker, M.K. et al. (2021), *Improved LOLA elevation maps for south pole landing sites*, PSS 203, 105119. doi:10.1016/j.pss.2020.105119 — https://pgda.gsfc.nasa.gov/data/LOLA_5mpp/
 - LOLA 80 m/px south-pole DEM: Barker, M.K. et al. (2023), *A New View of the Lunar South Pole from LOLA*, PSJ 4, 183. doi:10.3847/PSJ/acf3e1; data doi:10.60903/gsfcpgda-lola-spole — https://pgda.gsfc.nasa.gov/products/90
 - NASA Moon Trek (LOLA 5 m south-pole mosaic, cross-check) — https://trek.nasa.gov/moon/
+- NASA Moon Trek, LOLA 30 m/px south-pole DEM `LRO_LOLA_DEM_SPole75_30mp_v04` (regional terrain in the 3D view, display only) — https://trek.nasa.gov/moon/
+- NASA Earth Observatory, *Blue Marble: Next Generation* (November 2004) (Earth texture in the 3D view, display only) — https://science.nasa.gov/earth/earth-observatory/blue-marble-next-generation/base-topography-bathymetry/
 - NASA, *Lunar Surface Data Book*, M2M-30044 (2025), Table A2.1-1 (site coordinates) — https://ntrs.nasa.gov/citations/20250002845
 - LOLA global DEM LDEM_64, PDS LRO-L-LOLA-4-GDR-V1.0 (contrast points)
 - NASA GSFC PGDA Lunar Polar Illumination maps (Mazarico et al.) — https://pgda.gsfc.nasa.gov/products/69
