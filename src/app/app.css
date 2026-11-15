@@ -2495,3 +2495,12 @@
   .app--pick { height: auto; overflow: visible; }
   .app--pick .moon-globe { height: 420px; }
 }
+
+/* Free coordinate entry (D) */
+.moon-picker__coords { flex-basis: 100%; }
+.moon-picker__message { flex-basis: 100%; margin: 0; }
+.moon-picker__coords > summary { cursor: pointer; }
+.coordinate-form { display: grid; gap: 8px; margin-top: 8px; }
+.coordinate-form__row { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+.coordinate-form__row label { display: grid; gap: 4px; flex: 1 1 120px; min-width: 0; }
+.coordinate-form__row input { width: 100%; min-width: 0; }

@@ -7,7 +7,7 @@ import { globeNearPlane } from '../scene3d/globeClip.ts'
 import { Vector3 } from 'three'
 import type { Mesh } from 'three'
 import { GLOBE_NORTH_EDGE_DEG, keepLabelInFrame, labelOffset, southernCameraPosition } from './globeView.ts'
-import { createMoonRoute, moonPosition, sampleMoonRoute } from './moonFlight.ts'
+import { createMoonRoute, moonLatLon, moonPosition, sampleMoonRoute } from './moonFlight.ts'
 import type { CSSProperties } from 'react'
 import type { SiteEntry } from '../data/contract.ts'
 
@@ -113,8 +113,10 @@ function FlightCamera({ flight, onComplete }: { flight: MoonFlight; onComplete: 
   return null
 }
 
-export default function MoonGlobe({ sites, selected, onSelect, flight, onComplete, active = true }: {
+export default function MoonGlobe({ sites, selected, onSelect, onPickPoint, flight, onComplete, active = true }: {
   sites: SiteEntry[]; selected: MoonPlace[]; onSelect?: (site: SiteEntry) => void
+  /** A click on the surface itself (not a label, not a drag): the clicked latitude / longitude. */
+  onPickPoint?: (latDeg: number, lonDeg: number) => void
   active?: boolean; flight?: MoonFlight; onComplete?: () => void
 }) {
   const moon = useRef<Mesh>(null!)
@@ -137,7 +139,13 @@ export default function MoonGlobe({ sites, selected, onSelect, flight, onComplet
       {/* Places are chosen by name only; the surface itself is not clickable. */}
       <group>
       {/* Southern hemisphere only (theta is measured from the north pole, +Y). */}
-      <mesh ref={moon}><sphereGeometry args={[1, 128, 64, 0, Math.PI * 2, (90 - GLOBE_NORTH_EDGE_DEG) * Math.PI / 180, (90 + GLOBE_NORTH_EDGE_DEG) * Math.PI / 180]} />
+      <mesh ref={moon} onClick={(e) => {
+        if (!onPickPoint || flight || e.delta > 4) return
+        e.stopPropagation()
+        const local = moon.current.worldToLocal(e.point.clone())
+        const { latDeg, lonDeg } = moonLatLon(local)
+        onPickPoint(latDeg, lonDeg)
+      }}><sphereGeometry args={[1, 128, 64, 0, Math.PI * 2, (90 - GLOBE_NORTH_EDGE_DEG) * Math.PI / 180, (90 + GLOBE_NORTH_EDGE_DEG) * Math.PI / 180]} />
         {texture ? <meshBasicMaterial map={texture} toneMapped={false} /> : <meshStandardMaterial color="#898985" roughness={1} />}
       </mesh>
       <PolarMoonCap />

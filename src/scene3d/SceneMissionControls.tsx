@@ -46,7 +46,7 @@ export function SceneMissionControls({ sites, scenarios, chosenKey, durationDays
         {onCopy && <button type="button" disabled={scenarios.length >= 3} title="Preserve this scenario, then change the copy’s place or date. Maximum three; remove a location in Edit locations if full." onClick={onCopy}>Keep baseline & add comparison</button>}
       </div>
       {onCoordinate && <details style={{ marginTop: 12 }}><summary>Choose your own coordinates</summary>
-        <p className="scene-mission__hint">Computed coverage: ±3 km around the seven polar research areas. The nearest available 100–200 m grid point is used; its coordinates and snapping distance are reported.</p>
+        <p className="scene-mission__hint">Any point on the Moon. Inside the ±3 km polar maps the nearest 100–200 m grid point is used (distance reported); elsewhere your exact coordinate is computed from the global LOLA terrain as a screening estimate.</p>
         <div className="scene-mission__fields">
           <label>Latitude · degrees<input aria-label="Custom latitude" inputMode="decimal" value={latitude} onChange={e => setLatitude(e.target.value)} /></label>
           <label>Longitude · east positive<input aria-label="Custom longitude" inputMode="decimal" value={longitude} onChange={e => setLongitude(e.target.value)} /></label>
@@ -57,7 +57,7 @@ export function SceneMissionControls({ sites, scenarios, chosenKey, durationDays
       <div className="scene-mission__fields">
         <label><span>Location</span>
           <select aria-label="Simulation location" value={chosen.siteId} onChange={e => onPatch({ siteId: e.target.value })}>
-            {!isCatalogue && <option value={chosen.siteId}>Selected regional map point</option>}
+            {!isCatalogue && <option value={chosen.siteId}>{chosen.siteId.startsWith('pt:') ? 'Your coordinate' : 'Selected regional map point'}</option>}
             <optgroup label="South-pole research points">
               {sites.sites.filter(s => s.category !== 'contrast').map(s => <option key={s.id} value={s.id}>{s.name}{s.derivedFrom ? ' · derived point' : ''} ({s.id})</option>)}
             </optgroup>

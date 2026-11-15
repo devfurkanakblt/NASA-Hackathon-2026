@@ -36,3 +36,14 @@ describe('lunar camera routes', () => {
     }
   })
 })
+
+describe('moonLatLon', () => {
+  it('inverts moonPosition (clicked surface point → coordinate)', async () => {
+    const { moonLatLon } = await import('./moonFlight.ts')
+    for (const [latDeg, lonDeg] of [[-89.46, -137.49], [-8.97, 15.5], [0, 180], [-45.46, 177.59], [2.9, -60]]) {
+      const back = moonLatLon(moonPosition({ latDeg, lonDeg }).multiplyScalar(1.37))
+      expect(back.latDeg).toBeCloseTo(latDeg, 9)
+      expect(((back.lonDeg - lonDeg + 540) % 360) - 180).toBeCloseTo(0, 9)
+    }
+  })
+})

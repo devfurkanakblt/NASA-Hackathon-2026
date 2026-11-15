@@ -5,7 +5,8 @@
  * at start-up, and the per-site one-year / map-point loaders in src/data/extended.ts (fetched
  * on demand after the first render; design 2026-11-15-year-and-custom-point, approach 1), and the
  * scientific package loader in src/data/packageService.ts (same-origin `data/packages…` files, only
- * when the user opens a package).
+ * when the user opens a package), and the global DEM tiles in src/data/globalDem.ts (same-origin
+ * `data/global-dem/…`, only for a free coordinate).
  */
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
@@ -27,7 +28,7 @@ describe('network use in the app', () => {
 
   it('fetches only in the data loaders', () => {
     const network = /\bfetch\s*\(|XMLHttpRequest|new\s+WebSocket|EventSource|navigator\.sendBeacon/
-    expect(files.filter((f) => network.test(f.text)).map((f) => f.path).sort()).toEqual(['data/extended.ts', 'data/load.ts', 'data/packageService.ts'])
+    expect(files.filter((f) => network.test(f.text)).map((f) => f.path).sort()).toEqual(['data/extended.ts', 'data/globalDem.ts', 'data/load.ts', 'data/packageService.ts'])
   })
 
   it('never addresses an outside host (no JPL / NASA API calls from the browser)', () => {
