@@ -47,10 +47,11 @@ function FlightCamera({ flight, onComplete }: { flight: MoonFlight; onComplete: 
   return null
 }
 
-export default function MoonGlobe({ sites, selected, onSelect, onCoordinate, flight, onComplete, active = true }: {
+export default function MoonGlobe({ sites, selected, onSelect, onCoordinate, pickedCoordinate, flight, onComplete, active = true }: {
   sites: SiteEntry[]; selected: MoonPlace[]; onSelect?: (site: SiteEntry) => void
   active?: boolean; flight?: MoonFlight; onComplete?: () => void
   onCoordinate?: (latitude: number, longitude: number) => void
+  pickedCoordinate?: { latDeg: number; lonDeg: number }
 }) {
   const moon = useRef<Mesh>(null!)
   const [poleRequest, setPoleRequest] = useState(0)
@@ -67,6 +68,12 @@ export default function MoonGlobe({ sites, selected, onSelect, onCoordinate, fli
       </mesh>
       <PolarMoonCap />
       </group>
+      {pickedCoordinate && !flight && <group position={moonPosition(pickedCoordinate).multiplyScalar(1.001)}>
+        <mesh renderOrder={30}><sphereGeometry args={[.0025, 12, 12]} /><meshBasicMaterial color="#ffcb62" depthTest={false} /></mesh>
+        <Html center occlude={[moon]} zIndexRange={[24, 21]} style={{ pointerEvents: 'none' }}>
+          <span style={{ display: 'block', transform: 'translateY(24px)', background: '#151a24', color: '#ffdf99', padding: '6px 9px', border: '1px solid #ffcb62', borderRadius: 6, fontSize: 11, whiteSpace: 'nowrap' }}>Your point: {pickedCoordinate.latDeg.toFixed(5)}°, {pickedCoordinate.lonDeg.toFixed(5)}° E</span>
+        </Html>
+      </group>}
       {(flight ? selected.map(p => p.site) : sites).map((site, i) => {
         const picks = selected.filter(p => p.site.id === site.id)
         const color = picks[0]?.color ?? '#ddd8cc'
