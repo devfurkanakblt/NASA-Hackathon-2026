@@ -40,7 +40,7 @@ describe('default comparison on the real data', () => {
     expect(a.sunVisibleFraction).toBeCloseTo(0.835, 3)
     expect(a.earthVisibleFraction).toBe(0)
     expect(a.keepsBatteryReserve).toBe(false)
-    expect(a.unmetEnergyJ / J_PER_WH / 1000).toBeCloseTo(1.0, 1)
+    expect(a.unmetEnergyJ / J_PER_WH / 1000).toBeCloseTo(1.05, 2) // 1.1 kWh in the notes
     expect(b.sunVisibleFraction).toBe(1)
     expect(b.keepsBatteryReserve).toBe(true)
     expect(Math.round(b.longestEarthOutageS / 3600)).toBe(47)
