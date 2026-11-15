@@ -31,20 +31,30 @@ a ridge 1.9 km away gets continuous sunlight and keeps its reserve.
 
 ## Project details
 
-**What it does.** A mission planner picks a source-labelled point from the 32-entry catalogue,
-a start date within the available 1 Nov 2026 – 1 Nov 2027 UTC coverage and a
-mission length (1–90 days), optionally changes the panel, battery and load assumptions, and
-compares up to three places or dates. For each one a result card answers the two questions in
+**What it does.** A mission planner picks places on a 3D globe of the Moon: a source-labelled point
+from the 26-entry southern-hemisphere catalogue (polar research points, Apollo, CLPS and
+international landing sites, Artemis III candidate-region points and VIPER's planned Mons Mouton
+target), a point on a polar site's ±3 km map, or any other coordinate (typed, or clicked on the
+globe). A start date within the available UTC coverage (1 Nov 2026 – 1 Nov 2027 for the catalogue;
+an imported data package brings its own period, e.g. 2026–2029) and a mission length of one day or
+more (the whole mission must fit the data) complete a scenario. The planner optionally changes the
+panel, battery and load assumptions and compares as many places or dates as needed. For each one a result card answers the two questions in
 plain words, "Power?" and "See Earth?" (line of sight, not a promised radio link), with a tick or a cross. Tabs then show why: the app shows a horizon panorama (terrain skyline with the Sun and Earth tracks), a 3D
 view of the local terrain with the lander, timelines of Sun / Earth / both in view, panel output
 versus demand, and battery state of charge. Each scenario reports whether it keeps the battery
 reserve, the first reserve violation, unmet energy, the longest Earth outage against the accepted
-limit, and the time to the next rise or set. Around each polar site a ±3 km map shows Sun / Earth
-visibility and slope for every 100 m cell (on Shackleton's map the catalogue point and the ridge
-1.9 km away sit side by side); any 100 m map cell can be simulated as a scenario (or reached by
-typing a latitude/longitude within ±3 km of a site), and a one-year monthly chart shows the seasonal effect. The whole
-comparison (sites, dates, hardware) is kept in the page link, so it can be shared as is, and a
-short built-in tour explains the screen to first-time visitors.
+limit, and the time to the next rise or set (after the mission too, from the whole loaded series).
+Around each polar site a ±3 km map shows Sun / Earth visibility and slope for every 100 m cell (on
+Shackleton's map the catalogue point and the ridge 1.9 km away sit side by side); any map cell can be
+simulated as a scenario, and a one-year monthly chart shows the seasonal effect. A coordinate outside
+these maps is computed in the browser for that exact point and labelled as a screening estimate.
+"Find a better date or place" searches every start for the chosen place, or every catalogue site
+(optionally every map cell) for the chosen start, keeps only options that meet the battery and
+Earth-view limits, ranks them by one visible measure and adds a chosen option to the comparison as
+a copy; "Compare +5 days" adds the same place 120 hours later. Each scenario can be downloaded as a
+CSV with its settings, sources and model limits. The whole comparison (sites, dates, hardware) is
+kept in the page link, so it can be shared as is, and a short built-in tour explains the screen to
+first-time visitors.
 
 **How it works.** Offline Python preprocessing queries JPL Horizons for Sun and Earth azimuth,
 elevation and distance seen from each site (10-minute steps, observer 2 m above the surface),
@@ -54,8 +64,11 @@ files. The web app (React + TypeScript) loads them once and runs the visibility,
 model in the browser, so every setting change updates instantly and no server is needed. The
 one-year ephemeris and the per-cell 1° horizons are small binary files fetched per site only when
 a scenario needs them; a map point re-projects the site's Sun/Earth positions into the cell's own
-local frame. The 3D
-terrain is for orientation only; visibility always comes from the horizon profile.
+local frame. Any other coordinate is computed in the browser: the Sun and Earth from a loaded JPL
+Horizons year series re-projected to the point, and a 0.1° terrain horizon ray-marched out to 250 km
+on tiles of the global LOLA LDEM_64 (4 × 4 block mean, ~1.9 km/px). The searches run in a Web Worker
+on the same engine. The 3D terrain is for orientation only; visibility always comes from the horizon
+profile.
 
 **Why it matters.** At the lunar south pole the Sun and Earth stay close to the horizon, so a few
 hundred metres of terrain decide whether a lander has power and communication. Coordinates alone
@@ -70,27 +83,31 @@ on gentle ground. Against NASA GSFC's independent polar illumination maps (Mazar
 years) our Sun and Earth visibility falls within the map's local 3×3-pixel range at all 7 polar
 sites (rank correlation 0.96 for both), and Shackleton's floor is permanently shadowed in both.
 The TypeScript engine reproduces the Python reference values exactly; map points with the 1°
-horizon stay within 0.15 points of the 0.5° map values. The current suite has 775 passing tests
-(457 TypeScript, 318 Python). All 23 new catalogue packages and both coordinate-package examples
-pass independent Horizons checks at 14 epochs per body; maximum sky angle difference is
-0.00002442°, and the 32-direction horizon convergence difference is below 0.01550°
+horizon stay within 0.15 points of the 0.5° map values. A free coordinate's Sun / Earth directions
+match five catalogue sites' own series within 0.003°, and its coarse horizon gives yearly Sun
+shares within 0.43 points of sites with an LDEM_64 horizon ([validation](validation.md)). The
+suite has 843 tests (553 TypeScript, 290 Python; the Python tests that read DEMs need the local
+NASA files). All 18 mission-catalogue packages (VIPER included) and both coordinate-package
+examples pass independent Horizons checks at 14 epochs per body; maximum sky angle difference is
+0.0000244°, and the 32-direction horizon convergence difference is below 0.0155°
 ([validation report](validation-missions.md)).
 
 **Limits.** Sites are research region centres, not certified landing sites; hardware values are
 example assumptions. Not modelled: eclipses, temperature, dust, battery ageing, ground-station
 schedules and link budgets. Near the pole a 0.05° horizon error equals about 30 minutes to 4 hours of
 rise/set time. The contrast points use the 474 m/px global LOLA map, so small nearby hills are
-not resolved.
+not resolved. A free coordinate is a screening estimate on ~1.9 km terrain (no 3D view); for
+catalogue-quality terrain a package is generated offline. Earth view is line of sight only.
+Research suitability is not claimed: no place has a verified research profile yet.
 
 **Tools.** Python (NumPy, SciPy, Rasterio, PyProj, Skyfield, Requests, Matplotlib), TypeScript, React, three.js /
 React Three Fiber, inline SVG charts, Vite, Vitest. Static hosting on [Vercel / GitHub Pages]; the same
 build runs offline.
 
-**Next steps.** Connect the validated coordinate/multiyear package importer and generation contract
-to a browser upload or generation-job interface (B/D). Offline generation already supports explicit
-local 5 m, south-polar 80 m or global ~474 m terrain choices, and a real 2026–2029 example package
-is included; the current form remains regional-cell snapping. Further work includes thermal and
-relay-satellite models.
+**Next steps.** Sourced research profiles per place, so searches can keep the same science goal;
+a generation service behind the existing request contract (packages are imported in the app today,
+generated offline); finer terrain for free coordinates near the pole (80 m regional DEM in the
+browser); thermal and relay-satellite models.
 
 ## Use of Artificial Intelligence (AI)
 
