@@ -57,8 +57,9 @@ export function Sources({ data, result }: { data: SiteData; result: ScenarioResu
         <ul>
           <li>JPL Horizons System — Sun and Earth positions seen from the lunar surface</li>
           <li>LOLA 5 m/px south-pole landing-site DEMs (Barker et al. 2021) and LOLA 80 m/px south-pole DEM (Barker et al. 2023), NASA GSFC PGDA</li>
-          <li>NASA Lunar Surface Data Book, Table A2.1-1 — site coordinates</li>
+          <li>NASA Lunar Surface Data Book (M2M-30044, Mar 2025), Table A2.1-1 — site coordinates</li>
           <li>LOLA global DEM LDEM_64 (PDS) — terrain of the two comparison points away from the pole</li>
+          <li>LROC (ASU/NASA) and NASA NSSDC — coordinates of the Chang'e-6 and Apollo 11 comparison points</li>
           <li>NASA Moon Trek, LOLA 30 m/px south-pole DEM — regional terrain in the 3D view (display only)</li>
           <li>NASA Earth Observatory, Blue Marble: Next Generation (Nov 2004) — Earth's surface in the 3D view (display only)</li>
           <li>Solar constant {result?.model.solarConstantWm2 ?? 1361} W/m² (NASA GSFC)</li>

@@ -95,6 +95,18 @@ Terrain visibility over the year uses this series with the same `horizon.json` a
 
 The files store angles with 4 decimals (<= 0.00005 deg rounding) and distances to the nearest km (<= 500 m), which bounds the expected difference.
 
+### Manual check in a browser (independent of the pipeline)
+
+One sample was requested by hand from the Horizons API in a browser, with the observer typed in directly rather than taken from the pipeline: Site01, Sun, 2026-11-15 00:00 UT, `CENTER='coord@301'`, geodetic E-lon 222.51 deg, lat -89.4632 deg, altitude 1.94677 km (surface 1944.77 m + 2 m eye), `APPARENT='AIRLESS'`, quantities 4 and 20. Horizons echoed the observer as `Center geodetic : 222.51, -89.4632, 1.94677`. Screenshot: `docs/figures/horizons-site01-2026-11-15.png`.
+
+| Quantity | Expected (`Site01/ephemeris.json`, sample 2016) | Read from Horizons | Difference |
+|---|---|---|---|
+| Sun azimuth [deg] | 251.9082 | 251.908178900 | 0.000021 |
+| Sun elevation [deg] | 1.3897 | 1.389712076 | 0.000012 |
+| Sun distance | 147 814 185 km | 0.98807680018357 au = 147 814 185.4 km | 0.4 km (2.7e-09 relative) |
+
+All differences are within the file's rounding (0.00005 deg, 500 m).
+
 ## 4. Rise/set timing: 10-minute series vs 1-minute reference
 
 A terrain rise/set is a sign change of `el - horizonAt(az)`. The instant is estimated by linear interpolation between the two 10-minute samples and compared with the crossing in a 1-minute Horizons series around the same event (up to 4 events per site and body, spread over the period). The last column converts the 0.05 deg horizon tolerance into time using the observed rate at the crossing.

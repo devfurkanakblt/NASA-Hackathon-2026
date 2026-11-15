@@ -6,4 +6,6 @@ pyproj>=3.7.2,<4
 scipy>=1.13,<2
 skyfield==1.55
 requests==2.34.2
+# figures.py and external_map.py only (the data pipeline does not need it)
+matplotlib>=3.9,<4
 pytest

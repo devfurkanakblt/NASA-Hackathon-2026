@@ -225,6 +225,20 @@ def check_transfer(site_id, seed):
     return rows
 
 
+# Hand check in a browser (docs/figures/horizons-site01-2026-11-15.png). Static text: kept here so
+# that a full regeneration of docs/validation.md does not drop it.
+MANUAL_CHECK = [
+    '',
+    '### Manual check in a browser (independent of the pipeline)',
+    '', "One sample was requested by hand from the Horizons API in a browser, with the observer typed in directly rather than taken from the pipeline: Site01, Sun, 2026-11-15 00:00 UT, `CENTER='coord@301'`, geodetic E-lon 222.51 deg, lat -89.4632 deg, altitude 1.94677 km (surface 1944.77 m + 2 m eye), `APPARENT='AIRLESS'`, quantities 4 and 20. Horizons echoed the observer as `Center geodetic : 222.51, -89.4632, 1.94677`. Screenshot: `docs/figures/horizons-site01-2026-11-15.png`.", '',
+    '| Quantity | Expected (`Site01/ephemeris.json`, sample 2016) | Read from Horizons | Difference |',
+    '|---|---|---|---|',
+    '| Sun azimuth [deg] | 251.9082 | 251.908178900 | 0.000021 |',
+    '| Sun elevation [deg] | 1.3897 | 1.389712076 | 0.000012 |',
+    '| Sun distance | 147 814 185 km | 0.98807680018357 au = 147 814 185.4 km | 0.4 km (2.7e-09 relative) |',
+    '', "All differences are within the file's rounding (0.00005 deg, 500 m)."]
+
+
 def transfer_section(args):
     md = ["## 3. Data transfer: JSON vs a fresh Horizons request", "",
           f"{N_TRANSFER} random epochs per site (fixed seed) plus the first and last sample are requested "

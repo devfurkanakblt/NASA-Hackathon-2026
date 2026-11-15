@@ -120,13 +120,13 @@ rise/set time. DEM pixel size and the checks below are not a statement of absolu
 - NASA Moon Trek (LOLA 5 m south-pole mosaic, cross-check) — https://trek.nasa.gov/moon/
 - NASA Moon Trek, LOLA 30 m/px south-pole DEM `LRO_LOLA_DEM_SPole75_30mp_v04` (regional terrain in the 3D view, display only) — https://trek.nasa.gov/moon/
 - NASA Earth Observatory, *Blue Marble: Next Generation* (November 2004) (Earth texture in the 3D view, display only) — https://science.nasa.gov/earth/earth-observatory/blue-marble-next-generation/base-topography-bathymetry/
-- NASA, *Lunar Surface Data Book*, M2M-30044 (2025), Table A2.1-1 (site coordinates) — https://ntrs.nasa.gov/citations/20250002845
-- LOLA global DEM LDEM_64, PDS LRO-L-LOLA-4-GDR-V1.0 (contrast points)
+- NASA, *Moon to Mars (M2M) Lunar Surface Data Book*, M2M-30044 Baseline (2025), NASA/TP-20250002845, Table A2.1-1 (site coordinates) — https://ntrs.nasa.gov/citations/20250002845
+- LOLA global DEM LDEM_64 (~474 m/px), PDS LRO-L-LOLA-4-GDR-V1.0 (contrast points) — https://pds-geosciences.wustl.edu/missions/lro/lola.htm
 - NASA GSFC PGDA Lunar Polar Illumination maps (Mazarico et al.) — https://pgda.gsfc.nasa.gov/products/69
 - Solar constant 1361 W/m² — NASA GSFC solar irradiance — https://earth.gsfc.nasa.gov/climate/projects/solar-irradiance/science
 - Mazarico, E. et al. (2011), *Illumination conditions of the lunar polar regions using LOLA topography*, Icarus 211, 1066–1081. doi:10.1016/j.icarus.2010.10.030
-- Contrast-point coordinates: LROC *First Look: Chang'e 6* (lroc.asu.edu/images/1374); NASA NSSDC Apollo landing site coordinates
-- Software: Skyfield, NumPy, SciPy, Rasterio, PyProj, Requests, React, three.js / React Three Fiber, Vite, Vitest
+- Contrast-point coordinates: LROC (ASU/NASA) *First Look: Chang'e 6* — https://lroc.asu.edu/images/1374; NASA NSSDC Apollo landing site coordinates — https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_sites.html
+- Software: Skyfield (JPL DE421), NumPy, SciPy, Rasterio, PyProj, Requests, Matplotlib, React, three.js / React Three Fiber, Vite, Vitest
 
 NASA data are used under NASA's open data policy; NASA does not endorse this project.
 

@@ -19,8 +19,10 @@ direction (`el > horizonAt(az)`).
 | Data | Source | Use |
 |---|---|---|
 | Site coordinates | NASA *Lunar Surface Data Book*, M2M-30044 Baseline (Mar 2025), Table A2.1-1 | Site01, 04, 07, 11, 20, 23 |
+| Contrast-point coordinates | LROC *First Look: Chang'e 6* (CE6); NASA NSSDC Apollo landing site coordinates (Apollo11) | CE6, Apollo11 |
 | Topography near the site | LOLA 5 m/px site DEMs (Barker et al. 2021), PGDA | horizon up to 7 km, slope, 3D view |
 | Regional topography | LOLA `LDEM_80S_80MPP_ADJ`, 80 m/px (Barker et al. 2023), PGDA | horizon 7–250 km |
+| Topography at the contrast points | LOLA global `LDEM_64` (64 px/deg, ~474 m/px), PDS `LRO-L-LOLA-4-GDR-V1.0` | CE6, Apollo11 horizon and 3D view |
 | Sun and Earth positions | JPL Horizons, observer on the Moon (`coord@301`, MEAN_ME frame), airless, 10-min steps | az/el/distance per sample |
 | Independent ephemeris | Skyfield + DE421, `MOON_ME_DE421` frame | cross-check, 18.6-year runs |
 | External reference | PGDA *Lunar Polar Illumination* (Mazarico et al.), 85S 60 m maps, 2016-08 | comparison only |
@@ -109,12 +111,18 @@ with the catalogue point and the Site04R ridge point).
 - Barker, M.K. et al. (2023). A new view of the lunar south pole from the Lunar Orbiter Laser Altimeter (LOLA). *Planetary Science Journal* 4, 183. doi:10.3847/PSJ/acf3e1; data doi:10.60903/gsfcpgda-lola-spole
 - Mazarico, E. et al. (2011). Illumination conditions of the lunar polar regions using LOLA topography. *Icarus* 211, 1066–1081. doi:10.1016/j.icarus.2010.10.030
 - NASA PGDA, Lunar Polar Illumination products. https://pgda.gsfc.nasa.gov/products/69
-- NASA (2025). Moon to Mars Lunar Surface Data Book, M2M-30044 Baseline. NASA/TP-20250002845.
-- JPL Horizons System. https://ssd.jpl.nasa.gov/horizons/
+- NASA (2025). *Moon to Mars (M2M) Lunar Surface Data Book*, M2M-30044 Baseline. NASA/TP-20250002845. https://ntrs.nasa.gov/citations/20250002845
+- JPL Horizons System, NASA/JPL-Caltech. https://ssd.jpl.nasa.gov/horizons/
+- NASA PDS Geosciences Node, LRO LOLA Gridded Data Records (`LDEM_64`, LRO-L-LOLA-4-GDR-V1.0). https://pds-geosciences.wustl.edu/missions/lro/lola.htm
+- LROC (ASU/NASA), *First Look: Chang'e 6*. https://lroc.asu.edu/images/1374
+- NASA NSSDC, Apollo landing site coordinates. https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_sites.html
+- NASA GSFC, Solar irradiance (solar constant 1361 W/m²). https://earth.gsfc.nasa.gov/climate/projects/solar-irradiance/science
 - NASA Moon Trek (LOLA 5 m south-pole mosaic for the terrain cross-check; LOLA 30 m south-pole DEM for the 3D view). https://trek.nasa.gov/moon/
 - NASA Earth Observatory, Blue Marble: Next Generation (November 2004). https://science.nasa.gov/earth/earth-observatory/blue-marble-next-generation/base-topography-bathymetry/
 - Rhodes, B. Skyfield. https://rhodesmill.org/skyfield/ ; JPL DE421 planetary ephemeris (Folkner et al. 2008).
-- Software: NumPy, SciPy, rasterio/GDAL, pyproj/PROJ, Requests.
+- Software: NumPy, SciPy, rasterio/GDAL, pyproj/PROJ, Requests, Matplotlib (figures).
+
+NASA data are used under NASA's open data policy; NASA does not endorse this project.
 
 ## Use of AI (preprocessing and documentation, part A)
 
