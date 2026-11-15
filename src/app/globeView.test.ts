@@ -1,29 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { GLOBE_CAMERA_MAX_LAT_DEG, LABEL_FRAME_PAD, keepLabelInFrame, labelOffset, southernCameraPosition } from './globeView.ts'
-
-const lat = ([x, y, z]: [number, number, number]) => Math.asin(y / Math.hypot(x, y, z)) * 180 / Math.PI
-
-describe('southernCameraPosition', () => {
-  it('leaves southern views alone', () => {
-    expect(southernCameraPosition([0, -2.8, 0.65])).toEqual([0, -2.8, 0.65])
-  })
-
-  it('pulls a northern overview back to the limit, keeping distance and longitude', () => {
-    const p = southernCameraPosition([2, 1, -1])
-    expect(lat(p)).toBeCloseTo(GLOBE_CAMERA_MAX_LAT_DEG, 9)
-    expect(Math.hypot(...p)).toBeCloseTo(Math.hypot(2, 1, -1), 9)
-    expect(Math.atan2(p[2], p[0])).toBeCloseTo(Math.atan2(-1, 2), 9)
-  })
-
-  it('handles a camera right above the north pole', () => {
-    const p = southernCameraPosition([0, 3, 0])
-    expect(lat(p)).toBeCloseTo(GLOBE_CAMERA_MAX_LAT_DEG, 9)
-  })
-
-  it('does not limit close inspection of one place', () => {
-    expect(southernCameraPosition([1.01, 0.05, 0])).toEqual([1.01, 0.05, 0])
-  })
-})
+import { LABEL_FRAME_PAD, keepLabelInFrame, labelOffset, placeGroups } from './globeView.ts'
 
 describe('labelOffset', () => {
   it('alternates label rows above and below and keeps them within two rows of the pins', () => {
@@ -54,5 +30,21 @@ describe('keepLabelInFrame', () => {
   it('centres a label wider than the frame', () => {
     const shift = keepLabelInFrame({ x: 0, y: 250 }, { x: 0, y: 0 }, { w: 600, h: 40 }, frame)
     expect(shift.x).toBe(250)
+  })
+})
+
+describe('places in the picker list', () => {
+  const sites = [
+    { id: 'Site01', latDeg: -89.5 },
+    { id: 'Apollo11', latDeg: 0.67, category: 'contrast' },
+    { id: 'CE5', latDeg: 43.1, category: 'contrast' },
+    { id: 'IM2', latDeg: -84.8, category: 'mission' },
+  ]
+
+  it('lists polar places first and keeps every place in exactly one group', () => {
+    const groups = placeGroups(sites)
+    expect(groups.map((g) => g.id)).toEqual(['pole', 'elsewhere'])
+    expect(groups[0].sites.map((s) => s.id)).toEqual(['Site01', 'IM2'])
+    expect(groups.flatMap((g) => g.sites)).toHaveLength(sites.length)
   })
 })
