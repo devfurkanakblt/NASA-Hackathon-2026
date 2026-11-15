@@ -55,10 +55,11 @@ def horizon_params(site_id, far_range_m):
     return params, None
 
 
-def build_site(site_id, args):
+def build_site(site_id, args, out=None):
+    """Build one site's files into `out` (default public/data/<site_id>); return its sites.json entry."""
     t0 = time.time()
     s = C.SITES[site_id]
-    out = C.OUT_DIR / site_id
+    out = out or C.OUT_DIR / site_id
     near, far, xy = load_site_dems(site_id, far_range_m=args.far_range)
     z0, warnings = surface_elevation(near, far, xy)
     eye = z0 + C.OBSERVER_HEIGHT_M

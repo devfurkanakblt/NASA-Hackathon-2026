@@ -18,7 +18,29 @@ python -m preprocess.crosscheck_moontrek  # -> docs/validation-moontrek.md (terr
 python -m preprocess.figures          # -> docs/figures/*.png (Site04 map, 1-year monthly visibility; for the slides)
 python -m pytest preprocess/tests      # unit tests
 python -m preprocess.make_sample       # synthetic sample in public/data/_sample
+python -m preprocess.custom_point --id P001 --lat -89.45 --lon -137.2 [--start ... --stop ...] [--source skyfield]
+                                       # -> custom/P001/ data package for a free coordinate (see below)
 ```
+
+## Custom point packages
+
+`preprocess.custom_point` builds the same files as a catalogue site for a free coordinate, into
+`public/data/custom/<id>/`: `horizon.json` (0.1°), `terrain.json`, `ephemeris.json` (main two-month
+period), `year.bin` + `extended.json` (schema 2) and `site.json` (`sites.json` entry format,
+`category: "custom"`). `sites.json` is not changed; the app does not load these packages yet.
+
+- **Accepted area:** the whole 7 km near range must lie inside one LOLA 5 m tile. On the ~16 km
+  Site01/04/07/11/20 tiles that is roughly a 2 km box around the tile centre. Points outside it are
+  rejected; the 80 m regional DEM is never used as a silent fallback for the near field.
+- **Time range:** `--start`/`--stop` default to 2026-11-01T00:00:00Z … 2027-11-01T00:00:00Z, must lie in
+  that range and on the 600 s grid, and `--stop` must be after `--start`. Longitude is normalised to
+  (−180, 180].
+- **One observer:** horizon, ephemeris and year series use the same eye, surface height + 2 m
+  (`extended.json` `year.observer`).
+- **Warnings:** far terrain missing from the 80 m DEM is reported in `horizon.json` and `site.json`
+  `warnings`, never set to zero.
+- **Rejections** exit with code 2 and an English reason. Nothing is written: the package is built in a
+  temporary directory and renamed into place only when complete.
 
 ## Method
 

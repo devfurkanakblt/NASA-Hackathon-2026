@@ -79,6 +79,21 @@ def _inside(xy, box, margin=0.0):
     return box[0] + margin <= x <= box[2] - margin and box[1] + margin <= y <= box[3] - margin
 
 
+def near_field_tile(lat: float, lon: float):
+    """The 5 m tile that holds the whole NEAR_RANGE_M near range around (lat, lon), else None.
+
+    Purely geometric (no map-cell precedence); tiles whose DEM file is missing do not count.
+    """
+    lon = normalize_lon(float(lon))
+    for tile in _local_tiles():
+        if not C.local_dem_path(tile).exists():
+            continue
+        crs, box = _tile_info(tile)
+        if _inside(to_xy(crs, lon, float(lat)), box, C.NEAR_RANGE_M):
+            return tile
+    return None
+
+
 def classify_point(lat: float, lon: float) -> dict:
     """Which terrain product supports a point. Never falls back silently: `reason` says why."""
     def res(kind, tile, reason):

@@ -24,10 +24,18 @@ def sha256_file(path):
     return h.hexdigest()
 
 
+def display_path(path):
+    """Path relative to the repo root when inside it (log lines), else as given."""
+    try:
+        return path.relative_to(C.ROOT)
+    except ValueError:
+        return path
+
+
 def write(path, obj):
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(obj, separators=(",", ":")), encoding="utf-8")
-    print(f"wrote {path.relative_to(C.ROOT)} ({path.stat().st_size/1e3:.0f} kB)")
+    print(f"wrote {display_path(path)} ({path.stat().st_size/1e3:.0f} kB)")
 
 
 def ephemeris_doc(site_id, source, sun_rows, earth_rows, start_utc=C.START_UTC, step_s=C.STEP_S):

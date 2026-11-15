@@ -24,26 +24,33 @@ from .validate import load, load_eye
 YEAR_FIELDS = [(b, f) for b in ("sun", "earth") for f in ("azDeg", "elDeg", "distanceM")]
 
 
-def year_array(site_id):
-    """(6, count) float32 array of the one-year series, in YEAR_FIELDS order."""
-    eph = S.as_eph(S.query_year(site_id))
+def year_array(site_id, rows=None):
+    """(6, count) float32 array of the one-year series (query_year rows), in YEAR_FIELDS order."""
+    eph = S.as_eph(S.query_year(site_id) if rows is None else rows)
     return np.stack([np.asarray(eph[b][f], dtype=np.float64) for b, f in YEAR_FIELDS]).astype("<f4")
 
 
 def write_year(site_id):
     y = year_array(site_id)
+    if not np.isfinite(y).all():  # before any sites.json lookup, as write_year_array checks again
+        raise ValueError(f"{site_id}: year series has non-finite values, year.bin not written")
+    site = next(x for x in load_sites() if x["id"] == site_id)
+    return write_year_array(site_id, y, C.OUT_DIR / site_id, S.SEASON_START, S.SEASON_STOP,
+                            "jpl-horizons", site["latDeg"], site["lonDeg"], load_eye(site_id))
+
+
+def write_year_array(site_id, y, out_dir, start_utc, end_utc, source, lat_deg, lon_deg, eye_m):
+    """Write year.bin from a (6, count) series into out_dir; return the extended.json `year` header."""
     if not np.isfinite(y).all():
         raise ValueError(f"{site_id}: year series has non-finite values, year.bin not written")
-    path = C.OUT_DIR / site_id / "year.bin"
+    path = out_dir / "year.bin"
     path.parent.mkdir(parents=True, exist_ok=True)
     y.tofile(path)
-    print(f"wrote {path.relative_to(C.ROOT)} ({path.stat().st_size / 1e6:.2f} MB)")
-    site = next(x for x in load_sites() if x["id"] == site_id)
+    print(f"wrote {W.display_path(path)} ({path.stat().st_size / 1e6:.2f} MB)")
     return {"file": "year.bin", "sha256": W.sha256_file(path),
-            "startUtc": S.SEASON_START, "endUtc": S.SEASON_STOP, "stepS": C.STEP_S,
-            "count": int(y.shape[1]), "source": "jpl-horizons",
-            "observer": {"latDeg": site["latDeg"], "lonDeg": site["lonDeg"],
-                         "eyeM": round(float(load_eye(site_id)), 2)},
+            "startUtc": start_utc, "endUtc": end_utc, "stepS": C.STEP_S,
+            "count": int(y.shape[1]), "source": source,
+            "observer": {"latDeg": lat_deg, "lonDeg": lon_deg, "eyeM": round(float(eye_m), 2)},
             "fields": [f"{b}.{f}" for b, f in YEAR_FIELDS]}
 
 
@@ -187,11 +194,11 @@ def read_header(site_id):
     return json.loads(p.read_text(encoding="utf-8")) if p.exists() else None
 
 
-def write_header(site_id, year, cells=None):
+def write_header(site_id, year, cells=None, out_dir=None):
     doc = {"version": W.VERSION, "extendedSchema": 2, "siteId": site_id, "year": year}
     if cells is not None:
         doc["cells"] = cells
-    W.write(C.OUT_DIR / site_id / "extended.json", doc)
+    W.write((out_dir or C.OUT_DIR / site_id) / "extended.json", doc)
     return doc
 
 
