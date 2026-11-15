@@ -14,6 +14,7 @@ import { LineChart } from './charts/LineChart.tsx'
 import { Panorama } from './charts/Panorama.tsx'
 import { SeasonChart } from './charts/SeasonChart.tsx'
 import { SiteMap } from './charts/SiteMap.tsx'
+import { HorizonRule, RimlightMark } from './Brand.tsx'
 import { Comparison } from './Comparison.tsx'
 import { errorMessage, fmtDuration, fmtUtc } from './format.ts'
 import { ScenarioList } from './ScenarioList.tsx'
@@ -56,7 +57,7 @@ function writeFlag(key: string) {
 }
 
 /** Scenario colours A, B, C (distinct on the dark background and for common colour blindness). */
-const COLORS = ['#f2a541', '#4cc9f0', '#c77dff']
+const COLORS = ['#7a5be0', '#3a9468', '#cc6cbb']
 const STEPS_PER_FRAME = 2
 
 /** "the same point" / "200 m east, 600 m north of it". */
@@ -252,11 +253,11 @@ export function MissionApp() {
 
   const tourSteps: TourStep[] = [
     {
-      title: 'Where should a Moon lander go?',
-      body: "Near the Moon's south pole the Sun and Earth stay low on the horizon, so a hill or a crater rim can hide them. This tool checks two things for a landing spot: does the lander get enough sunlight for power, and can it see Earth to send data home?",
+      title: 'Find the light before you land.',
+      body: "Near the Moon's south pole the Sun and Earth stay low on the horizon, so a hill or a crater rim can hide them. The light is on the rim. Rimlight checks two things for a landing spot: does the lander get enough sunlight for power, and can it see Earth to send data home?",
     },
     { target: 'places', title: '1. Pick places to compare', body: 'Choose up to three landing spots and any start date within a year. Each one keeps its letter and colour (A, B, C) everywhere on the page.' },
-    { target: 'result', title: '2. Read the answer', body: 'Each card answers the two questions. A green tick means the goal is met, a red cross means it is not. The bars show how much of the time the Sun and Earth are in view.' },
+    { target: 'result', title: '2. Read the answer', body: 'Each column answers the two questions: a tick means the goal is met, a red cross means it is not. No hidden score, just conditions. The first example compares Shackleton Rim with a ridge 1.9 km away: 1.9 km apart, a different mission.' },
     {
       target: 'tabs',
       title: '3. See why',
@@ -274,13 +275,23 @@ export function MissionApp() {
 
   const header = (
     <header className="app__header">
+      <div className="app__bar">
+        <div className="brand">
+          <RimlightMark size={40} />
+          <div className="brand__text">
+            <span className="brand__word">Rimlight</span>
+            <span className="brand__desc">Lunar Landing Site Navigator</span>
+          </div>
+        </div>
+        <button type="button" className="app__help" onClick={() => setTourOpen(true)}>
+          <span aria-hidden>?</span> How it works
+        </button>
+      </div>
       <div className="app__title">
-        <h1>Lunar Landing Site Navigator</h1>
+        <h1>Find the light before you land.</h1>
         <p>Compare landing spots near the Moon&rsquo;s south pole: will the lander have power, and can it talk to Earth?</p>
       </div>
-      <button type="button" className="app__help" onClick={() => setTourOpen(true)}>
-        <span aria-hidden>?</span> How it works
-      </button>
+      <HorizonRule horizon={activeData?.horizon} siteName={activeData?.site.name} />
     </header>
   )
 
@@ -359,9 +370,12 @@ export function MissionApp() {
         <main className="app__main">
           <section className="card" data-tour="result">
             <div className="card__head">
-              <h2>
-                <span className="step">3</span> Result
-              </h2>
+              <div>
+                <h2>
+                  <span className="step">3</span> Result
+                </h2>
+                <p className="card__tagline">No hidden score. Just conditions.</p>
+              </div>
               <button type="button" onClick={copyLink} data-tour="share" title="Copy a link that opens this comparison (places, dates and lander settings)">
                 {copied === 'done' ? 'Link copied' : 'Copy link'}
               </button>
@@ -490,7 +504,7 @@ export function MissionApp() {
                     <LineChart
                       series={[
                         { label: 'Solar panel output (W)', color: '#ffd166', values: active.result.generationW },
-                        { label: 'Power used (W)', color: '#ef6f6c', values: active.result.loadW, dashed: true },
+                        { label: 'Power used (W)', color: '#aab3c2', values: active.result.loadW, dashed: true },
                       ]}
                       stepH={active.result.stepS / 3600}
                       yMin={0}
@@ -542,6 +556,10 @@ export function MissionApp() {
           )}
         </main>
       </div>
+      <footer className="app__footer">
+        <RimlightMark size={20} />
+        <span>Research regions, not certified landing sites. Built on NASA data; not endorsed by NASA.</span>
+      </footer>
     </div>
   )
 }
