@@ -80,7 +80,6 @@ export function MissionFooter({ onHome, onSimulation, onResults, onSources }: Pr
           <button type="button" onClick={onSources}>Explore data &amp; limits <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><path d="M5 19 19 5M5 5h14v14" /></svg></button>
         </div>
       </div>
-      <div className="mission-footer__signature" data-footer-reveal aria-hidden="true">RIMLIGHT<span>.</span></div>
       <div className="mission-footer__bottom">
         <span>Research regions, not certified landing sites. Built on NASA data; not endorsed by NASA.</span>      </div>
     </footer>

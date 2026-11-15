@@ -1,4 +1,4 @@
-import { Canvas } from '@react-three/fiber'
+import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { useCallback, useMemo, useRef, useState } from 'react'
 import type { RefObject } from 'react'
 import type { Object3D } from 'three'
@@ -28,10 +28,11 @@ import { Lander } from './parts/Lander.tsx'
 import { DirectionArrow, SkyBody, SkyFollow, SkyTrack } from './parts/SkyBodies.tsx'
 import { ReferenceSphere, Terrain } from './parts/Terrain.tsx'
 import './scene3d.css'
-import { buildTerrainMeshData, nestFarMesh } from './terrainGeometry.ts'
+import { getPreparedTerrain } from './terrainCache.ts'
 import type { BodyPath, BodyState, BodyStatus, CameraMode, HorizonProfile, LookTarget, PanelState, TerrainGrid, Vec3 } from './types.ts'
 
 export interface MissionScene3DProps {
+  onReady?: () => void
   /** Local elevation grid of the selected site (`terrain.json`). */
   terrain: TerrainGrid
   /** Coarse regional grid around it (`terrain-far.json`), drawn in the overview out to its edge. */
@@ -58,6 +59,7 @@ export interface MissionScene3DProps {
   observerHeightM?: number
   /** Height of the ground at the site above the 1737.4 km sphere (`sites.json`); draws that sphere in the overview. */
   surfaceElevationM?: number
+  animateArrival?: boolean
   defaultCameraMode?: CameraMode
   defaultShowTerrainEffect?: boolean
 }
@@ -65,6 +67,21 @@ export interface MissionScene3DProps {
 /** Scene distances in units of half the terrain patch: sky sphere and camera far plane. */
 const SKY_RADIUS = 75
 const FAR_PLANE = 82
+
+/** Signal only after the first draw has uploaded buffers and compiled the scene's shaders. */
+function SceneReady({ terrain, onReady }: { terrain: TerrainGrid; onReady?: () => void }) {
+  const state = useRef({ terrain, frames: 0 })
+  const invalidate = useThree(s => s.invalidate)
+  useFrame(() => {
+    if (!onReady) return
+    if (state.current.terrain !== terrain) state.current = { terrain, frames: 0 }
+    if (state.current.frames >= 2) return
+    state.current.frames++
+    if (state.current.frames === 2) onReady()
+    else invalidate()
+  })
+  return null
+}
 
 const fmt = (deg: number) => `${deg.toFixed(2)}°`
 const fmtKm = (m: number) => (m < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(1)} km`)
@@ -104,6 +121,7 @@ function useLabel() {
 }
 
 export default function SceneCanvas({
+  onReady,
   terrain,
   farTerrain,
   horizon,
@@ -119,6 +137,7 @@ export default function SceneCanvas({
   geometricHorizonDeg = 0,
   observerHeightM = OBSERVER_HEIGHT_M,
   surfaceElevationM,
+  animateArrival = false,
   defaultCameraMode = 'overview',
   defaultShowTerrainEffect = false,
 }: MissionScene3DProps) {
@@ -132,12 +151,8 @@ export default function SceneCanvas({
   const diagnosticOutput = useRef<HTMLOutputElement | null>(null)
   const { texture: earthMap, failed: earthMapFailed } = useEarthTexture()
 
-  const meshData = useMemo(() => buildTerrainMeshData(terrain, observerHeightM), [terrain, observerHeightM])
+  const { meshData, farMesh } = useMemo(() => getPreparedTerrain(terrain, farTerrain, observerHeightM), [terrain, farTerrain, observerHeightM])
   const half = meshData.halfExtentM
-  const farMesh = useMemo(
-    () => (farTerrain ? nestFarMesh(buildTerrainMeshData(farTerrain, observerHeightM), meshData) : null),
-    [farTerrain, observerHeightM, meshData],
-  )
   const overviewRadius = half * 0.9
   // Keep the full-resolution horizon silhouette beyond the measured regional mesh.
   const curtainRadius = Math.max(half * 2.2, (farTerrain?.sizeM ?? 0) * 0.75)
@@ -186,6 +201,7 @@ export default function SceneCanvas({
         }}
       >
         <color attach="background" args={['#000000']} />
+        <SceneReady terrain={terrain} onReady={onReady} />
         <hemisphereLight args={['#f5f5f3', '#6c6c69', reliefLighting ? 0.75 : 0]} />
         {/* Inspection fill preserves visible relief without claiming measured lunar irradiance. */}
         <directionalLight position={[-12000, 12000, 16000]} intensity={reliefLighting ? 0.9 : 0} color="#f2f2f0" />
@@ -261,6 +277,7 @@ export default function SceneCanvas({
         </SkyFollow>
 
         <CameraRig
+          animateArrival={animateArrival}
           mode={cameraMode}
           halfExtentM={half}
           farPlaneM={half * FAR_PLANE}
