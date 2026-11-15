@@ -194,6 +194,19 @@ Written by `python -m preprocess.extended` from existing caches only. Not part o
 - **`cells.bin`**: little-endian int16, unit `unitDeg` (0.01°). Row = cell in `map.json` order (row 0 = south, col 0 = west, row-major), 360 columns = azimuth `j × 1°`. Taken as every second column of the 0.5° map horizons (decimation, not averaging: a horizon value is a maximum, an average would invent a value). No `distanceM`.
 - `cells.eyeM[i]`: eye height of cell `i` above the 1737.4 km sphere (surface + 2 m).
 
+## `{siteId}/refined.json` (optional, finalist map cells with the 0.1° horizon)
+
+Written by `python -m preprocess.refine_cells --site Site01 --cells r36c32 …` (or `--reference` for the presentation cells). A few map cells recomputed with exactly the catalogue horizon recipe (`horizon.json`: same ray marcher, halved-step refinement, DEMs and 250 km range, 0.1° azimuth step) from the same observer as the cell: `map.json` cell centre and `cells.eyeM[i]`.
+
+```jsonc
+{ "version": 1, "siteId": "Site01", "cellsSha256": "<cells.sha256 of extended.json>",
+  "cells": { "r36c32": { "latDeg": …, "lonDeg": …, "eyeM": …, "azStepDeg": 0.1, "count": 3600,
+                         "elevDeg": [ … ], "distanceM": [ … ], "warnings": [ … ] } } }
+```
+
+- Missing file: cells keep the 1° screening horizon. A file whose `cellsSha256` differs from `cells.sha256` is stale and is ignored with a warning (never used); so is an entry whose `latDeg`/`lonDeg`/`eyeM` differ from the map cell.
+- `warnings`: the near-field fallback and far-terrain coverage warnings of this horizon, as for `horizon.json`. A refined cell has `provenance.horizonSource: 'refined-cell'`, `horizonResolutionDeg: 0.1`, `precision: 'catalogue'`. It is still not a catalogue site, and good illumination does not mean flat or safe terrain.
+
 ## `coverage.json` (supported area and time range, added in v1 without breaking changes)
 
 Written by `python -m preprocess.coverage` from `sites.json`, each site's `map.json`, `extended.json`, `horizon.json` and the DEM tile bounds. Optional: if it is missing or invalid the app still loads (`LoadedData.coverage` is then undefined).

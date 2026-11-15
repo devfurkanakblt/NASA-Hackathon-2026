@@ -155,6 +155,56 @@ export function cellHorizon(cells: CellHorizons, index: number): HorizonDoc {
   return { azStepDeg: cells.azStepDeg, count: cells.count, elevDeg: Array.from(row, (v) => v * cells.unitDeg) }
 }
 
+/** One map cell recomputed with the 0.1° catalogue horizon (`python -m preprocess.refine_cells`). */
+export interface RefinedCell {
+  latDeg: number
+  lonDeg: number
+  /** Same observer as `cells.eyeM[i]`: surface + 2 m above the 1737.4 km sphere. */
+  eyeM: number
+  azStepDeg: number
+  count: number
+  elevDeg: number[]
+  distanceM: number[]
+  /** Near-field and far-terrain coverage warnings of this horizon, verbatim from the pipeline. */
+  warnings: string[]
+}
+
+/** `refined.json`: a few finalist map cells, keyed `r<row>c<col>`, bound to one `cells.bin` by its sha256. */
+export interface RefinedDoc {
+  version: 1
+  siteId: string
+  cellsSha256: string
+  cells: Record<string, RefinedCell>
+}
+
+/**
+ * Checks a `refined.json` against the site's `extended.json`. Returns one English sentence per problem;
+ * a `cellsSha256` that differs from `cells.sha256` makes the whole file stale.
+ */
+export function validateRefined(doc: unknown, siteId: string, header: ExtendedHeader): string[] {
+  const where = `${siteId}/refined.json`
+  if (!isObj(doc)) return [`${where}: must be a JSON object`]
+  const out: string[] = []
+  const bad = (msg: string) => out.push(`${where}: ${msg}`)
+  if (doc.version !== 1) bad(`version must be 1, got ${JSON.stringify(doc.version)}`)
+  if (doc.siteId !== siteId) bad(`siteId must be "${siteId}", got ${JSON.stringify(doc.siteId)}`)
+  if (!header.cells) bad('the site has no map cells in extended.json')
+  else if (doc.cellsSha256 !== header.cells.sha256) bad(`stale: cellsSha256 ${JSON.stringify(doc.cellsSha256)} does not match cells.sha256 ${header.cells.sha256} in extended.json`)
+  if (!isObj(doc.cells)) return [...out, `${where}: cells must be an object`]
+  for (const [id, c] of Object.entries(doc.cells)) {
+    if (!/^r\d+c\d+$/.test(id)) bad(`cell id ${JSON.stringify(id)} must look like r<row>c<col>`)
+    if (!isObj(c)) { bad(`${id} must be an object`); continue }
+    if (!isNum(c.latDeg) || !isNum(c.lonDeg) || !isNum(c.eyeM)) bad(`${id} must have finite latDeg, lonDeg and eyeM`)
+    if (!isNum(c.azStepDeg) || !isPosInt(c.count) || Math.abs(c.azStepDeg * c.count - 360) > 1e-9) bad(`${id}: azStepDeg * count must equal 360`)
+    for (const k of ['elevDeg', 'distanceM'] as const) {
+      const a = c[k]
+      if (!Array.isArray(a) || a.length !== c.count || !a.every(isNum)) bad(`${id}.${k} must be ${JSON.stringify(c.count)} finite numbers`)
+    }
+    if (!Array.isArray(c.warnings) || !c.warnings.every((w) => typeof w === 'string')) bad(`${id}.warnings must be an array of strings`)
+  }
+  return out
+}
+
 const defaultBase = () => `${import.meta.env.BASE_URL}data`
 
 async function getOk(url: string): Promise<Response> {
@@ -177,6 +227,7 @@ function cached<T>(cache: Map<string, Promise<T>>, key: string, make: () => Prom
 const headers = new Map<string, Promise<ExtendedHeader>>()
 const years = new Map<string, Promise<EphemerisDoc>>()
 const cellsCache = new Map<string, Promise<CellHorizons>>()
+const refinedCache = new Map<string, Promise<RefinedDoc | null>>()
 
 /** Fetches and validates `extended.json`; `sha256` is not recomputed in the browser (tests check it). */
 export function loadHeader(siteId: string, baseUrl = defaultBase()): Promise<ExtendedHeader> {
@@ -203,5 +254,28 @@ export function loadCells(siteId: string, baseUrl = defaultBase()): Promise<Cell
     if (!header.cells) throw new Error(`${siteId}: no map cells`)
     const buf = await (await getOk(`${baseUrl}/${siteId}/${header.cells.file}`)).arrayBuffer()
     return parseCells(header, buf)
+  })
+}
+
+/**
+ * 0.1° horizons of the site's revalidated map cells (cached per site). `null` when the site has no
+ * `refined.json`. An invalid or stale file (another `cells.bin`) is never used: it is ignored with a
+ * console warning and the cells keep their 1° screening horizon.
+ */
+export function loadRefined(siteId: string, baseUrl = defaultBase()): Promise<RefinedDoc | null> {
+  return cached(refinedCache, `${baseUrl}/${siteId}`, async () => {
+    const response = await fetch(`${baseUrl}/${siteId}/refined.json`)
+    if (response.status === 404) return null
+    if (!response.ok) throw new Error(`${baseUrl}/${siteId}/refined.json: HTTP ${response.status}`)
+    const doc: unknown = await response.json()
+    const issues = validateRefined(doc, siteId, await loadHeader(siteId, baseUrl))
+    if (issues.length) {
+      console.warn(`${issues.join('; ')}. Ignored; map cells keep the 1° screening horizon.`)
+      return null
+    }
+    return doc as RefinedDoc
+  }).catch((error: unknown) => {
+    console.warn(`${siteId}/refined.json not used: ${error instanceof Error ? error.message : String(error)}`)
+    return null
   })
 }

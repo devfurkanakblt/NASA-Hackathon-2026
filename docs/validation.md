@@ -197,6 +197,20 @@ A map cell simulated as a scenario uses `cells.bin`: the cell's horizon at 1° a
 
 All differences are ≤ 0.2 points (test limit). They come only from the coarser azimuth step: between two 1° samples the horizon is interpolated linearly and misses narrow peaks or notches that the 0.5° profile resolves. The app labels these scenarios "Regional map point (1° horizon), not a catalogue site". The TypeScript re-projection of the Sun/Earth direction into a cell's frame is checked against Python (`docs/reference/cells.json`, 5 cells × 10 samples, ≤ 0.001°) in `src/sim/cell.test.ts`.
 
+### Finalist cells revalidated with the 0.1° catalogue horizon (`refined.json`)
+
+The presentation cells (Site01 r36c32 plus the cells of `docs/reference/cells.json`) were recomputed with `python -m preprocess.refine_cells --reference`. This uses exactly the catalogue recipe of `horizon.json`: `horizon.compute` plus halved-step refinement at a 0.1° azimuth step, with the same DEMs and 250 km range. The observer is the same as the 1° horizon: the `map.json` cell centre and `cells.eyeM[i]` (surface + 2 m). Test: `preprocess/tests/test_refine_cells.py` (for every 1° column j, the 0.1° maximum over [j−0.5°, j+0.5°] ≥ 1° value − 0.05°). Visibility below is over the two months of `ephemeris.json`, Sun/Earth re-projected into the cell frame.
+
+| Cell | max \|Δ\| same azimuth [°] | max 0.1° peak above 1° profile [°] | 1° Sun / Earth / both [%] | 0.1° Sun / Earth / both [%] | Warnings of the 0.1° horizon |
+|---|---|---|---|---|---|
+| Site01 r36c32 | 0.020 | 0.19 | 100.00 / 48.90 / 48.90 | 100.00 / 48.91 / 48.91 | none |
+| Site01 r30c30 | 0.045 | 0.11 | 72.53 / 36.48 / 23.55 | 72.51 / 36.49 / 23.56 | none |
+| Site04 r5c55 | 0.087 | 0.28 | 47.91 / 47.03 / 26.92 | 47.88 / 46.93 / 26.86 | 638589 near-field samples (<= 7000 m) used the 80 m DEM |
+| Site07 r55c5 | 0.005 | 0.21 | 31.55 / 25.63 / 13.11 | 31.54 / 25.67 / 13.12 | 702244 near-field samples (<= 7000 m) used the 80 m DEM |
+| Site11 r2c27 | 0.025 | 0.24 | 49.71 / 50.07 / 41.25 | 49.65 / 50.10 / 41.24 | 652872 near-field samples (<= 7000 m) used the 80 m DEM |
+
+"Same azimuth" compares the two horizons at the integer degrees. Those differences come from the halved-step refinement and the 0.01° storage unit of `cells.bin`. "Peak" is how far the 0.1° profile rises between two 1° samples, where the 1° horizon only interpolates. All visibility differences are ≤ 0.10 percentage points, so the 1° screening estimate holds for these cells. In the app a refined cell is labelled "Map point revalidated with the 0.1° catalogue horizon, not a catalogue site" (provenance `refined-cell`, 0.1°). It is still not a catalogue site. The step size and DEM pixel size are not a statement of absolute accuracy, and good illumination does not mean flat or safe terrain.
+
 ## 8. External comparison over every map cell (PGDA illumination maps)
 
 Section 5 compares 7 site centres. Here every regional map cell is compared with the same PGDA products (`AVGVISIB_85S_060M_201608`, `..._EARTH`, 60 m/px). Ours: the cell's own 0.5 deg terrain horizon (the one behind `map.json`) and an independent Skyfield/DE421 ephemeris over 18.6 years from 2009-07-13 at 2-hour steps, computed at the site centre and re-projected into each cell's local frame (same code as `map.json`). Same definitions as §5: Sun = mean visible fraction of the solar disk, Earth = any part of the disk above the horizon. Values are fractions (0-1); 0.01 = 1 percentage point. Reference = the 60 m pixel containing the cell centre; "in 3x3 range" = within the min-max of the 180 m neighbourhood (+-0.02).
