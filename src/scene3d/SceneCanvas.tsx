@@ -209,7 +209,7 @@ export default function SceneCanvas({
       <Canvas
         key={canvasKey}
         frameloop="demand"
-        shadows="soft"
+        shadows="percentage"
         dpr={[1.5, 2]}
         camera={{ fov: 45, near: 5, far: half * FAR_PLANE, position: [half, half * 0.5, half * 2.3] }}
         gl={{ antialias: true, powerPreference: 'high-performance', toneMapping: ACESFilmicToneMapping, toneMappingExposure: 1.1, outputColorSpace: SRGBColorSpace }}
@@ -414,13 +414,13 @@ export default function SceneCanvas({
         {!earthOrientation ? ` ${earthDisplayWarning ?? 'Earth map hidden: registered orientation is unavailable.'}`
           : earthMapFailed ? ' Earth map unavailable; an untextured illuminated sphere is shown.'
           : !earthMap ? ' Earth texture loading.' : ' Earth: NASA November 2004 composite, UTC-registered rotation; not live weather.'}
-        {imageryActive ? ' Surface photographs are NASA archive observations, with capture-time shadows; they do not depict the selected UTC. Switch NASA imagery off for modelled Sun-direction shading.'
+        {imageryActive ? ' Surface photographs are NASA archival composites; their combined lighting does not depict the selected UTC. Switch NASA imagery off for modelled Sun-direction shading.'
           : reliefLighting && ' Relief fill light is enabled for readability; switch it off to inspect Sun-only shading.'}
         {!imageryActive && terrain.normalDetail && (detailNormalFailed ? ' Measured surface detail unavailable; mesh shading is used.'
           : detailNormal ? ` Surface shading: normals from NASA ${terrain.normalDetail.manifest.sourceNativePixelM} m DEM; geometry and visibility stay separate.`
           : ' Measured surface detail loading.')}
         </p>
-        <p className="scene3d__note">Sources: <a href={sourceLinks.moonTrek} target="_blank" rel="noreferrer">NASA Moon Trek / LOLA</a> · <a href={sourceLinks.blueMarble} target="_blank" rel="noreferrer">NASA Blue Marble</a></p>
+        <p className="scene3d__note">Sources: <a href={sourceLinks.moonTrek} target="_blank" rel="noreferrer">NASA Moon Trek / LOLA</a> · <a href={sourceLinks.lrocMosaic} target="_blank" rel="noreferrer">LROC lunar imagery</a> · <a href={sourceLinks.blueMarble} target="_blank" rel="noreferrer">NASA Blue Marble</a></p>
       </details>
 
       {contextLost && (

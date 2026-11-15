@@ -13,7 +13,7 @@ import type { BodyState, CameraMode, LookTarget } from '../types.ts'
 
 const OVERVIEW_FOV = 45
 const LANDER_FOV = 55
-const EARTH_TARGET_FOV = 18
+const EARTH_TARGET_FOV = 8
 const SUN_TARGET_FOV = 32
 const LANDER_FOV_MIN = 6
 const LANDER_FOV_MAX = 75
@@ -50,6 +50,7 @@ export interface CameraRigProps {
 export function CameraRig({ animateArrival = false, mode, halfExtentM, farPlaneM, eyeHeightM, lookTarget, sun, earth, onUserLook, terrainMesh, regionalMesh, mapScale }: CameraRigProps) {
   const camera = useThree((s) => s.camera) as PerspectiveCamera
   const gl = useThree((s) => s.gl)
+  const viewport = useThree((s) => s.size)
   const invalidate = useThree((s) => s.invalidate)
   const arrival = useRef<{ target: Vector3; start: Vector3; elapsed: number } | null>(null)
   const look = useRef({ yawDeg: 0, pitchDeg: 2, fov: LANDER_FOV })
@@ -77,7 +78,9 @@ export function CameraRig({ animateArrival = false, mode, halfExtentM, farPlaneM
       arrival.current = null
       camera.near = 5
       camera.fov = OVERVIEW_FOV
-      camera.position.set(0, Math.max(halfExtentM * 3.2, (terrainMesh?.maxY ?? 0) + halfExtentM * 2.2), 0)
+      const aspect = Math.max(0.2, viewport.width / Math.max(1, viewport.height))
+      const patchFramingHeight = halfExtentM * 0.95 / (Math.tan(OVERVIEW_FOV * Math.PI / 360) * aspect)
+      camera.position.set(0, Math.max(patchFramingHeight, (terrainMesh?.maxY ?? 0) + halfExtentM * 0.15), 0)
       camera.lookAt(0, 0, 0)
       controls.current?.target.set(0, 0, 0)
       camera.updateProjectionMatrix()
@@ -104,7 +107,7 @@ export function CameraRig({ animateArrival = false, mode, halfExtentM, farPlaneM
       camera.near = 1
       applyLook()
     }
-  }, [mode, halfExtentM, farPlaneM, camera, invalidate, applyLook, terrainMesh, regionalMesh, animateArrival])
+  }, [mode, halfExtentM, farPlaneM, camera, invalidate, applyLook, terrainMesh, regionalMesh, animateArrival, viewport.width, viewport.height])
 
   // OrbitControls runs before this frame callback. Keep its camera above measured terrain,
   // including after a user orbit/zoom, without changing the scientific lander viewpoint.

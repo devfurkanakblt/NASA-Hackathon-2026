@@ -1,0 +1,142 @@
+{
+  "version": 1,
+  "siteId": "Site07",
+  "file": "lunar-imagery-far.jpg",
+  "sizeM": 240000.0,
+  "width": 2048,
+  "height": 2048,
+  "frame": "local-east-north-metres-image-north-up",
+  "archiveShadows": true,
+  "sha256": "67044651f321100d4ed7685cefc757cca64df755dbfc1cd19c94ec4dcb48201b",
+  "source": {
+    "url": "https://wms.im-ldi.com/",
+    "name": "LROC controlled NAC south-pole average mosaic with WAC gap fallback",
+    "nativePixelM": 100,
+    "acquisition": "NAC polar composite: images acquired 2009\u20132013; WAC global composite: November 2009\u2013February 2011. No mission-time lighting claim.",
+    "site": {
+      "latitudeDeg": -88.811,
+      "longitudeDeg": 123.6901,
+      "surfaceElevationM": 1645.27,
+      "observerHeightM": 2.0
+    },
+    "crs": "PROJCS[\"unknown\",GEOGCS[\"unknown\",DATUM[\"unknown\",SPHEROID[\"unknown\",1737400,0]],PRIMEM[\"Reference meridian\",0],UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",\"9122\"]]],PROJECTION[\"Polar_Stereographic\"],PARAMETER[\"latitude_of_origin\",-90],PARAMETER[\"central_meridian\",0],PARAMETER[\"false_easting\",0],PARAMETER[\"false_northing\",0],UNIT[\"metre\",1],AXIS[\"Easting\",NORTH],AXIS[\"Northing\",NORTH]]",
+    "transform": [
+      108.72017424572584,
+      0.0,
+      -136946.20891829344,
+      0.0,
+      -108.72018543191977,
+      146922.37257185267
+    ],
+    "resampling": "Each target pixel centre in observer-centred spherical ENU -> lon/lat -> actual WMS Moon CRS -> bilinear source pixels; north-first output",
+    "queries": [
+      {
+        "url": "https://wms.im-ldi.com/",
+        "layer": "luna_wac_global",
+        "query": {
+          "SERVICE": "WMS",
+          "VERSION": "1.1.1",
+          "REQUEST": "GetMap",
+          "LAYERS": "luna_wac_global",
+          "STYLES": "",
+          "SRS": "IAU2000:30120",
+          "BBOX": "-136946.208918293443,-187066.037075004831,197042.166364576347,146922.372571852669",
+          "WIDTH": "3072",
+          "HEIGHT": "3072",
+          "FORMAT": "image/tiff",
+          "TRANSPARENT": "TRUE"
+        },
+        "querySha256": "a099a65f5bbad3c8960081e1b0b476bc5ce2e94df966c03a2d4ecb1076fd7c6c",
+        "rawSha256": "0a8b58db4d9fb2f08597014a2b8761925829ba5f1c5bd9fca1121bd5a2547451",
+        "rawBytes": 4460043,
+        "crs": "PROJCS[\"unknown\",GEOGCS[\"unknown\",DATUM[\"unknown\",SPHEROID[\"unknown\",1737400,0]],PRIMEM[\"Reference meridian\",0],UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",\"9122\"]]],PROJECTION[\"Polar_Stereographic\"],PARAMETER[\"latitude_of_origin\",-90],PARAMETER[\"central_meridian\",0],PARAMETER[\"false_easting\",0],PARAMETER[\"false_northing\",0],UNIT[\"metre\",1],AXIS[\"Easting\",NORTH],AXIS[\"Northing\",NORTH]]",
+        "transform": [
+          108.72017424572584,
+          0.0,
+          -136946.20891829344,
+          0.0,
+          -108.72018543191977,
+          146922.37257185267
+        ],
+        "dimensions": [
+          3072,
+          3072
+        ],
+        "bounds": [
+          -136946.20891829344,
+          -187066.03707500483,
+          197042.16636457635,
+          146922.37257185267
+        ],
+        "deliveredProjectedPixelSize": [
+          108.72017424572584,
+          108.72018543191977
+        ],
+        "deliveredProjectedUnits": "metres"
+      },
+      {
+        "url": "https://wms.im-ldi.com/",
+        "layer": "luna_nac_pole_control_south",
+        "query": {
+          "SERVICE": "WMS",
+          "VERSION": "1.1.1",
+          "REQUEST": "GetMap",
+          "LAYERS": "luna_nac_pole_control_south",
+          "STYLES": "",
+          "SRS": "IAU2000:30120",
+          "BBOX": "-136946.208918293443,-187066.037075004831,197042.166364576347,146922.372571852669",
+          "WIDTH": "3072",
+          "HEIGHT": "3072",
+          "FORMAT": "image/tiff",
+          "TRANSPARENT": "TRUE"
+        },
+        "querySha256": "21403758f611c5a87b33409d1afd4c060c7fa238cffdf851778d65008232ff55",
+        "rawSha256": "14048a9aa8a56e49b4cd550ab8e1b786cc6a136ddebcb793c2a341a53c3ea7d3",
+        "rawBytes": 6833569,
+        "crs": "PROJCS[\"unknown\",GEOGCS[\"unknown\",DATUM[\"unknown\",SPHEROID[\"unknown\",1737400,0]],PRIMEM[\"Reference meridian\",0],UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",\"9122\"]]],PROJECTION[\"Polar_Stereographic\"],PARAMETER[\"latitude_of_origin\",-90],PARAMETER[\"central_meridian\",0],PARAMETER[\"false_easting\",0],PARAMETER[\"false_northing\",0],UNIT[\"metre\",1],AXIS[\"Easting\",NORTH],AXIS[\"Northing\",NORTH]]",
+        "transform": [
+          108.72017424572584,
+          0.0,
+          -136946.20891829344,
+          0.0,
+          -108.72018543191977,
+          146922.37257185267
+        ],
+        "dimensions": [
+          3072,
+          3072
+        ],
+        "bounds": [
+          -136946.20891829344,
+          -187066.03707500483,
+          197042.16636457635,
+          146922.37257185267
+        ],
+        "deliveredProjectedPixelSize": [
+          108.72017424572584,
+          108.72018543191977
+        ],
+        "deliveredProjectedUnits": "metres"
+      }
+    ],
+    "validFractionsByLayer": [
+      1.0,
+      0.9916834831237793
+    ],
+    "photographicCoverageFraction": 1.0,
+    "outputPixelM": 117.1875,
+    "references": [
+      "https://data.lroc.im-ldi.com/lroc/view_rdr/NAC_POLE_SOUTH_CM_AVG",
+      "https://wms.im-ldi.com/?SERVICE=WMS&REQUEST=GetCapabilities",
+      "https://data.lroc.im-ldi.com/config/lunaserv.yml"
+    ],
+    "limitations": [
+      "Archival photographic mosaic with baked shadows, not albedo or current illumination",
+      "Controlled polar average combines observations and does not represent a single realistic lighting condition",
+      "Source pixel spacing is not absolute spatial accuracy; delivered crop may be coarser than native source",
+      "WAC gap fallback is 100 m/pixel even in a NAC photographic crop",
+      "Transparent pixels, if present, are genuine missing source coverage; no synthetic surface fill",
+      "NAC source covers 99.17% of this crop; remaining covered pixels use WAC"
+    ]
+  }
+}

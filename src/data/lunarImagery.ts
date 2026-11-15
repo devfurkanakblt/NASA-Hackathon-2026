@@ -16,6 +16,8 @@ export function validateLunarImagery(value: unknown, site: SiteEntry, sizeM: num
       !Number.isFinite(s.nativePixelM) || s.nativePixelM <= 0 || typeof s.acquisition !== 'string' || !s.acquisition ||
       typeof s.crs !== 'string' || !s.crs || !Array.isArray(s.transform) || s.transform.length !== 6 || !s.transform.every(Number.isFinite) ||
       typeof s.resampling !== 'string' || !s.resampling || !Array.isArray(s.limitations) || !s.limitations.every(v => typeof v === 'string')) fail('provenance')
+  // A transparent photographic hole must never become an opaque black surface in the scene.
+  if (s.photographicCoverageFraction !== undefined && s.photographicCoverageFraction !== 1) fail('incomplete photographic coverage')
   const p = s.site
   if (!p || p.latitudeDeg !== site.latDeg || p.longitudeDeg !== site.lonDeg ||
       p.surfaceElevationM !== site.surfaceElevationM || p.observerHeightM !== site.observerHeightM) fail('observer coordinate')

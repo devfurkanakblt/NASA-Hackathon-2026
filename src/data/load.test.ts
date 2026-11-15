@@ -76,7 +76,7 @@ describe('registered archival lunar photography', () => {
     expect(data.visualWarnings).toEqual([])
   })
 
-  it.each(['observer', 'footprint', 'path', 'frame', 'shadows', 'hash', 'dimensions', 'provenance'])('omits invalid imagery %s while preserving the terrain and science', async kind => {
+  it.each(['observer', 'footprint', 'path', 'frame', 'shadows', 'hash', 'dimensions', 'provenance', 'missingPixels'])('omits invalid imagery %s while preserving the terrain and science', async kind => {
     const f = fixture()
     const image = imageryFixture(f.sites.sites[0])
     if (kind === 'observer') image.source.site.longitudeDeg++
@@ -87,6 +87,7 @@ describe('registered archival lunar photography', () => {
     if (kind === 'hash') image.sha256 = ''
     if (kind === 'dimensions') image.width = 100000
     if (kind === 'provenance') image.source.nativePixelM = NaN
+    if (kind === 'missingPixels') Object.assign(image.source, { photographicCoverageFraction: 0.99 })
     f.docs['/data/Site01/lunar-imagery.json'] = image
     mockFiles(f.docs)
     const data = (await loadAllData('/data')).bySite.Site01

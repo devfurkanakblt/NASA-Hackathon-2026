@@ -999,5 +999,120 @@
       "No invented rocks, craters or procedural noise",
       "No fine normal maps for the coarse CE6/Apollo11 contrast data"
     ]
+  },
+  "lunarPhotography": {
+    "files": [
+      {
+        "path": "public/data/Apollo11/lunar-imagery-far.json",
+        "sha256": "fd01341373f525e779594272bc0325b2190347280a3364b4c6f551492c4d5be3",
+        "bytes": 1090385,
+        "nacFraction": null
+      },
+      {
+        "path": "public/data/Apollo11/lunar-imagery.json",
+        "sha256": "57038158da675f62543abb00a4e89f7e80119da60c4a369fee179c231419331e",
+        "bytes": 209448,
+        "nacFraction": null
+      },
+      {
+        "path": "public/data/CE6/lunar-imagery-far.json",
+        "sha256": "cdf8edbf16bc5ac6e72d7faca84589944132404a43ed350e1c83707ffb113d1d",
+        "bytes": 1277869,
+        "nacFraction": null
+      },
+      {
+        "path": "public/data/CE6/lunar-imagery.json",
+        "sha256": "bcd85638f452be16c9ecb3bd20170702ee9694ea59054171738d120bda26c3c1",
+        "bytes": 195464,
+        "nacFraction": null
+      },
+      {
+        "path": "public/data/Site01/lunar-imagery-far.json",
+        "sha256": "aadbb7d160ce041a86e0e8915f986ba994fa814292f9dc639c36dcc345c11f13",
+        "bytes": 1594838,
+        "nacFraction": 1.0
+      },
+      {
+        "path": "public/data/Site01/lunar-imagery.json",
+        "sha256": "6e9fc8576dfac1e901ad84696ebe36ac10cc6bbbececae4c3fac7913e7ef62e9",
+        "bytes": 1650586,
+        "nacFraction": 1.0
+      },
+      {
+        "path": "public/data/Site04/lunar-imagery-far.json",
+        "sha256": "c51f5be78aefd4c3907d2fb128e5c5d8ce1758907318be2afcfa63587cdc95ef",
+        "bytes": 1599020,
+        "nacFraction": 1.0
+      },
+      {
+        "path": "public/data/Site04/lunar-imagery.json",
+        "sha256": "f746d1a9b2afc96fa3669f42cdc226a8cd47dc67340ff748e9d1f566a4681521",
+        "bytes": 1175613,
+        "nacFraction": 1.0
+      },
+      {
+        "path": "public/data/Site04R/lunar-imagery-far.json",
+        "sha256": "9c5a0e2f8f639a82c80c8ca8ad86c802280f1ad9215ee0f3d694395b0c308e01",
+        "bytes": 1600184,
+        "nacFraction": 1.0
+      },
+      {
+        "path": "public/data/Site04R/lunar-imagery.json",
+        "sha256": "43df638ace9bba2b132d9cf21e4ea41e4725b681e4b80ca681ffb516ab84e2a9",
+        "bytes": 1332909,
+        "nacFraction": 1.0
+      },
+      {
+        "path": "public/data/Site07/lunar-imagery-far.json",
+        "sha256": "67044651f321100d4ed7685cefc757cca64df755dbfc1cd19c94ec4dcb48201b",
+        "bytes": 1610019,
+        "nacFraction": 0.9916834831237793
+      },
+      {
+        "path": "public/data/Site07/lunar-imagery.json",
+        "sha256": "4de5bed03de2f16e5ef1b26e88ea88aa66e10a648c3b4bed88df75476fd3d2e7",
+        "bytes": 1879379,
+        "nacFraction": 1.0
+      },
+      {
+        "path": "public/data/Site11/lunar-imagery-far.json",
+        "sha256": "a99c49a66766ab3d2775330bbd7a4d9b2610c249a91f2c5045138f02d14ca7ec",
+        "bytes": 1530948,
+        "nacFraction": 0.9876389503479004
+      },
+      {
+        "path": "public/data/Site11/lunar-imagery.json",
+        "sha256": "3e5d72c39af5c0e857c23cba2f9e1b6dd472e658ed9c85844a11fa5e1e243f3a",
+        "bytes": 1862576,
+        "nacFraction": 1.0
+      },
+      {
+        "path": "public/data/Site20/lunar-imagery-far.json",
+        "sha256": "d7fd09a4b3b97dc17c4db7b47745a421a5e9a54714452caea245807c1734c0b3",
+        "bytes": 1366973,
+        "nacFraction": 0.6209831237792969
+      },
+      {
+        "path": "public/data/Site20/lunar-imagery.json",
+        "sha256": "964dddfb3bf7bbb981e72730fc7a4cfc3852de5a68b4f33122ea16d549dc077e",
+        "bytes": 1795746,
+        "nacFraction": 1.0
+      },
+      {
+        "path": "public/data/Site23/lunar-imagery-far.json",
+        "sha256": "bab50ddbd6871e3c9705b092a203b448882d7c23fab895f5e6cc1501df167c47",
+        "bytes": 1424142,
+        "nacFraction": 0.6928601264953613
+      },
+      {
+        "path": "public/data/Site23/lunar-imagery.json",
+        "sha256": "cc6f917bfd340c9ab6ea7b4f275fa686a287a248a5c07b6a08b47e0fc95a2902",
+        "bytes": 2269195,
+        "nacFraction": 1.0
+      }
+    ],
+    "totalImageBytes": 25465294,
+    "documentation": "docs/c-lunar-imagery.md",
+    "globalLocator": "public/assets/moon-lroc-wac.json"
   }
 }

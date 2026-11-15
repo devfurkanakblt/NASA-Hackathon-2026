@@ -1,6 +1,6 @@
 # C: verified terrain display and annual Earth view
 
-Current implementation is based on main `e8b5f55`. C changes remain confined to display geometry, optional visual data, their preprocessing/validation, and minimal scene-prop wiring. The scientific catalogue, terrain/horizon/ephemeris/year binaries and the D evaluation engine are not edited by C.
+Current implementation integrates main `65263a3`, including the team's new globe selector, scene preparation worker and Results layout. C changes cover display geometry, optional visual data, their preprocessing/validation, and the compact Simulation controls. The scientific catalogue, terrain/horizon/ephemeris/year binaries and the D evaluation engine are not edited by C.
 
 ## Terrain transition
 
@@ -30,15 +30,27 @@ A separate sequential JPL Horizons Q14/Q17 check covered 45 epochs, including 27
 
 The loader accepts a validated covering display grid (up to hourly) without weakening required scientific ephemeris checks. Sampling outside the visual range returns no geographic map and a date-specific warning; it never invents a rotation.
 
+## Registered lunar photography
+
+The local and regional photographs use actual LROC mosaics, sampled at the same lunar coordinates as the display terrain. South-pole local imagery uses the controlled NAC average composite; WAC supplies supported fallback areas and the non-polar context. Output pixels are north-up in the observer-centred display frame. Each manifest records the source request, returned lunar CRS and affine transform, source/output pixel spacing, observer coordinates, coverage and raw/output SHA-256. Reproduction and exact source coverage are documented in `docs/c-lunar-imagery.md`.
+
+These are archival composites with combined lighting, **not albedo maps or selected-UTC shadows**. Photograph mode uses an unlit material and a persistent warning. Switching NASA imagery off restores the unchanged Sun-direction/optional inspection shading. Photographs and normal maps never replace the scientific horizon or energy calculations. A malformed or incompletely covered image is omitted; the DEM display remains available.
+
+Independent checks compare source pixel centres and north/east orientation, lunar-radius/projection transforms, and polar/date-line coverage. At Site01, 10,000 separately calculated sample points matched the encoded photograph with grayscale mean absolute error 1.183 (JPEG compression); reversing north or east produced much larger errors. This is internal registration verification, not a claim of independently measured absolute geolocation accuracy. The display frame inherits the terrain generator's spherical surface-distance approximation at regional distances.
+
 ## Scene and UI
 
 The neutral inspection light is kept at the user's reduced setting: exposure 1.1, hemisphere fill 0.75 and inspection directional fill 0.9. It is labelled as a viewing aid and can be disabled for Sun-only shading. Actual Sun direction, body angular sizes, visibility and energy outputs remain authoritative. Shadows are illustrative, not the scientific visibility source.
 
-Controls now sit in a separate strip above the canvas, including on narrow screens. The label overlay remains attached to the canvas coordinate origin. Source/model details remain collapsed by default. The Earth camera target is 18 degrees, Sun target 32 degrees; these are camera zoom presets, not enlarged bodies. Both cameras render the measured regional mesh. The exterior smooth sphere and distant horizon curtain remain display/reference surfaces, not measured fine terrain.
+Controls now sit in a separate strip above the canvas, including on narrow screens. The label overlay remains attached to the canvas coordinate origin. Source/model details remain collapsed by default. The Earth camera target is 8 degrees, Sun target 32 degrees; these are camera zoom presets, not enlarged bodies. Both perspective terrain cameras render the measured regional mesh. The exterior smooth sphere and distant horizon curtain remain display/reference surfaces, not measured fine terrain.
+
+Three cameras are available: a north-up map with pan/zoom and a metric scale at its centre, an orbiting terrain overview, and the observer view. Map framing starts on the measured local patch; zooming out reveals coarser regional context. It is an independent NASA-data view inspired by map navigation, not an integration of Google's imagery or service.
+
+Within Simulation, the chosen scenario has a location selector, UTC start date/time, shared mission duration and explicit −1/+1/+5-day start shifts. They reuse the existing scenario/settings state and shared-link encoding. A shift edits the labelled start; it does not claim to create a preserved-baseline comparison. The latest offered start reserves the whole mission within data coverage. Invalid or loading selections do not display another scenario's terrain as their own. Existing mission-scoped Sun/Earth countdowns, elevations, total visibility hours, longest Earth outage and battery/panel values are displayed from the D engine. Automatic best-date/best-site search remains assigned to B/D in team notes.
 
 ## Verification snapshot
 
-259 JS/TS tests, 55 C Python tests and production build passed. All nine catalogue sites opened in both cameras with no shader errors. The registered Earth map was checked at April 2027 in the actual main app. At 390 px width the page did not overflow, and toolbar bottom equalled canvas viewport top: controls no longer overlay the terrain. No physical phone was attached. These checks do not constitute a flight accuracy or device-independent FPS guarantee.
+285 JS/TS tests, 68 C Python tests and production build passed. Earlier geometry checks opened all nine catalogue sites in both perspective cameras with no shader errors. Registered Earth was checked at April 2027 in the main app. At 390 px width the page did not overflow, and controls no longer overlay the terrain. The new photograph assets additionally passed all 18 hash/dimension/coordinate/coverage checks. No physical phone was attached. These checks do not constitute a flight accuracy or device-independent FPS guarantee.
 
 ## Integration and reproduction
 

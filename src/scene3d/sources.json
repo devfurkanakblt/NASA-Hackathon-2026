@@ -1,4 +1,5 @@
 {
   "moonTrek": "https://trek.nasa.gov/moon/",
+  "lrocMosaic": "https://data.lroc.im-ldi.com/lroc/view_rdr/NAC_POLE_SOUTH_CM_AVG",
   "blueMarble": "https://science.nasa.gov/earth/earth-observatory/blue-marble-next-generation/base-topography-bathymetry/"
 }
