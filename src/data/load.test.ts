@@ -161,7 +161,7 @@ describe('map and independent annual season merge regressions', () => {
     expect(data.map).toBeUndefined()
     expect(data.season).toEqual(season)
     expect(fetch.mock.calls.map(([url]) => String(url))).not.toContain('/data/Apollo11/map.json')
-    expect(fetch).toHaveBeenCalledTimes(8)
+    expect(fetch).toHaveBeenCalledTimes(9)
   })
 
   it.each(['map', 'season'])('warns on an optional %s network failure without losing science', async (kind) => {
@@ -205,6 +205,21 @@ describe('map and independent annual season merge regressions', () => {
 })
 
 describe('catalogue-driven loading and optional visuals', () => {
+  it('catalogue provenance takes its resolution, source and eye height from the data', async () => {
+    const f = fixture()
+    mockFiles(f.docs)
+    const data = (await loadAllData('/data')).bySite.Site01
+    expect(data.provenance).toEqual({
+      latDeg: -89, lonDeg: 12, observerHeightM: 2, eyeM: 102, horizonResolutionDeg: 90, horizonSource: 'catalogue',
+      ephemerisSource: 'jpl-horizons', dataHash: null, precision: 'catalogue', coverageWarnings: [],
+    })
+  })
+  it('catalogue provenance carries the horizon document warnings', async () => {
+    const f = fixture()
+    f.horizon.warnings = ['rays leave the DEM'] as never[]
+    mockFiles(f.docs)
+    expect((await loadAllData('/data')).bySite.Site01.provenance?.coverageWarnings).toEqual(['rays leave the DEM'])
+  })
   it('does not register an old Earth map after A changes the site coordinate', async () => {
     const f = fixture()
     f.sites.sites[0].lonDeg = 20
@@ -225,7 +240,7 @@ describe('catalogue-driven loading and optional visuals', () => {
     expect(data.earthOrientation).toEqual(f.orientation)
     expect(data.terrainFar).toBeUndefined() // expected optional 404, without a warning
     expect(data.visualWarnings).toEqual([])
-    expect(fetch).toHaveBeenCalledTimes(10)
+    expect(fetch).toHaveBeenCalledTimes(11)
   })
 
   it('keeps science usable when only the local visual terrain is HTTP 404', async () => {
@@ -335,8 +350,8 @@ describe('required scientific data is rejected clearly', () => {
     const loaded = await loadAllData('data')
     expect(Object.keys(loaded.bySite)).toEqual(['Site01'])
     const urls = fetch.mock.calls.map(([url]) => String(url))
-    expect(urls).toHaveLength(10)
-    expect(new Set(urls).size).toBe(10)
+    expect(urls).toHaveLength(11)
+    expect(new Set(urls).size).toBe(11)
     expect(urls.every(url => url.startsWith('data/'))).toBe(true)
   })
 
@@ -402,9 +417,12 @@ it('loads the published scientific datasets without changing their values (local
   }))
   const loaded = await loadAllData('/data')
   expect(Object.keys(loaded.bySite)).toEqual(catalogue.sites.map((s: { id: string }) => s.id))
+  expect(loaded.bySite.Site23.provenance?.coverageWarnings.join(' ')).toMatch(/866 of 3600 rays leave the 80 m DEM/)
   for (const { id } of catalogue.sites) {
     expect(loaded.bySite[id].ephemeris).toEqual(JSON.parse(readFileSync(`${directory}${id}/ephemeris.json`, 'utf8')))
     expect(loaded.bySite[id].horizon).toEqual(JSON.parse(readFileSync(`${directory}${id}/horizon.json`, 'utf8')))
+    expect(loaded.bySite[id].provenance).toMatchObject({ horizonResolutionDeg: 0.1, precision: 'catalogue', dataHash: null })
+    expect(loaded.bySite[id].provenance?.coverageWarnings).toEqual(JSON.parse(readFileSync(`${directory}${id}/horizon.json`, 'utf8')).warnings ?? [])
     expect(loaded.bySite[id].terrain).toBeDefined()
     if (existsSync(`${directory}${id}/terrain-far.json`)) expect(loaded.bySite[id].terrainFar).toBeDefined()
     if (existsSync(`${directory}${id}/earth-orientation.json`)) expect(loaded.bySite[id].earthOrientation).toBeDefined()

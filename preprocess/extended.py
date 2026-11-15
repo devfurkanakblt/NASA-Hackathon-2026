@@ -19,29 +19,43 @@ import numpy as np
 
 from . import config as C, writer as W
 from . import season as S
-from .validate import load
+from .validate import load, load_eye
 
 YEAR_FIELDS = [(b, f) for b in ("sun", "earth") for f in ("azDeg", "elDeg", "distanceM")]
 
 
-def year_array(site_id):
-    """(6, count) float32 array of the one-year series, in YEAR_FIELDS order."""
-    eph = S.as_eph(S.query_year(site_id))
+def year_array(site_id, rows=None):
+    """(6, count) float32 array of the one-year series (query_year rows), in YEAR_FIELDS order."""
+    eph = S.as_eph(S.query_year(site_id) if rows is None else rows)
     return np.stack([np.asarray(eph[b][f], dtype=np.float64) for b, f in YEAR_FIELDS]).astype("<f4")
 
 
 def write_year(site_id):
     y = year_array(site_id)
-    path = C.OUT_DIR / site_id / "year.bin"
+    if not np.isfinite(y).all():  # before any sites.json lookup, as write_year_array checks again
+        raise ValueError(f"{site_id}: year series has non-finite values, year.bin not written")
+    site = next(x for x in load_sites() if x["id"] == site_id)
+    return write_year_array(site_id, y, C.OUT_DIR / site_id, S.SEASON_START, S.SEASON_STOP,
+                            "jpl-horizons", site["latDeg"], site["lonDeg"], load_eye(site_id))
+
+
+def write_year_array(site_id, y, out_dir, start_utc, end_utc, source, lat_deg, lon_deg, eye_m):
+    """Write year.bin from a (6, count) series into out_dir; return the extended.json `year` header."""
+    if not np.isfinite(y).all():
+        raise ValueError(f"{site_id}: year series has non-finite values, year.bin not written")
+    path = out_dir / "year.bin"
     path.parent.mkdir(parents=True, exist_ok=True)
     y.tofile(path)
-    print(f"wrote {path.relative_to(C.ROOT)} ({path.stat().st_size / 1e6:.2f} MB)")
-    return {"file": "year.bin", "startUtc": S.SEASON_START, "stepS": C.STEP_S,
-            "count": int(y.shape[1]), "source": "jpl-horizons"}
+    print(f"wrote {W.display_path(path)} ({path.stat().st_size / 1e6:.2f} MB)")
+    return {"file": "year.bin", "sha256": W.sha256_file(path),
+            "startUtc": start_utc, "endUtc": end_utc, "stepS": C.STEP_S,
+            "count": int(y.shape[1]), "source": source,
+            "observer": {"latDeg": lat_deg, "lonDeg": lon_deg, "eyeM": round(float(eye_m), 2)},
+            "fields": [f"{b}.{f}" for b, f in YEAR_FIELDS]}
 
 
 # ---------------------------------------------------------------- cells
-MAP_SITES = [s for s in C.SITES if C.SITES[s].get("dem") != "ldem64"]
+MAP_SITES = [s for s in C.SITES if (C.OUT_DIR / s / "map.json").exists()]
 TEST_CELLS_61 = [(5, 5), (5, 55), (55, 5), (55, 55), (30, 10), (36, 32)]
 REFERENCE_CELLS = [("Site01", None), ("Site01", (36, 32)), ("Site04", (5, 55)), ("Site07", (55, 5)),
                    ("Site11", (2, 27))]
@@ -56,7 +70,14 @@ def cells_int16(site_id):
     """(N, 360) int16 horizons in 0.01 deg: every second 0.5 deg value (decimation, not averaging)."""
     hz = _npz(site_id)["horizons"]
     assert hz.shape[1] == 720, hz.shape
-    return np.round(hz[:, ::2].astype(np.float64) * 100).astype("<i2")
+    v = np.round(hz[:, ::2].astype(np.float64) * 100)
+    lim = np.iinfo("<i2")
+    if not np.isfinite(v).all():
+        raise ValueError(f"{site_id}: cell horizons contain non-finite values, cells.bin not written")
+    if v.min() < lim.min + 1 or v.max() > lim.max:
+        raise ValueError(f"{site_id}: cell horizons outside int16 range at 0.01 deg "
+                         f"({v.min() / 100:.2f}..{v.max() / 100:.2f} deg), cells.bin not written")
+    return v.astype("<i2")
 
 
 def eye_m(site_id):
@@ -65,11 +86,16 @@ def eye_m(site_id):
 
 def write_cells(site_id):
     c = cells_int16(site_id)
+    if (c == -32768).any():
+        raise ValueError(f"{site_id}: cells contain the -32768 sentinel, cells.bin not written")
     path = C.OUT_DIR / site_id / "cells.bin"
     c.tofile(path)
     print(f"wrote {path.relative_to(C.ROOT)} ({path.stat().st_size / 1e6:.2f} MB)")
-    return {"file": "cells.bin", "azStepDeg": 1, "count": 360, "unitDeg": 0.01, "n": int(c.shape[0]),
-            "eyeM": eye_m(site_id)}
+    g = load(site_id, "map.json")["grid"]
+    return {"file": "cells.bin", "sha256": W.sha256_file(path), "azStartDeg": 0, "azStepDeg": 1,
+            "count": 360, "coverageDeg": 360, "unitDeg": 0.01, "horizonResolutionDeg": 1,
+            "n": int(c.shape[0]), "eyeM": eye_m(site_id),
+            "grid": {k: g[k] for k in ("nx", "ny", "spacingM", "halfSizeM")}}
 
 
 def fixed_cells(nx):
@@ -168,11 +194,11 @@ def read_header(site_id):
     return json.loads(p.read_text(encoding="utf-8")) if p.exists() else None
 
 
-def write_header(site_id, year, cells=None):
-    doc = {"version": W.VERSION, "siteId": site_id, "year": year}
+def write_header(site_id, year, cells=None, out_dir=None):
+    doc = {"version": W.VERSION, "extendedSchema": 2, "siteId": site_id, "year": year}
     if cells is not None:
         doc["cells"] = cells
-    W.write(C.OUT_DIR / site_id / "extended.json", doc)
+    W.write((out_dir or C.OUT_DIR / site_id) / "extended.json", doc)
     return doc
 
 

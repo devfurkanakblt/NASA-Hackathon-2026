@@ -63,6 +63,9 @@ SITES = {
                             "terrain from the global 474 m/px LOLA map; nearby small hills are not resolved"]),
 }
 
+from .mission_catalogue import MISSION_SITES
+SITES.update(MISSION_SITES)
+
 PGDA = "https://pgda.gsfc.nasa.gov/data"
 REGIONAL_DEM_URL = f"{PGDA}/LOLA_20mpp/LDEM_80S_80MPP_ADJ.TIF"
 

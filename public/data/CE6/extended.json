@@ -1,1 +1,1 @@
-{"version":1,"siteId":"CE6","year":{"file":"year.bin","startUtc":"2026-11-01T00:00:00Z","stepS":600,"count":52561,"source":"jpl-horizons"}}
+{"version":1,"extendedSchema":2,"siteId":"CE6","year":{"file":"year.bin","sha256":"e82e13d76b1ae59881a3210282235cee0d218e3fcd9568a5a15b810b9b10f415","startUtc":"2026-11-01T00:00:00Z","endUtc":"2027-11-01T00:00:00Z","stepS":600,"count":52561,"source":"jpl-horizons","observer":{"latDeg":-41.6385,"lonDeg":-153.9852,"eyeM":-5252.77},"fields":["sun.azDeg","sun.elDeg","sun.distanceM","earth.azDeg","earth.elDeg","earth.distanceM"]}}

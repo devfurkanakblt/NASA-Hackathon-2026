@@ -49,6 +49,14 @@ NASA data ──► Python preprocessing (offline) ──► public/data/*.json 
 
 ### Sites
 
+The catalogue contains **32 points**. The original nine are listed below. The 23 additions cover
+Apollo 12/14–17, IM-1/IM-2, Blue Ghost 1, Chandrayaan-3, SLIM, Chang'e-3/4/5, Peregrine's
+historical target-region centre, and one published research candidate for each of NASA's nine
+October 2024 Artemis III candidate regions. Research representatives are not approved landing
+sites; Peregrine did not land on the Moon. Coordinate status, primary sources and DEM resolution
+travel with each point. Details: [mission catalogue](preprocess/mission_catalogue.py),
+[independent validation and DEM coverage](docs/validation-missions.md).
+
 | Id | Name | Lat | Lon (east) | Note |
 |---|---|---|---|---|
 | Site01 | Connecting Ridge | −89.4632° | −137.49° | |
@@ -64,9 +72,16 @@ NASA data ──► Python preprocessing (offline) ──► public/data/*.json 
 Coordinates: NASA Lunar Surface Data Book (M2M-30044, 2025), Table A2.1-1; contrast points from
 LROC (Chang'e-6) and NASA NSSDC (Apollo 11). Missions of 1–30 days can start anywhere from
 1 Nov 2026 to 1 Nov 2027 UTC (10-minute steps; a site's one-year series loads when a mission runs past
-1 Jan 2027). Each polar site also has a regional map (`map.json`: Sun / Earth visibility
+1 Jan 2027; the entire mission must fit the available series). Each original polar site also has a regional map (`map.json`: Sun / Earth visibility
 and slope on a ±3 km grid) whose points can be simulated as missions, and a one-year monthly summary
 (`season.json`); see the [data contract](docs/data-contract.md).
+
+For longer studies the repository includes a **2026–2029 Connecting Ridge package**.
+`python -m preprocess.custom_point` generates other coordinates/periods with an explicit terrain
+choice: local 5 m (strict default), south-polar 80 m, or global ~474 m screening. Dates may be
+within 2000–2040, up to 1830 days per package. A hash-checking TypeScript importer and generation
+contract are ready for B/D; the current coordinate form still snaps to existing regional cells.
+See [preprocessing](preprocess/README.md) and [package contract](docs/data-contract.md).
 
 ### Model
 
@@ -74,6 +89,8 @@ and slope on a ±3 km grid) whose points can be simulated as missions, and a one
 azimuth: `el > horizonAt(az)`, with `horizonAt` a circular linear interpolation of a 3 600-direction
 (0.1°) horizon profile. The profile is computed from LOLA 5 m/px DEMs within 7 km and the 80 m/px
 south-pole DEM out to 250 km, with lunar curvature. The 3D scene never decides visibility.
+New mission points outside local tile coverage explicitly use the 80 m regional or ~474 m global
+DEM. Their 0.1° horizon sampling does not resolve small terrain hazards or certify landing safety.
 
 **Power.**
 
@@ -119,7 +136,7 @@ rise/set time. DEM pixel size and the checks below are not a statement of absolu
 - LOLA 80 m/px south-pole DEM: Barker, M.K. et al. (2023), *A New View of the Lunar South Pole from LOLA*, PSJ 4, 183. doi:10.3847/PSJ/acf3e1; data doi:10.60903/gsfcpgda-lola-spole — https://pgda.gsfc.nasa.gov/products/90
 - NASA Moon Trek (LOLA 5 m south-pole mosaic, cross-check) — https://trek.nasa.gov/moon/
 - NASA Moon Trek, LOLA 30 m/px south-pole DEM `LRO_LOLA_DEM_SPole75_30mp_v04` (regional terrain in the 3D view, display only) — https://trek.nasa.gov/moon/
-- NASA Earth Observatory, *Blue Marble: Next Generation* (November 2004) (Earth texture in the 3D view, display only) — https://science.nasa.gov/earth/earth-observatory/blue-marble-next-generation/base-topography-bathymetry/
+- NASA Earth Observatory, *Blue Marble: Next Generation* (November 2004) (Earth image in the 3D view: archive composite, not live imagery; display only) — https://science.nasa.gov/earth/earth-observatory/blue-marble-next-generation/base-topography-bathymetry/
 - NASA, *Moon to Mars (M2M) Lunar Surface Data Book*, M2M-30044 Baseline (2025), NASA/TP-20250002845, Table A2.1-1 (site coordinates) — https://ntrs.nasa.gov/citations/20250002845
 - LOLA global DEM LDEM_64 (~474 m/px), PDS LRO-L-LOLA-4-GDR-V1.0 (contrast points) — https://pds-geosciences.wustl.edu/missions/lro/lola.htm
 - NASA GSFC PGDA Lunar Polar Illumination maps (Mazarico et al.) — https://pgda.gsfc.nasa.gov/products/69

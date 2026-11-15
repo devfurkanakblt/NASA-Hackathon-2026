@@ -11,6 +11,8 @@ python -m preprocess.build_all         # ephemeris + horizon + terrain + sites.j
 python -m preprocess.reference         # -> docs/reference/visibility.{json,md} (expected values for the web app's tests)
 python -m preprocess.season            # -> {site}/season.json (1 year, monthly summary; needs reference first)
 python -m preprocess.regional_map      # -> {site}/map.json (per-cell horizon, Sun/Earth %, slope; ~30 min/site)
+python -m preprocess.refine_cells   # -> {site}/refined.json (finalist map cells recomputed with the 0.1° catalogue horizon; not wired into the app yet)
+python -m preprocess.coverage        # -> public/data/coverage.json (where each kind of point is accepted)
 python -m preprocess.validate          # -> docs/validation.md §1-4 (Skyfield, horizon, Horizons re-query, rise/set timing)
 python -m preprocess.external          # -> docs/validation.md §5 (Mazarico et al. illumination products; data_raw/illum)
 python -m preprocess.map_check         # -> docs/validation.md §6 (map cells vs full-resolution horizon)
@@ -18,7 +20,70 @@ python -m preprocess.crosscheck_moontrek  # -> docs/validation-moontrek.md (terr
 python -m preprocess.figures          # -> docs/figures/*.png (Site04 map, 1-year monthly visibility; for the slides)
 python -m pytest preprocess/tests      # unit tests
 python -m preprocess.make_sample       # synthetic sample in public/data/_sample
+python -m preprocess.custom_point --id P001 --lat -89.45 --lon -137.2 [--start ... --stop ...] [--source skyfield]
+                                       # -> custom/P001/ data package for a free coordinate (see below)
 ```
+
+## Custom point packages
+
+`preprocess.custom_point` builds the same files as a catalogue site for a free coordinate, into
+`public/data/custom/<id>/`: `horizon.json` (0.1°), `terrain.json`, `ephemeris.json` (main two-month
+period), `year.bin` + `extended.json` (schema 2) and `site.json` (`sites.json` entry format,
+`category: "custom"`) and a hash-bound `package.json` manifest. `sites.json` is not changed;
+`src/data/scientificPackage.ts` accepts package bytes for B/D integration. The current form still snaps to existing map cells.
+
+- **Default accepted area (`--terrain local5m`):** the whole 7 km near range must lie inside one LOLA 5 m tile. On the ~16 km
+  Site01/04/07/11/20 tiles that is roughly a 2 km box around the tile centre. Points outside it are
+  rejected; the 80 m regional DEM is never used as a silent fallback for the near field.
+  Explicit `--terrain regional` allows south-polar points using the 80 m DEM; `--terrain global`
+  allows any lunar latitude/longitude using global LDEM_64 (~474 m/px), including the longitude seam
+  and polar caps. This is coarse screening, not local-hazard assessment. Missing regional terrain
+  is warned about; a display patch may be smaller if its original 10 km footprint leaves the DEM.
+- **Time range:** `--start`/`--stop` default to 2026-11-01T00:00:00Z … 2027-11-01T00:00:00Z, must lie in
+  2000-01-01T00:00:00Z … 2040-01-01T00:00:00Z, on the 600 s grid, with at most 1830 days per package;
+  `--stop` must be after `--start`. The JSON series starts at the requested start and covers up to
+  61 days; `year.bin` covers the entire requested period. Longitude is normalised to
+  (−180, 180].
+- **One observer:** horizon, ephemeris and year series use the same eye, surface height + 2 m
+  (`extended.json` `year.observer`).
+- **Warnings:** far terrain missing from the 80 m DEM is reported in `horizon.json` and `site.json`
+  `warnings`, never set to zero.
+- **Rejections** exit with code 2 and an English reason. Nothing is written: the package is built in a
+  temporary directory and renamed into place only when complete.
+
+## Mission catalogue and longer studies
+
+`python -m preprocess.build_missions` builds the 23 new source-pinned mission/research points
+in `preprocess/mission_catalogue.py`. It queries Skyfield/DE421 by default (explicitly labelled),
+publishes matching main/annual ephemeris, horizon, terrain, monthly summary and portable package,
+then updates `sites.json`. Use `--source horizons` for JPL production instead. Complete packages
+are reused; `--force` regenerates selected points. Rebuild references and coverage afterward:
+
+```bash
+python -m preprocess.reference
+python -m preprocess.coverage
+python -m preprocess.package_index
+python -m preprocess.validate_missions
+```
+
+The nine Artemis entries are representative research candidates from Wueller et al., Table A1
+(doi:10.1029/2025JE009434), associated with NASA's dated October 2024 Artemis III region list.
+They are neither region centroids nor approved touchdown coordinates. Peregrine's entry is the
+IAU centre of its historical target region; it is not an actual landing location. Source URLs,
+coordinate status, warnings and explicit DEM choices accompany each record. The two Artemis
+points covered by the existing Site20/Site23 5 m tiles reuse those tiles. Other points use explicitly
+labelled regional 80 m or global ~474 m data. Nearest-site distances and full near-field coverage
+are checked in `docs/validation-missions.md`; region polygon containment is not inferred.
+
+Example multiyear package (included under `public/data/packages/`):
+
+```bash
+python -m preprocess.custom_point --id ConnectingRidge2026to2029 --lat -89.4632 --lon -137.49 --start 2026-11-01T00:00:00Z --stop 2029-11-01T00:00:00Z --source skyfield --out-root public/data/packages
+```
+
+`public/data/packages.json` lists discoverable manifests and independent coverage periods. The
+base catalogue still has the existing one-year range; importing a package does not silently extend
+every other site's coverage. See `docs/data-contract.md` for the generation/import boundary.
 
 ## Method
 

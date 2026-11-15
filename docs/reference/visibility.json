@@ -1490,6 +1490,3467 @@
      "visible": true
     }
    ]
+  },
+  "Apollo12": {
+   "samples": 8785,
+   "percentVisible": {
+    "sun": 51.63,
+    "earth": 100.0,
+    "both": 51.63
+   },
+   "sunDiskFractionMean": 0.5163,
+   "neverVisible": {
+    "sun": false,
+    "earth": false
+   },
+   "alwaysVisible": {
+    "sun": false,
+    "earth": true
+   },
+   "events": {
+    "sun": 4,
+    "earth": 0
+   },
+   "longestHidden": {
+    "sun": {
+     "startIndex": 4720,
+     "startUtc": "2026-12-03T18:40:00Z",
+     "durationS": 1275600,
+     "openAtStart": false,
+     "openAtEnd": false
+    },
+    "earth": null
+   },
+   "windows": {
+    "sun": [
+     {
+      "startIndex": 0,
+      "endIndex": 460,
+      "durationS": 276000,
+      "openAtStart": true,
+      "openAtEnd": false
+     },
+     {
+      "startIndex": 2583,
+      "endIndex": 4720,
+      "durationS": 1282200,
+      "openAtStart": false,
+      "openAtEnd": false
+     },
+     {
+      "startIndex": 6846,
+      "endIndex": 8785,
+      "durationS": 1163400,
+      "openAtStart": false,
+      "openAtEnd": true
+     }
+    ],
+    "earth": [
+     {
+      "startIndex": 0,
+      "endIndex": 8785,
+      "durationS": 5271000,
+      "openAtStart": true,
+      "openAtEnd": true
+     }
+    ]
+   },
+   "spotChecks": [
+    {
+     "index": 0,
+     "utc": "2026-11-01T00:00:00Z",
+     "body": "sun",
+     "azDeg": 270.5387,
+     "elDeg": 38.5722,
+     "horizonDeg": -0.1870678,
+     "visible": true
+    },
+    {
+     "index": 0,
+     "utc": "2026-11-01T00:00:00Z",
+     "body": "earth",
+     "azDeg": 91.1592,
+     "elDeg": 62.5376,
+     "horizonDeg": 0.1356264,
+     "visible": true
+    },
+    {
+     "index": 8784,
+     "utc": "2027-01-01T00:00:00Z",
+     "body": "sun",
+     "azDeg": 269.8371,
+     "elDeg": 16.5664,
+     "horizonDeg": -0.1914774,
+     "visible": true
+    },
+    {
+     "index": 8784,
+     "utc": "2027-01-01T00:00:00Z",
+     "body": "earth",
+     "azDeg": 73.5727,
+     "elDeg": 58.0005,
+     "horizonDeg": 0.3095457,
+     "visible": true
+    },
+    {
+     "index": 459,
+     "utc": "2026-11-04T04:30:00Z",
+     "body": "sun",
+     "azDeg": 268.4982,
+     "elDeg": -0.1878,
+     "horizonDeg": -0.2000108,
+     "visible": true
+    },
+    {
+     "index": 460,
+     "utc": "2026-11-04T04:40:00Z",
+     "body": "sun",
+     "azDeg": 268.4936,
+     "elDeg": -0.2723,
+     "horizonDeg": -0.2000384,
+     "visible": false
+    },
+    {
+     "index": 7913,
+     "utc": "2026-12-25T22:50:00Z",
+     "body": "sun",
+     "azDeg": 359.655,
+     "elDeg": 88.13,
+     "horizonDeg": 0.365085,
+     "visible": true
+    },
+    {
+     "index": 1484,
+     "utc": "2026-11-11T07:20:00Z",
+     "body": "earth",
+     "azDeg": 69.9011,
+     "elDeg": 62.6823,
+     "horizonDeg": 0.3395901,
+     "visible": true
+    }
+   ]
+  },
+  "Apollo14": {
+   "samples": 8785,
+   "percentVisible": {
+    "sun": 50.85,
+    "earth": 100.0,
+    "both": 50.85
+   },
+   "sunDiskFractionMean": 0.5086,
+   "neverVisible": {
+    "sun": false,
+    "earth": false
+   },
+   "alwaysVisible": {
+    "sun": false,
+    "earth": true
+   },
+   "events": {
+    "sun": 4,
+    "earth": 0
+   },
+   "longestHidden": {
+    "sun": {
+     "startIndex": 4644,
+     "startUtc": "2026-12-03T06:00:00Z",
+     "durationS": 1296000,
+     "openAtStart": false,
+     "openAtEnd": false
+    },
+    "earth": null
+   },
+   "windows": {
+    "sun": [
+     {
+      "startIndex": 0,
+      "endIndex": 384,
+      "durationS": 230400,
+      "openAtStart": true,
+      "openAtEnd": false
+     },
+     {
+      "startIndex": 2542,
+      "endIndex": 4644,
+      "durationS": 1261200,
+      "openAtStart": false,
+      "openAtEnd": false
+     },
+     {
+      "startIndex": 6804,
+      "endIndex": 8785,
+      "durationS": 1188600,
+      "openAtStart": false,
+      "openAtEnd": true
+     }
+    ],
+    "earth": [
+     {
+      "startIndex": 0,
+      "endIndex": 8785,
+      "durationS": 5271000,
+      "openAtStart": true,
+      "openAtEnd": true
+     }
+    ]
+   },
+   "spotChecks": [
+    {
+     "index": 0,
+     "utc": "2026-11-01T00:00:00Z",
+     "body": "sun",
+     "azDeg": 270.6036,
+     "elDeg": 32.6261,
+     "horizonDeg": 0.2144316,
+     "visible": true
+    },
+    {
+     "index": 0,
+     "utc": "2026-11-01T00:00:00Z",
+     "body": "earth",
+     "azDeg": 89.4899,
+     "elDeg": 68.507,
+     "horizonDeg": 2.6297828,
+     "visible": true
+    },
+    {
+     "index": 8784,
+     "utc": "2027-01-01T00:00:00Z",
+     "body": "sun",
+     "azDeg": 269.6508,
+     "elDeg": 10.6292,
+     "horizonDeg": 0.2325348,
+     "visible": true
+    },
+    {
+     "index": 8784,
+     "utc": "2027-01-01T00:00:00Z",
+     "body": "earth",
+     "azDeg": 68.7064,
+     "elDeg": 63.4431,
+     "horizonDeg": 2.5478624,
+     "visible": true
+    },
+    {
+     "index": 383,
+     "utc": "2026-11-03T15:50:00Z",
+     "body": "sun",
+     "azDeg": 268.5325,
+     "elDeg": 0.3094,
+     "horizonDeg": 0.2536825,
+     "visible": true
+    },
+    {
+     "index": 384,
+     "utc": "2026-11-03T16:00:00Z",
+     "body": "sun",
+     "azDeg": 268.5271,
+     "elDeg": 0.2249,
+     "horizonDeg": 0.2537851,
+     "visible": false
+    },
+    {
+     "index": 7842,
+     "utc": "2026-12-25T11:00:00Z",
+     "body": "sun",
+     "azDeg": 0.3959,
+     "elDeg": 87.5094,
+     "horizonDeg": 0.4721975,
+     "visible": true
+    },
+    {
+     "index": 1609,
+     "utc": "2026-11-12T04:10:00Z",
+     "body": "earth",
+     "azDeg": 62.9366,
+     "elDeg": 68.9915,
+     "horizonDeg": 2.2983516,
+     "visible": true
+    }
+   ]
+  },
+  "Apollo15": {
+   "samples": 8785,
+   "percentVisible": {
+    "sun": 47.16,
+    "earth": 100.0,
+    "both": 47.16
+   },
+   "sunDiskFractionMean": 0.4717,
+   "neverVisible": {
+    "sun": false,
+    "earth": false
+   },
+   "alwaysVisible": {
+    "sun": false,
+    "earth": true
+   },
+   "events": {
+    "sun": 5,
+    "earth": 0
+   },
+   "longestHidden": {
+    "sun": {
+     "startIndex": 4380,
+     "startUtc": "2026-12-01T10:00:00Z",
+     "durationS": 1351200,
+     "openAtStart": false,
+     "openAtEnd": false
+    },
+    "earth": null
+   },
+   "windows": {
+    "sun": [
+     {
+      "startIndex": 0,
+      "endIndex": 120,
+      "durationS": 72000,
+      "openAtStart": true,
+      "openAtEnd": false
+     },
+     {
+      "startIndex": 2371,
+      "endIndex": 4380,
+      "durationS": 1205400,
+      "openAtStart": false,
+      "openAtEnd": false
+     },
+     {
+      "startIndex": 6632,
+      "endIndex": 8646,
+      "durationS": 1208400,
+      "openAtStart": false,
+      "openAtEnd": false
+     }
+    ],
+    "earth": [
+     {
+      "startIndex": 0,
+      "endIndex": 8785,
+      "durationS": 5271000,
+      "openAtStart": true,
+      "openAtEnd": true
+     }
+    ]
+   },
+   "spotChecks": [
+    {
+     "index": 0,
+     "utc": "2026-11-01T00:00:00Z",
+     "body": "sun",
+     "azDeg": 263.5588,
+     "elDeg": 9.6529,
+     "horizonDeg": 0.8928676,
+     "visible": true
+    },
+    {
+     "index": 0,
+     "utc": "2026-11-01T00:00:00Z",
+     "body": "earth",
+     "azDeg": 179.3406,
+     "elDeg": 60.5253,
+     "horizonDeg": 13.2996406,
+     "visible": true
+    },
+    {
+     "index": 8784,
+     "utc": "2027-01-01T00:00:00Z",
+     "body": "sun",
+     "azDeg": 273.7533,
+     "elDeg": -9.8846,
+     "horizonDeg": 0.586067,
+     "visible": false
+    },
+    {
+     "index": 8784,
+     "utc": "2027-01-01T00:00:00Z",
+     "body": "earth",
+     "azDeg": 169.8278,
+     "elDeg": 69.4905,
+     "horizonDeg": 12.0417426,
+     "visible": true
+    },
+    {
+     "index": 119,
+     "utc": "2026-11-01T19:50:00Z",
+     "body": "sun",
+     "azDeg": 268.0503,
+     "elDeg": 0.6462,
+     "horizonDeg": 0.5797042,
+     "visible": true
+    },
+    {
+     "index": 120,
+     "utc": "2026-11-01T20:00:00Z",
+     "body": "sun",
+     "azDeg": 268.0875,
+     "elDeg": 0.5703,
+     "horizonDeg": 0.580225,
+     "visible": false
+    },
+    {
+     "index": 5460,
+     "utc": "2026-12-08T22:00:00Z",
+     "body": "sun",
+     "azDeg": 359.9901,
+     "elDeg": -65.3057,
+     "horizonDeg": 0.6414464,
+     "visible": false
+    },
+    {
+     "index": 6681,
+     "utc": "2026-12-17T09:30:00Z",
+     "body": "earth",
+     "azDeg": 201.8389,
+     "elDeg": 58.0034,
+     "horizonDeg": 6.144552,
+     "visible": true
+    }
+   ]
+  },
+  "Apollo16": {
+   "samples": 8785,
+   "percentVisible": {
+    "sun": 48.41,
+    "earth": 100.0,
+    "both": 48.41
+   },
+   "sunDiskFractionMean": 0.4841,
+   "neverVisible": {
+    "sun": false,
+    "earth": false
+   },
+   "alwaysVisible": {
+    "sun": false,
+    "earth": true
+   },
+   "events": {
+    "sun": 4,
+    "earth": 0
+   },
+   "longestHidden": {
+    "sun": {
+     "startIndex": 4257,
+     "startUtc": "2026-11-30T13:30:00Z",
+     "durationS": 1281600,
+     "openAtStart": false,
+     "openAtEnd": false
+    },
+    "earth": null
+   },
+   "windows": {
+    "sun": [
+     {
+      "startIndex": 2131,
+      "endIndex": 4257,
+      "durationS": 1275600,
+      "openAtStart": false,
+      "openAtEnd": false
+     },
+     {
+      "startIndex": 6393,
+      "endIndex": 8520,
+      "durationS": 1276200,
+      "openAtStart": false,
+      "openAtEnd": false
+     }
+    ],
+    "earth": [
+     {
+      "startIndex": 0,
+      "endIndex": 8785,
+      "durationS": 5271000,
+      "openAtStart": true,
+      "openAtEnd": true
+     }
+    ]
+   },
+   "spotChecks": [
+    {
+     "index": 0,
+     "utc": "2026-11-01T00:00:00Z",
+     "body": "sun",
+     "azDeg": 268.5028,
+     "elDeg": -0.1391,
+     "horizonDeg": 0.11481,
+     "visible": false
+    },
+    {
+     "index": 0,
+     "utc": "2026-11-01T00:00:00Z",
+     "body": "earth",
+     "azDeg": 295.9642,
+     "elDeg": 77.0992,
+     "horizonDeg": 0.4206556,
+     "visible": true
+    },
+    {
+     "index": 8784,
+     "utc": "2027-01-01T00:00:00Z",
+     "body": "sun",
+     "azDeg": 265.2462,
+     "elDeg": -21.9232,
+     "horizonDeg": 0.0660386,
+     "visible": false
+    },
+    {
+     "index": 8784,
+     "utc": "2027-01-01T00:00:00Z",
+     "body": "earth",
+     "azDeg": 330.7338,
+     "elDeg": 72.8142,
+     "horizonDeg": 0.9411266,
+     "visible": true
+    },
+    {
+     "index": 2130,
+     "utc": "2026-11-15T19:00:00Z",
+     "body": "sun",
+     "azDeg": 91.4261,
+     "elDeg": 0.9461,
+     "horizonDeg": 0.9807701,
+     "visible": false
+    },
+    {
+     "index": 2131,
+     "utc": "2026-11-15T19:10:00Z",
+     "body": "sun",
+     "azDeg": 91.4129,
+     "elDeg": 1.0296,
+     "horizonDeg": 0.9802289,
+     "visible": true
+    },
+    {
+     "index": 3188,
+     "utc": "2026-11-23T03:20:00Z",
+     "body": "sun",
+     "azDeg": 359.9021,
+     "elDeg": 82.5573,
+     "horizonDeg": 2.2563856,
+     "visible": true
+    },
+    {
+     "index": 8743,
+     "utc": "2026-12-31T17:10:00Z",
+     "body": "earth",
+     "azDeg": 330.7855,
+     "elDeg": 73.0579,
+     "horizonDeg": 0.9440735,
+     "visible": true
+    }
+   ]
+  },
+  "Apollo17": {
+   "samples": 8785,
+   "percentVisible": {
+    "sun": 46.36,
+    "earth": 100.0,
+    "both": 46.36
+   },
+   "sunDiskFractionMean": 0.4637,
+   "neverVisible": {
+    "sun": false,
+    "earth": false
+   },
+   "alwaysVisible": {
+    "sun": false,
+    "earth": true
+   },
+   "events": {
+    "sun": 4,
+    "earth": 0
+   },
+   "longestHidden": {
+    "sun": {
+     "startIndex": 4039,
+     "startUtc": "2026-11-29T01:10:00Z",
+     "durationS": 1335600,
+     "openAtStart": false,
+     "openAtEnd": false
+    },
+    "earth": null
+   },
+   "windows": {
+    "sun": [
+     {
+      "startIndex": 2004,
+      "endIndex": 4039,
+      "durationS": 1221000,
+      "openAtStart": false,
+      "openAtEnd": false
+     },
+     {
+      "startIndex": 6265,
+      "endIndex": 8303,
+      "durationS": 1222800,
+      "openAtStart": false,
+      "openAtEnd": false
+     }
+    ],
+    "earth": [
+     {
+      "startIndex": 0,
+      "endIndex": 8785,
+      "durationS": 5271000,
+      "openAtStart": true,
+      "openAtEnd": true
+     }
+    ]
+   },
+   "spotChecks": [
+    {
+     "index": 0,
+     "utc": "2026-11-01T00:00:00Z",
+     "body": "sun",
+     "azDeg": 274.1093,
+     "elDeg": -15.1743,
+     "horizonDeg": 3.8044134,
+     "visible": false
+    },
+    {
+     "index": 0,
+     "utc": "2026-11-01T00:00:00Z",
+     "body": "earth",
+     "azDeg": 231.3594,
+     "elDeg": 54.6291,
+     "horizonDeg": 11.525864,
+     "visible": true
+    },
+    {
+     "index": 8784,
+     "utc": "2027-01-01T00:00:00Z",
+     "body": "sun",
+     "azDeg": 283.7853,
+     "elDeg": -35.4093,
+     "horizonDeg": 2.7583032,
+     "visible": false
+    },
+    {
+     "index": 8784,
+     "utc": "2027-01-01T00:00:00Z",
+     "body": "earth",
+     "azDeg": 241.4459,
+     "elDeg": 62.9446,
+     "horizonDeg": 10.9896459,
+     "visible": true
+    },
+    {
+     "index": 2003,
+     "utc": "2026-11-14T21:50:00Z",
+     "body": "sun",
+     "azDeg": 93.2783,
+     "elDeg": 4.3766,
+     "horizonDeg": 4.4203329,
+     "visible": false
+    },
+    {
+     "index": 2004,
+     "utc": "2026-11-14T22:00:00Z",
+     "body": "sun",
+     "azDeg": 93.3079,
+     "elDeg": 4.4558,
+     "horizonDeg": 4.4221898,
+     "visible": true
+    },
+    {
+     "index": 879,
+     "utc": "2026-11-07T02:30:00Z",
+     "body": "sun",
+     "azDeg": 0.0936,
+     "elDeg": -71.3302,
+     "horizonDeg": 13.8137272,
+     "visible": false
+    },
+    {
+     "index": 1666,
+     "utc": "2026-11-12T13:40:00Z",
+     "body": "earth",
+     "azDeg": 247.6655,
+     "elDeg": 57.2218,
+     "horizonDeg": 10.379441,
+     "visible": true
+    }
+   ]
+  },
+  "IM1": {
+   "samples": 8785,
+   "percentVisible": {
+    "sun": 43.14,
+    "earth": 100.0,
+    "both": 43.14
+   },
+   "sunDiskFractionMean": 0.4313,
+   "neverVisible": {
+    "sun": false,
+    "earth": false
+   },
+   "alwaysVisible": {
+    "sun": false,
+    "earth": true
+   },
+   "events": {
+    "sun": 5,
+    "earth": 0
+   },
+   "longestHidden": {
+    "sun": {
+     "startIndex": 4422,
+     "startUtc": "2026-12-01T17:00:00Z",
+     "durationS": 1463400,
+     "openAtStart": false,
+     "openAtEnd": false
+    },
+    "earth": null
+   },
+   "windows": {
+    "sun": [
+     {
+      "startIndex": 0,
+      "endIndex": 162,
+      "durationS": 97200,
+      "openAtStart": true,
+      "openAtEnd": false
+     },
+     {
+      "startIndex": 2589,
+      "endIndex": 4422,
+      "durationS": 1099800,
+      "openAtStart": false,
+      "openAtEnd": false
+     },
+     {
+      "startIndex": 6861,
+      "endIndex": 8656,
+      "durationS": 1077000,
+      "openAtStart": false,
+      "openAtEnd": false
+     }
+    ],
+    "earth": [
+     {
+      "startIndex": 0,
+      "endIndex": 8785,
+      "durationS": 5271000,
+      "openAtStart": true,
+      "openAtEnd": true
+     }
+    ]
+   },
+   "spotChecks": [
+    {
+     "index": 0,
+     "utc": "2026-11-01T00:00:00Z",
+     "body": "sun",
+     "azDeg": 283.2522,
+     "elDeg": 3.7613,
+     "horizonDeg": 1.5109334,
+     "visible": true
+    },
+    {
+     "index": 0,
+     "utc": "2026-11-01T00:00:00Z",
+     "body": "earth",
+     "azDeg": 2.5798,
+     "elDeg": 12.8058,
+     "horizonDeg": 0.1118858,
+     "visible": true
+    },
+    {
+     "index": 8784,
+     "utc": "2027-01-01T00:00:00Z",
+     "body": "sun",
+     "azDeg": 261.6251,
+     "elDeg": -0.4228,
+     "horizonDeg": 1.8005948,
+     "visible": false
+    },
+    {
+     "index": 8784,
+     "utc": "2027-01-01T00:00:00Z",
+     "body": "earth",
+     "azDeg": 5.7268,
+     "elDeg": 3.5712,
+     "horizonDeg": -0.0422564,
+     "visible": true
+    },
+    {
+     "index": 161,
+     "utc": "2026-11-02T02:50:00Z",
+     "body": "sun",
+     "azDeg": 269.8294,
+     "elDeg": 1.4599,
+     "horizonDeg": 1.4471238,
+     "visible": true
+    },
+    {
+     "index": 162,
+     "utc": "2026-11-02T03:00:00Z",
+     "body": "sun",
+     "azDeg": 269.7461,
+     "elDeg": 1.4454,
+     "horizonDeg": 1.4500099,
+     "visible": false
+    },
+    {
+     "index": 3355,
+     "utc": "2026-11-24T07:10:00Z",
+     "body": "sun",
+     "azDeg": 359.9784,
+     "elDeg": 11.3925,
+     "horizonDeg": 0.1310792,
+     "visible": true
+    },
+    {
+     "index": 7769,
+     "utc": "2026-12-24T22:50:00Z",
+     "body": "earth",
+     "azDeg": 0.0013,
+     "elDeg": 13.5126,
+     "horizonDeg": 0.131952,
+     "visible": true
+    }
+   ]
+  },
+  "IM2": {
+   "samples": 8785,
+   "percentVisible": {
+    "sun": 50.52,
+    "earth": 82.29,
+    "both": 50.52
+   },
+   "sunDiskFractionMean": 0.5042,
+   "neverVisible": {
+    "sun": false,
+    "earth": false
+   },
+   "alwaysVisible": {
+    "sun": false,
+    "earth": false
+   },
+   "events": {
+    "sun": 5,
+    "earth": 5
+   },
+   "longestHidden": {
+    "sun": {
+     "startIndex": 4297,
+     "startUtc": "2026-11-30T20:10:00Z",
+     "durationS": 1239600,
+     "openAtStart": false,
+     "openAtEnd": false
+    },
+    "earth": {
+     "startIndex": 4805,
+     "startUtc": "2026-12-04T08:50:00Z",
+     "durationS": 450000,
+     "openAtStart": false,
+     "openAtEnd": false
+    }
+   },
+   "windows": {
+    "sun": [
+     {
+      "startIndex": 0,
+      "endIndex": 36,
+      "durationS": 21600,
+      "openAtStart": true,
+      "openAtEnd": false
+     },
+     {
+      "startIndex": 2054,
+      "endIndex": 4297,
+      "durationS": 1345800,
+      "openAtStart": false,
+      "openAtEnd": false
+     },
+     {
+      "startIndex": 6363,
+      "endIndex": 8522,
+      "durationS": 1295400,
+      "openAtStart": false,
+      "openAtEnd": false
+     }
+    ],
+    "earth": [
+     {
+      "startIndex": 0,
+      "endIndex": 942,
+      "durationS": 565200,
+      "openAtStart": true,
+      "openAtEnd": false
+     },
+     {
+      "startIndex": 1649,
+      "endIndex": 4805,
+      "durationS": 1893600,
+      "openAtStart": false,
+      "openAtEnd": false
+     },
+     {
+      "startIndex": 5555,
+      "endIndex": 8686,
+      "durationS": 1878600,
+      "openAtStart": false,
+      "openAtEnd": false
+     }
+    ]
+   },
+   "spotChecks": [
+    {
+     "index": 0,
+     "utc": "2026-11-01T00:00:00Z",
+     "body": "sun",
+     "azDeg": 255.8625,
+     "elDeg": 0.1865,
+     "horizonDeg": -0.1963,
+     "visible": true
+    },
+    {
+     "index": 0,
+     "utc": "2026-11-01T00:00:00Z",
+     "body": "earth",
+     "azDeg": 334.5439,
+     "elDeg": 7.6493,
+     "horizonDeg": -1.2029465,
+     "visible": true
+    },
+    {
+     "index": 8784,
+     "utc": "2027-01-01T00:00:00Z",
+     "body": "sun",
+     "azDeg": 233.9582,
+     "elDeg": -2.054,
+     "horizonDeg": 0.8063154,
+     "visible": false
+    },
+    {
+     "index": 8784,
+     "utc": "2027-01-01T00:00:00Z",
+     "body": "earth",
+     "azDeg": 338.1117,
+     "elDeg": -1.4182,
+     "horizonDeg": -0.8815075,
+     "visible": false
+    },
+    {
+     "index": 35,
+     "utc": "2026-11-01T05:50:00Z",
+     "body": "sun",
+     "azDeg": 252.917,
+     "elDeg": -0.0698,
+     "horizonDeg": -0.071148,
+     "visible": true
+    },
+    {
+     "index": 36,
+     "utc": "2026-11-01T06:00:00Z",
+     "body": "sun",
+     "azDeg": 252.8328,
+     "elDeg": -0.077,
+     "horizonDeg": -0.067376,
+     "visible": false
+    },
+    {
+     "index": 7288,
+     "utc": "2026-12-21T14:40:00Z",
+     "body": "sun",
+     "azDeg": 359.9945,
+     "elDeg": 6.4588,
+     "horizonDeg": -0.497944,
+     "visible": true
+    },
+    {
+     "index": 941,
+     "utc": "2026-11-07T12:50:00Z",
+     "body": "earth",
+     "azDeg": 335.9784,
+     "elDeg": -1.1081,
+     "horizonDeg": -1.110308,
+     "visible": true
+    },
+    {
+     "index": 942,
+     "utc": "2026-11-07T13:00:00Z",
+     "body": "earth",
+     "azDeg": 335.9755,
+     "elDeg": -1.1135,
+     "horizonDeg": -1.1103225,
+     "visible": false
+    },
+    {
+     "index": 8573,
+     "utc": "2026-12-30T12:50:00Z",
+     "body": "earth",
+     "azDeg": 338.4722,
+     "elDeg": -0.0959,
+     "horizonDeg": -0.8807108,
+     "visible": true
+    }
+   ]
+  },
+  "BlueGhost1": {
+   "samples": 8785,
+   "percentVisible": {
+    "sun": 48.28,
+    "earth": 100.0,
+    "both": 48.28
+   },
+   "sunDiskFractionMean": 0.4827,
+   "neverVisible": {
+    "sun": false,
+    "earth": false
+   },
+   "alwaysVisible": {
+    "sun": false,
+    "earth": true
+   },
+   "events": {
+    "sun": 4,
+    "earth": 0
+   },
+   "longestHidden": {
+    "sun": {
+     "startIndex": 3699,
+     "startUtc": "2026-11-26T16:30:00Z",
+     "durationS": 1285200,
+     "openAtStart": false,
+     "openAtEnd": false
+    },
+    "earth": null
+   },
+   "windows": {
+    "sun": [
+     {
+      "startIndex": 1580,
+      "endIndex": 3699,
+      "durationS": 1271400,
+      "openAtStart": false,
+      "openAtEnd": false
+     },
+     {
+      "startIndex": 5841,
+      "endIndex": 7963,
+      "durationS": 1273200,
+      "openAtStart": false,
+      "openAtEnd": false
+     }
+    ],
+    "earth": [
+     {
+      "startIndex": 0,
+      "endIndex": 8785,
+      "durationS": 5271000,
+      "openAtStart": true,
+      "openAtEnd": true
+     }
+    ]
+   },
+   "spotChecks": [
+    {
+     "index": 0,
+     "utc": "2026-11-01T00:00:00Z",
+     "body": "sun",
+     "azDeg": 286.8258,
+     "elDeg": -44.2313,
+     "horizonDeg": 0.2276516,
+     "visible": false
+    },
+    {
+     "index": 0,
+     "utc": "2026-11-01T00:00:00Z",
+     "body": "earth",
+     "azDeg": 255.2749,
+     "elDeg": 28.8301,
+     "horizonDeg": 0.1437498,
+     "visible": true
+    },
+    {
+     "index": 8784,
+     "utc": "2027-01-01T00:00:00Z",
+     "body": "sun",
+     "azDeg": 307.5974,
+     "elDeg": -62.7092,
+     "horizonDeg": 0.2561688,
+     "visible": false
+    },
+    {
+     "index": 8784,
+     "utc": "2027-01-01T00:00:00Z",
+     "body": "earth",
+     "azDeg": 264.0673,
+     "elDeg": 35.1774,
+     "horizonDeg": 0.1577673,
+     "visible": true
+    },
+    {
+     "index": 1579,
+     "utc": "2026-11-11T23:10:00Z",
+     "body": "sun",
+     "azDeg": 91.5947,
+     "elDeg": -0.1335,
+     "horizonDeg": -0.0622643,
+     "visible": false
+    },
+    {
+     "index": 1580,
+     "utc": "2026-11-11T23:20:00Z",
+     "body": "sun",
+     "azDeg": 91.6217,
+     "elDeg": -0.0533,
+     "horizonDeg": -0.061449,
+     "visible": true
+    },
+    {
+     "index": 512,
+     "utc": "2026-11-04T13:20:00Z",
+     "body": "sun",
+     "azDeg": 359.9461,
+     "elDeg": -72.9321,
+     "horizonDeg": -0.0783078,
+     "visible": false
+    },
+    {
+     "index": 1465,
+     "utc": "2026-11-11T04:10:00Z",
+     "body": "earth",
+     "azDeg": 266.2988,
+     "elDeg": 30.6854,
+     "horizonDeg": 0.1618952,
+     "visible": true
+    }
+   ]
+  },
+  "Chandrayaan3": {
+   "samples": 8785,
+   "percentVisible": {
+    "sun": 48.58,
+    "earth": 100.0,
+    "both": 48.58
+   },
+   "sunDiskFractionMean": 0.4858,
+   "neverVisible": {
+    "sun": false,
+    "earth": false
+   },
+   "alwaysVisible": {
+    "sun": false,
+    "earth": true
+   },
+   "events": {
+    "sun": 4,
+    "earth": 0
+   },
+   "longestHidden": {
+    "sun": {
+     "startIndex": 4044,
+     "startUtc": "2026-11-29T02:00:00Z",
+     "durationS": 1275000,
+     "openAtStart": false,
+     "openAtEnd": false
+    },
+    "earth": null
+   },
+   "windows": {
+    "sun": [
+     {
+      "startIndex": 1902,
+      "endIndex": 4044,
+      "durationS": 1285200,
+      "openAtStart": false,
+      "openAtEnd": false
+     },
+     {
+      "startIndex": 6169,
+      "endIndex": 8295,
+      "durationS": 1275600,
+      "openAtStart": false,
+      "openAtEnd": false
+     }
+    ],
+    "earth": [
+     {
+      "startIndex": 0,
+      "endIndex": 8785,
+      "durationS": 5271000,
+      "openAtStart": true,
+      "openAtEnd": true
+     }
+    ]
+   },
+   "spotChecks": [
+    {
+     "index": 0,
+     "utc": "2026-11-01T00:00:00Z",
+     "body": "sun",
+     "azDeg": 253.3587,
+     "elDeg": -4.6048,
+     "horizonDeg": 1.1190176,
+     "visible": false
+    },
+    {
+     "index": 0,
+     "utc": "2026-11-01T00:00:00Z",
+     "body": "earth",
+     "azDeg": 329.4164,
+     "elDeg": 20.9638,
+     "horizonDeg": 1.4457172,
+     "visible": true
+    },
+    {
+     "index": 8784,
+     "utc": "2027-01-01T00:00:00Z",
+     "body": "sun",
+     "azDeg": 232.3509,
+     "elDeg": -11.8919,
+     "horizonDeg": 0.9813208,
+     "visible": false
+    },
+    {
+     "index": 8784,
+     "utc": "2027-01-01T00:00:00Z",
+     "body": "earth",
+     "azDeg": 334.3437,
+     "elDeg": 12.426,
+     "horizonDeg": 1.6615799,
+     "visible": true
+    },
+    {
+     "index": 1901,
+     "utc": "2026-11-14T04:50:00Z",
+     "body": "sun",
+     "azDeg": 92.2731,
+     "elDeg": 0.8078,
+     "horizonDeg": 0.8323848,
+     "visible": false
+    },
+    {
+     "index": 1902,
+     "utc": "2026-11-14T05:00:00Z",
+     "body": "sun",
+     "azDeg": 92.1939,
+     "elDeg": 0.8376,
+     "horizonDeg": 0.8317512,
+     "visible": true
+    },
+    {
+     "index": 7251,
+     "utc": "2026-12-21T08:30:00Z",
+     "body": "sun",
+     "azDeg": 359.9859,
+     "elDeg": 21.8811,
+     "horizonDeg": 1.7258293,
+     "visible": true
+    },
+    {
+     "index": 8622,
+     "utc": "2026-12-30T21:00:00Z",
+     "body": "earth",
+     "azDeg": 334.5737,
+     "elDeg": 13.4222,
+     "horizonDeg": 1.6680847,
+     "visible": true
+    }
+   ]
+  },
+  "SLIM": {
+   "samples": 8785,
+   "percentVisible": {
+    "sun": 46.69,
+    "earth": 100.0,
+    "both": 46.69
+   },
+   "sunDiskFractionMean": 0.467,
+   "neverVisible": {
+    "sun": false,
+    "earth": false
+   },
+   "alwaysVisible": {
+    "sun": false,
+    "earth": true
+   },
+   "events": {
+    "sun": 4,
+    "earth": 0
+   },
+   "longestHidden": {
+    "sun": {
+     "startIndex": 4119,
+     "startUtc": "2026-11-29T14:30:00Z",
+     "durationS": 1326600,
+     "openAtStart": false,
+     "openAtEnd": false
+    },
+    "earth": null
+   },
+   "windows": {
+    "sun": [
+     {
+      "startIndex": 2068,
+      "endIndex": 4119,
+      "durationS": 1230600,
+      "openAtStart": false,
+      "openAtEnd": false
+     },
+     {
+      "startIndex": 6330,
+      "endIndex": 8381,
+      "durationS": 1230600,
+      "openAtStart": false,
+      "openAtEnd": false
+     }
+    ],
+    "earth": [
+     {
+      "startIndex": 0,
+      "endIndex": 8785,
+      "durationS": 5271000,
+      "openAtStart": true,
+      "openAtEnd": true
+     }
+    ]
+   },
+   "spotChecks": [
+    {
+     "index": 0,
+     "utc": "2026-11-01T00:00:00Z",
+     "body": "sun",
+     "azDeg": 266.2093,
+     "elDeg": -9.5024,
+     "horizonDeg": 2.1126884,
+     "visible": false
+    },
+    {
+     "index": 0,
+     "utc": "2026-11-01T00:00:00Z",
+     "body": "earth",
+     "azDeg": 293.784,
+     "elDeg": 66.5498,
+     "horizonDeg": 3.67598,
+     "visible": true
+    },
+    {
+     "index": 8784,
+     "utc": "2027-01-01T00:00:00Z",
+     "body": "sun",
+     "azDeg": 260.6289,
+     "elDeg": -30.8952,
+     "horizonDeg": 1.6591818,
+     "visible": false
+    },
+    {
+     "index": 8784,
+     "utc": "2027-01-01T00:00:00Z",
+     "body": "earth",
+     "azDeg": 316.0042,
+     "elDeg": 63.5272,
+     "horizonDeg": 5.7616282,
+     "visible": true
+    },
+    {
+     "index": 2067,
+     "utc": "2026-11-15T08:30:00Z",
+     "body": "sun",
+     "azDeg": 90.3356,
+     "elDeg": 5.3533,
+     "horizonDeg": 5.3665948,
+     "visible": false
+    },
+    {
+     "index": 2068,
+     "utc": "2026-11-15T08:40:00Z",
+     "body": "sun",
+     "azDeg": 90.3162,
+     "elDeg": 5.4356,
+     "horizonDeg": 5.3669246,
+     "visible": true
+    },
+    {
+     "index": 3072,
+     "utc": "2026-11-22T08:00:00Z",
+     "body": "sun",
+     "azDeg": 0.0623,
+     "elDeg": 78.2192,
+     "horizonDeg": 9.2876048,
+     "visible": true
+    },
+    {
+     "index": 8784,
+     "utc": "2027-01-01T00:00:00Z",
+     "body": "earth",
+     "azDeg": 316.0042,
+     "elDeg": 63.5272,
+     "horizonDeg": 5.7616282,
+     "visible": true
+    }
+   ]
+  },
+  "CE3": {
+   "samples": 8785,
+   "percentVisible": {
+    "sun": 50.84,
+    "earth": 100.0,
+    "both": 50.84
+   },
+   "sunDiskFractionMean": 0.5083,
+   "neverVisible": {
+    "sun": false,
+    "earth": false
+   },
+   "alwaysVisible": {
+    "sun": false,
+    "earth": true
+   },
+   "events": {
+    "sun": 4,
+    "earth": 0
+   },
+   "longestHidden": {
+    "sun": {
+     "startIndex": 388,
+     "startUtc": "2026-11-03T16:40:00Z",
+     "durationS": 1296000,
+     "openAtStart": false,
+     "openAtEnd": false
+    },
+    "earth": null
+   },
+   "windows": {
+    "sun": [
+     {
+      "startIndex": 0,
+      "endIndex": 388,
+      "durationS": 232800,
+      "openAtStart": true,
+      "openAtEnd": false
+     },
+     {
+      "startIndex": 2548,
+      "endIndex": 4649,
+      "durationS": 1260600,
+      "openAtStart": false,
+      "openAtEnd": false
+     },
+     {
+      "startIndex": 6808,
+      "endIndex": 8785,
+      "durationS": 1186200,
+      "openAtStart": false,
+      "openAtEnd": true
+     }
+    ],
+    "earth": [
+     {
+      "startIndex": 0,
+      "endIndex": 8785,
+      "durationS": 5271000,
+      "openAtStart": true,
+      "openAtEnd": true
+     }
+    ]
+   },
+   "spotChecks": [
+    {
+     "index": 0,
+     "utc": "2026-11-01T00:00:00Z",
+     "body": "sun",
+     "azDeg": 243.2875,
+     "elDeg": 22.9686,
+     "horizonDeg": 0.2359375,
+     "visible": true
+    },
+    {
+     "index": 0,
+     "utc": "2026-11-01T00:00:00Z",
+     "body": "earth",
+     "azDeg": 149.6013,
+     "elDeg": 37.9941,
+     "horizonDeg": -0.2237961,
+     "visible": true
+    },
+    {
+     "index": 8784,
+     "utc": "2027-01-01T00:00:00Z",
+     "body": "sun",
+     "azDeg": 260.4081,
+     "elDeg": 8.3123,
+     "horizonDeg": 0.2857324,
+     "visible": true
+    },
+    {
+     "index": 8784,
+     "utc": "2027-01-01T00:00:00Z",
+     "body": "earth",
+     "azDeg": 140.5801,
+     "elDeg": 45.1,
+     "horizonDeg": -0.2511597,
+     "visible": true
+    },
+    {
+     "index": 387,
+     "utc": "2026-11-03T16:30:00Z",
+     "body": "sun",
+     "azDeg": 267.5995,
+     "elDeg": 0.3417,
+     "horizonDeg": 0.3119995,
+     "visible": true
+    },
+    {
+     "index": 388,
+     "utc": "2026-11-03T16:40:00Z",
+     "body": "sun",
+     "azDeg": 267.6584,
+     "elDeg": 0.281,
+     "horizonDeg": 0.3121168,
+     "visible": false
+    },
+    {
+     "index": 1472,
+     "utc": "2026-11-11T05:20:00Z",
+     "body": "sun",
+     "azDeg": 359.9933,
+     "elDeg": -47.4304,
+     "horizonDeg": -0.0278732,
+     "visible": false
+    },
+    {
+     "index": 8734,
+     "utc": "2026-12-31T15:40:00Z",
+     "body": "earth",
+     "azDeg": 140.5474,
+     "elDeg": 44.8012,
+     "horizonDeg": -0.2512578,
+     "visible": true
+    }
+   ]
+  },
+  "CE4": {
+   "samples": 8785,
+   "percentVisible": {
+    "sun": 49.15,
+    "earth": 0.0,
+    "both": 0.0
+   },
+   "sunDiskFractionMean": 0.4916,
+   "neverVisible": {
+    "sun": false,
+    "earth": true
+   },
+   "alwaysVisible": {
+    "sun": false,
+    "earth": false
+   },
+   "events": {
+    "sun": 5,
+    "earth": 0
+   },
+   "longestHidden": {
+    "sun": {
+     "startIndex": 6614,
+     "startUtc": "2026-12-16T22:20:00Z",
+     "durationS": 1278000,
+     "openAtStart": false,
+     "openAtEnd": false
+    },
+    "earth": {
+     "startIndex": 0,
+     "startUtc": "2026-11-01T00:00:00Z",
+     "durationS": 5271000,
+     "openAtStart": true,
+     "openAtEnd": true
+    }
+   },
+   "windows": {
+    "sun": [
+     {
+      "startIndex": 215,
+      "endIndex": 2354,
+      "durationS": 1283400,
+      "openAtStart": false,
+      "openAtEnd": false
+     },
+     {
+      "startIndex": 4476,
+      "endIndex": 6614,
+      "durationS": 1282800,
+      "openAtStart": false,
+      "openAtEnd": false
+     },
+     {
+      "startIndex": 8744,
+      "endIndex": 8785,
+      "durationS": 24600,
+      "openAtStart": false,
+      "openAtEnd": true
+     }
+    ],
+    "earth": []
+   },
+   "spotChecks": [
+    {
+     "index": 0,
+     "utc": "2026-11-01T00:00:00Z",
+     "body": "sun",
+     "azDeg": 103.7128,
+     "elDeg": -11.1421,
+     "horizonDeg": 1.542532,
+     "visible": false
+    },
+    {
+     "index": 0,
+     "utc": "2026-11-01T00:00:00Z",
+     "body": "earth",
+     "azDeg": 188.439,
+     "elDeg": -41.2084,
+     "horizonDeg": 1.282668,
+     "visible": false
+    },
+    {
+     "index": 8784,
+     "utc": "2027-01-01T00:00:00Z",
+     "body": "sun",
+     "azDeg": 87.5212,
+     "elDeg": 3.8591,
+     "horizonDeg": 1.3509484,
+     "visible": true
+    },
+    {
+     "index": 8784,
+     "utc": "2027-01-01T00:00:00Z",
+     "body": "earth",
+     "azDeg": 194.8435,
+     "elDeg": -49.8307,
+     "horizonDeg": 1.099769,
+     "visible": false
+    },
+    {
+     "index": 214,
+     "utc": "2026-11-02T11:40:00Z",
+     "body": "sun",
+     "azDeg": 90.6423,
+     "elDeg": 1.4325,
+     "horizonDeg": 1.479331,
+     "visible": false
+    },
+    {
+     "index": 215,
+     "utc": "2026-11-02T11:50:00Z",
+     "body": "sun",
+     "azDeg": 90.5821,
+     "elDeg": 1.4919,
+     "horizonDeg": 1.4803136,
+     "visible": true
+    },
+    {
+     "index": 1270,
+     "utc": "2026-11-09T19:40:00Z",
+     "body": "sun",
+     "azDeg": 0.0295,
+     "elDeg": 46.0872,
+     "horizonDeg": 0.5107275,
+     "visible": true
+    },
+    {
+     "index": 8635,
+     "utc": "2026-12-30T23:10:00Z",
+     "body": "earth",
+     "azDeg": 195.1425,
+     "elDeg": -48.9224,
+     "horizonDeg": 1.1033725,
+     "visible": false
+    }
+   ]
+  },
+  "CE5": {
+   "samples": 8785,
+   "percentVisible": {
+    "sun": 50.88,
+    "earth": 100.0,
+    "both": 50.88
+   },
+   "sunDiskFractionMean": 0.5088,
+   "neverVisible": {
+    "sun": false,
+    "earth": false
+   },
+   "alwaysVisible": {
+    "sun": false,
+    "earth": true
+   },
+   "events": {
+    "sun": 4,
+    "earth": 0
+   },
+   "longestHidden": {
+    "sun": {
+     "startIndex": 773,
+     "startUtc": "2026-11-06T08:50:00Z",
+     "durationS": 1295400,
+     "openAtStart": false,
+     "openAtEnd": false
+    },
+    "earth": null
+   },
+   "windows": {
+    "sun": [
+     {
+      "startIndex": 0,
+      "endIndex": 773,
+      "durationS": 463800,
+      "openAtStart": true,
+      "openAtEnd": false
+     },
+     {
+      "startIndex": 2932,
+      "endIndex": 5035,
+      "durationS": 1261800,
+      "openAtStart": false,
+      "openAtEnd": false
+     },
+     {
+      "startIndex": 7191,
+      "endIndex": 8785,
+      "durationS": 956400,
+      "openAtStart": false,
+      "openAtEnd": true
+     }
+    ],
+    "earth": [
+     {
+      "startIndex": 0,
+      "endIndex": 8785,
+      "durationS": 5271000,
+      "openAtStart": true,
+      "openAtEnd": true
+     }
+    ]
+   },
+   "spotChecks": [
+    {
+     "index": 0,
+     "utc": "2026-11-01T00:00:00Z",
+     "body": "sun",
+     "azDeg": 211.069,
+     "elDeg": 40.9371,
+     "horizonDeg": 0.162257,
+     "visible": true
+    },
+    {
+     "index": 0,
+     "utc": "2026-11-01T00:00:00Z",
+     "body": "earth",
+     "azDeg": 117.1211,
+     "elDeg": 21.5319,
+     "horizonDeg": -0.3664578,
+     "visible": true
+    },
+    {
+     "index": 8784,
+     "utc": "2027-01-01T00:00:00Z",
+     "body": "sun",
+     "azDeg": 234.9388,
+     "elDeg": 30.3159,
+     "horizonDeg": 0.149006,
+     "visible": true
+    },
+    {
+     "index": 8784,
+     "utc": "2027-01-01T00:00:00Z",
+     "body": "earth",
+     "azDeg": 107.7005,
+     "elDeg": 26.1615,
+     "horizonDeg": -0.3852015,
+     "visible": true
+    },
+    {
+     "index": 772,
+     "utc": "2026-11-06T08:40:00Z",
+     "body": "sun",
+     "azDeg": 267.7176,
+     "elDeg": 0.2248,
+     "horizonDeg": 0.1818,
+     "visible": true
+    },
+    {
+     "index": 773,
+     "utc": "2026-11-06T08:50:00Z",
+     "body": "sun",
+     "azDeg": 267.7754,
+     "elDeg": 0.1629,
+     "horizonDeg": 0.1818,
+     "visible": false
+    },
+    {
+     "index": 1855,
+     "utc": "2026-11-13T21:10:00Z",
+     "body": "sun",
+     "azDeg": 0.0414,
+     "elDeg": -48.5001,
+     "horizonDeg": -0.056507,
+     "visible": false
+    },
+    {
+     "index": 8784,
+     "utc": "2027-01-01T00:00:00Z",
+     "body": "earth",
+     "azDeg": 107.7005,
+     "elDeg": 26.1615,
+     "horizonDeg": -0.3852015,
+     "visible": true
+    }
+   ]
+  },
+  "PeregrineTarget": {
+   "samples": 8785,
+   "percentVisible": {
+    "sun": 51.04,
+    "earth": 100.0,
+    "both": 51.04
+   },
+   "sunDiskFractionMean": 0.5104,
+   "neverVisible": {
+    "sun": false,
+    "earth": false
+   },
+   "alwaysVisible": {
+    "sun": false,
+    "earth": true
+   },
+   "events": {
+    "sun": 4,
+    "earth": 0
+   },
+   "longestHidden": {
+    "sun": {
+     "startIndex": 657,
+     "startUtc": "2026-11-05T13:30:00Z",
+     "durationS": 1290600,
+     "openAtStart": false,
+     "openAtEnd": false
+    },
+    "earth": null
+   },
+   "windows": {
+    "sun": [
+     {
+      "startIndex": 0,
+      "endIndex": 657,
+      "durationS": 394200,
+      "openAtStart": true,
+      "openAtEnd": false
+     },
+     {
+      "startIndex": 2808,
+      "endIndex": 4918,
+      "durationS": 1266000,
+      "openAtStart": false,
+      "openAtEnd": false
+     },
+     {
+      "startIndex": 7068,
+      "endIndex": 8785,
+      "durationS": 1030200,
+      "openAtStart": false,
+      "openAtEnd": true
+     }
+    ],
+    "earth": [
+     {
+      "startIndex": 0,
+      "endIndex": 8785,
+      "durationS": 5271000,
+      "openAtStart": true,
+      "openAtEnd": true
+     }
+    ]
+   },
+   "spotChecks": [
+    {
+     "index": 0,
+     "utc": "2026-11-01T00:00:00Z",
+     "body": "sun",
+     "azDeg": 228.1135,
+     "elDeg": 41.5355,
+     "horizonDeg": 0.0238235,
+     "visible": true
+    },
+    {
+     "index": 0,
+     "utc": "2026-11-01T00:00:00Z",
+     "body": "earth",
+     "azDeg": 122.7416,
+     "elDeg": 32.7837,
+     "horizonDeg": 1.7909072,
+     "visible": true
+    },
+    {
+     "index": 8784,
+     "utc": "2027-01-01T00:00:00Z",
+     "body": "sun",
+     "azDeg": 247.7895,
+     "elDeg": 26.5903,
+     "horizonDeg": -0.373558,
+     "visible": true
+    },
+    {
+     "index": 8784,
+     "utc": "2027-01-01T00:00:00Z",
+     "body": "earth",
+     "azDeg": 111.8694,
+     "elDeg": 36.8014,
+     "horizonDeg": 2.0102924,
+     "visible": true
+    },
+    {
+     "index": 656,
+     "utc": "2026-11-05T13:20:00Z",
+     "body": "sun",
+     "azDeg": 268.4117,
+     "elDeg": -0.3607,
+     "horizonDeg": -0.3626649,
+     "visible": true
+    },
+    {
+     "index": 657,
+     "utc": "2026-11-05T13:30:00Z",
+     "body": "sun",
+     "azDeg": 268.4605,
+     "elDeg": -0.4299,
+     "horizonDeg": -0.3625185,
+     "visible": false
+    },
+    {
+     "index": 5987,
+     "utc": "2026-12-12T13:50:00Z",
+     "body": "sun",
+     "azDeg": 359.9664,
+     "elDeg": -56.1546,
+     "horizonDeg": 1.2136464,
+     "visible": false
+    },
+    {
+     "index": 8784,
+     "utc": "2027-01-01T00:00:00Z",
+     "body": "earth",
+     "azDeg": 111.8694,
+     "elDeg": 36.8014,
+     "horizonDeg": 2.0102924,
+     "visible": true
+    }
+   ]
+  },
+  "ArtemisCabeusB": {
+   "samples": 8785,
+   "percentVisible": {
+    "sun": 50.6,
+    "earth": 22.44,
+    "both": 1.23
+   },
+   "sunDiskFractionMean": 0.5098,
+   "neverVisible": {
+    "sun": false,
+    "earth": false
+   },
+   "alwaysVisible": {
+    "sun": false,
+    "earth": false
+   },
+   "events": {
+    "sun": 10,
+    "earth": 4
+   },
+   "longestHidden": {
+    "sun": {
+     "startIndex": 6024,
+     "startUtc": "2026-12-12T20:00:00Z",
+     "durationS": 1258200,
+     "openAtStart": false,
+     "openAtEnd": false
+    },
+    "earth": {
+     "startIndex": 3839,
+     "startUtc": "2026-11-27T15:50:00Z",
+     "durationS": 1758600,
+     "openAtStart": false,
+     "openAtEnd": false
+    }
+   },
+   "windows": {
+    "sun": [
+     {
+      "startIndex": 0,
+      "endIndex": 1470,
+      "durationS": 882000,
+      "openAtStart": true,
+      "openAtEnd": false
+     },
+     {
+      "startIndex": 1609,
+      "endIndex": 1782,
+      "durationS": 103800,
+      "openAtStart": false,
+      "openAtEnd": false
+     },
+     {
+      "startIndex": 2953,
+      "endIndex": 3061,
+      "durationS": 64800,
+      "openAtStart": false,
+      "openAtEnd": false
+     },
+     {
+      "startIndex": 3843,
+      "endIndex": 5726,
+      "durationS": 1129800,
+      "openAtStart": false,
+      "openAtEnd": false
+     },
+     {
+      "startIndex": 5877,
+      "endIndex": 6024,
+      "durationS": 88200,
+      "openAtStart": false,
+      "openAtEnd": false
+     },
+     {
+      "startIndex": 8121,
+      "endIndex": 8785,
+      "durationS": 398400,
+      "openAtStart": false,
+      "openAtEnd": true
+     }
+    ],
+    "earth": [
+     {
+      "startIndex": 2854,
+      "endIndex": 3839,
+      "durationS": 591000,
+      "openAtStart": false,
+      "openAtEnd": false
+     },
+     {
+      "startIndex": 6770,
+      "endIndex": 7756,
+      "durationS": 591600,
+      "openAtStart": false,
+      "openAtEnd": false
+     }
+    ]
+   },
+   "spotChecks": [
+    {
+     "index": 0,
+     "utc": "2026-11-01T00:00:00Z",
+     "body": "sun",
+     "azDeg": 355.0711,
+     "elDeg": 7.6707,
+     "horizonDeg": 3.0699289,
+     "visible": true
+    },
+    {
+     "index": 0,
+     "utc": "2026-11-01T00:00:00Z",
+     "body": "earth",
+     "azDeg": 74.3663,
+     "elDeg": 4.6443,
+     "horizonDeg": 5.2268444,
+     "visible": false
+    },
+    {
+     "index": 8784,
+     "utc": "2027-01-01T00:00:00Z",
+     "body": "sun",
+     "azDeg": 332.9107,
+     "elDeg": 6.5725,
+     "horizonDeg": 1.9594239,
+     "visible": true
+    },
+    {
+     "index": 8784,
+     "utc": "2027-01-01T00:00:00Z",
+     "body": "earth",
+     "azDeg": 76.6058,
+     "elDeg": -4.833,
+     "horizonDeg": 4.756953,
+     "visible": false
+    },
+    {
+     "index": 1469,
+     "utc": "2026-11-11T04:50:00Z",
+     "body": "sun",
+     "azDeg": 230.7657,
+     "elDeg": -2.3982,
+     "horizonDeg": -2.4037468,
+     "visible": true
+    },
+    {
+     "index": 1470,
+     "utc": "2026-11-11T05:00:00Z",
+     "body": "sun",
+     "azDeg": 230.6812,
+     "elDeg": -2.4053,
+     "horizonDeg": -2.3944344,
+     "visible": false
+    },
+    {
+     "index": 4202,
+     "utc": "2026-11-30T04:20:00Z",
+     "body": "sun",
+     "azDeg": 0.008,
+     "elDeg": 7.7122,
+     "horizonDeg": 3.343488,
+     "visible": true
+    },
+    {
+     "index": 2853,
+     "utc": "2026-11-20T19:30:00Z",
+     "body": "earth",
+     "azDeg": 63.4173,
+     "elDeg": 6.9798,
+     "horizonDeg": 6.983613,
+     "visible": false
+    },
+    {
+     "index": 2854,
+     "utc": "2026-11-20T19:40:00Z",
+     "body": "earth",
+     "azDeg": 63.4204,
+     "elDeg": 6.9874,
+     "horizonDeg": 6.983024,
+     "visible": true
+    },
+    {
+     "index": 6787,
+     "utc": "2026-12-18T03:10:00Z",
+     "body": "earth",
+     "azDeg": 62.6492,
+     "elDeg": 7.2649,
+     "horizonDeg": 7.131906,
+     "visible": true
+    }
+   ]
+  },
+  "ArtemisHaworth": {
+   "samples": 8785,
+   "percentVisible": {
+    "sun": 88.94,
+    "earth": 60.3,
+    "both": 54.3
+   },
+   "sunDiskFractionMean": 0.8756,
+   "neverVisible": {
+    "sun": false,
+    "earth": false
+   },
+   "alwaysVisible": {
+    "sun": false,
+    "earth": false
+   },
+   "events": {
+    "sun": 16,
+    "earth": 5
+   },
+   "longestHidden": {
+    "sun": {
+     "startIndex": 6929,
+     "startUtc": "2026-12-19T02:50:00Z",
+     "durationS": 165600,
+     "openAtStart": false,
+     "openAtEnd": false
+    },
+    "earth": {
+     "startIndex": 4464,
+     "startUtc": "2026-12-02T00:00:00Z",
+     "durationS": 924000,
+     "openAtStart": false,
+     "openAtEnd": false
+    }
+   },
+   "windows": {
+    "sun": [
+     {
+      "startIndex": 0,
+      "endIndex": 958,
+      "durationS": 574800,
+      "openAtStart": true,
+      "openAtEnd": false
+     },
+     {
+      "startIndex": 1093,
+      "endIndex": 1190,
+      "durationS": 58200,
+      "openAtStart": false,
+      "openAtEnd": false
+     },
+     {
+      "startIndex": 1231,
+      "endIndex": 2679,
+      "durationS": 868800,
+      "openAtStart": false,
+      "openAtEnd": false
+     },
+     {
+      "startIndex": 2930,
+      "endIndex": 5196,
+      "durationS": 1359600,
+      "openAtStart": false,
+      "openAtEnd": false
+     },
+     {
+      "startIndex": 5381,
+      "endIndex": 5442,
+      "durationS": 36600,
+      "openAtStart": false,
+      "openAtEnd": false
+     },
+     {
+      "startIndex": 5500,
+      "endIndex": 5644,
+      "durationS": 86400,
+      "openAtStart": false,
+      "openAtEnd": false
+     },
+     {
+      "startIndex": 5665,
+      "endIndex": 5713,
+      "durationS": 28800,
+      "openAtStart": false,
+      "openAtEnd": false
+     },
+     {
+      "startIndex": 5718,
+      "endIndex": 6929,
+      "durationS": 726600,
+      "openAtStart": false,
+      "openAtEnd": false
+     },
+     {
+      "startIndex": 7205,
+      "endIndex": 8785,
+      "durationS": 948000,
+      "openAtStart": false,
+      "openAtEnd": true
+     }
+    ],
+    "earth": [
+     {
+      "startIndex": 0,
+      "endIndex": 586,
+      "durationS": 351600,
+      "openAtStart": true,
+      "openAtEnd": false
+     },
+     {
+      "startIndex": 2112,
+      "endIndex": 4464,
+      "durationS": 1411200,
+      "openAtStart": false,
+      "openAtEnd": false
+     },
+     {
+      "startIndex": 6004,
+      "endIndex": 8363,
+      "durationS": 1415400,
+      "openAtStart": false,
+      "openAtEnd": false
+     }
+    ]
+   },
+   "spotChecks": [
+    {
+     "index": 0,
+     "utc": "2026-11-01T00:00:00Z",
+     "body": "sun",
+     "azDeg": 305.5347,
+     "elDeg": 3.3378,
+     "horizonDeg": -1.0620896,
+     "visible": true
+    },
+    {
+     "index": 0,
+     "utc": "2026-11-01T00:00:00Z",
+     "body": "earth",
+     "azDeg": 24.5807,
+     "elDeg": 5.8809,
+     "horizonDeg": -0.2598367,
+     "visible": true
+    },
+    {
+     "index": 8784,
+     "utc": "2027-01-01T00:00:00Z",
+     "body": "sun",
+     "azDeg": 283.5532,
+     "elDeg": 1.7736,
+     "horizonDeg": -1.4844272,
+     "visible": true
+    },
+    {
+     "index": 8784,
+     "utc": "2027-01-01T00:00:00Z",
+     "body": "earth",
+     "azDeg": 27.5798,
+     "elDeg": -3.3862,
+     "horizonDeg": -0.1932534,
+     "visible": false
+    },
+    {
+     "index": 957,
+     "utc": "2026-11-07T15:30:00Z",
+     "body": "sun",
+     "azDeg": 224.6323,
+     "elDeg": -0.7743,
+     "horizonDeg": -0.7748336,
+     "visible": true
+    },
+    {
+     "index": 958,
+     "utc": "2026-11-07T15:40:00Z",
+     "body": "sun",
+     "azDeg": 224.5477,
+     "elDeg": -0.7776,
+     "horizonDeg": -0.7713419,
+     "visible": false
+    },
+    {
+     "index": 7878,
+     "utc": "2026-12-25T17:00:00Z",
+     "body": "sun",
+     "azDeg": 0.0281,
+     "elDeg": 4.3804,
+     "horizonDeg": 0.4783553,
+     "visible": true
+    },
+    {
+     "index": 585,
+     "utc": "2026-11-05T01:30:00Z",
+     "body": "earth",
+     "azDeg": 26.1283,
+     "elDeg": -0.2885,
+     "horizonDeg": -0.2905889,
+     "visible": true
+    },
+    {
+     "index": 586,
+     "utc": "2026-11-05T01:40:00Z",
+     "body": "earth",
+     "azDeg": 26.1278,
+     "elDeg": -0.2979,
+     "horizonDeg": -0.2906474,
+     "visible": false
+    },
+    {
+     "index": 6817,
+     "utc": "2026-12-18T08:10:00Z",
+     "body": "earth",
+     "azDeg": 12.6575,
+     "elDeg": 7.7446,
+     "horizonDeg": 0.452565,
+     "visible": true
+    }
+   ]
+  },
+  "ArtemisMalapert": {
+   "samples": 8785,
+   "percentVisible": {
+    "sun": 47.92,
+    "earth": 100.0,
+    "both": 47.92
+   },
+   "sunDiskFractionMean": 0.4791,
+   "neverVisible": {
+    "sun": false,
+    "earth": false
+   },
+   "alwaysVisible": {
+    "sun": false,
+    "earth": true
+   },
+   "events": {
+    "sun": 5,
+    "earth": 0
+   },
+   "longestHidden": {
+    "sun": {
+     "startIndex": 4407,
+     "startUtc": "2026-12-01T14:30:00Z",
+     "durationS": 1337400,
+     "openAtStart": false,
+     "openAtEnd": false
+    },
+    "earth": null
+   },
+   "windows": {
+    "sun": [
+     {
+      "startIndex": 0,
+      "endIndex": 147,
+      "durationS": 88200,
+      "openAtStart": true,
+      "openAtEnd": false
+     },
+     {
+      "startIndex": 2365,
+      "endIndex": 4407,
+      "durationS": 1225200,
+      "openAtStart": false,
+      "openAtEnd": false
+     },
+     {
+      "startIndex": 6636,
+      "endIndex": 8657,
+      "durationS": 1212600,
+      "openAtStart": false,
+      "openAtEnd": false
+     }
+    ],
+    "earth": [
+     {
+      "startIndex": 0,
+      "endIndex": 8785,
+      "durationS": 5271000,
+      "openAtStart": true,
+      "openAtEnd": true
+     }
+    ]
+   },
+   "spotChecks": [
+    {
+     "index": 0,
+     "utc": "2026-11-01T00:00:00Z",
+     "body": "sun",
+     "azDeg": 285.9373,
+     "elDeg": 2.5759,
+     "horizonDeg": -0.2006481,
+     "visible": true
+    },
+    {
+     "index": 0,
+     "utc": "2026-11-01T00:00:00Z",
+     "body": "earth",
+     "azDeg": 4.9328,
+     "elDeg": 6.9836,
+     "horizonDeg": -3.3206208,
+     "visible": true
+    },
+    {
+     "index": 8784,
+     "utc": "2027-01-01T00:00:00Z",
+     "body": "sun",
+     "azDeg": 264.003,
+     "elDeg": 0.5918,
+     "horizonDeg": 4.134769,
+     "visible": false
+    },
+    {
+     "index": 8784,
+     "utc": "2027-01-01T00:00:00Z",
+     "body": "earth",
+     "azDeg": 8.0896,
+     "elDeg": -2.2328,
+     "horizonDeg": -3.1417376,
+     "visible": true
+    },
+    {
+     "index": 146,
+     "utc": "2026-11-02T00:20:00Z",
+     "body": "sun",
+     "azDeg": 273.6216,
+     "elDeg": 1.7269,
+     "horizonDeg": 1.7174096,
+     "visible": true
+    },
+    {
+     "index": 147,
+     "utc": "2026-11-02T00:30:00Z",
+     "body": "sun",
+     "azDeg": 273.5373,
+     "elDeg": 1.721,
+     "horizonDeg": 1.7454926,
+     "visible": false
+    },
+    {
+     "index": 3383,
+     "utc": "2026-11-24T11:50:00Z",
+     "body": "sun",
+     "azDeg": 0.0041,
+     "elDeg": 5.5791,
+     "horizonDeg": -3.0666952,
+     "visible": true
+    },
+    {
+     "index": 7608,
+     "utc": "2026-12-23T20:00:00Z",
+     "body": "earth",
+     "azDeg": 0.0002,
+     "elDeg": 9.1064,
+     "horizonDeg": -3.0664144,
+     "visible": true
+    }
+   ]
+  },
+  "ArtemisMoutonPlateau": {
+   "samples": 8785,
+   "percentVisible": {
+    "sun": 44.77,
+    "earth": 54.58,
+    "both": 43.22
+   },
+   "sunDiskFractionMean": 0.4484,
+   "neverVisible": {
+    "sun": false,
+    "earth": false
+   },
+   "alwaysVisible": {
+    "sun": false,
+    "earth": false
+   },
+   "events": {
+    "sun": 4,
+    "earth": 5
+   },
+   "longestHidden": {
+    "sun": {
+     "startIndex": 4199,
+     "startUtc": "2026-11-30T03:50:00Z",
+     "durationS": 1359000,
+     "openAtStart": false,
+     "openAtEnd": false
+    },
+    "earth": {
+     "startIndex": 475,
+     "startUtc": "2026-11-04T07:10:00Z",
+     "durationS": 1045200,
+     "openAtStart": false,
+     "openAtEnd": false
+    }
+   },
+   "windows": {
+    "sun": [
+     {
+      "startIndex": 2193,
+      "endIndex": 4199,
+      "durationS": 1203600,
+      "openAtStart": false,
+      "openAtEnd": false
+     },
+     {
+      "startIndex": 6464,
+      "endIndex": 8391,
+      "durationS": 1156200,
+      "openAtStart": false,
+      "openAtEnd": false
+     }
+    ],
+    "earth": [
+     {
+      "startIndex": 0,
+      "endIndex": 475,
+      "durationS": 285000,
+      "openAtStart": true,
+      "openAtEnd": false
+     },
+     {
+      "startIndex": 2217,
+      "endIndex": 4372,
+      "durationS": 1293000,
+      "openAtStart": false,
+      "openAtEnd": false
+     },
+     {
+      "startIndex": 6114,
+      "endIndex": 8279,
+      "durationS": 1299000,
+      "openAtStart": false,
+      "openAtEnd": false
+     }
+    ]
+   },
+   "spotChecks": [
+    {
+     "index": 0,
+     "utc": "2026-11-01T00:00:00Z",
+     "body": "sun",
+     "azDeg": 258.3401,
+     "elDeg": 0.4713,
+     "horizonDeg": 0.6929248,
+     "visible": false
+    },
+    {
+     "index": 0,
+     "utc": "2026-11-01T00:00:00Z",
+     "body": "earth",
+     "azDeg": 337.0653,
+     "elDeg": 7.4467,
+     "horizonDeg": 2.4769817,
+     "visible": true
+    },
+    {
+     "index": 8784,
+     "utc": "2027-01-01T00:00:00Z",
+     "body": "sun",
+     "azDeg": 236.4297,
+     "elDeg": -1.6915,
+     "horizonDeg": -0.3584526,
+     "visible": false
+    },
+    {
+     "index": 8784,
+     "utc": "2027-01-01T00:00:00Z",
+     "body": "earth",
+     "azDeg": 340.5807,
+     "elDeg": -1.6407,
+     "horizonDeg": 2.4375702,
+     "visible": false
+    },
+    {
+     "index": 2192,
+     "utc": "2026-11-16T05:20:00Z",
+     "body": "sun",
+     "azDeg": 73.0208,
+     "elDeg": 2.9909,
+     "horizonDeg": 3.0000616,
+     "visible": false
+    },
+    {
+     "index": 2193,
+     "utc": "2026-11-16T05:30:00Z",
+     "body": "sun",
+     "azDeg": 72.9365,
+     "elDeg": 2.9978,
+     "horizonDeg": 2.9854065,
+     "visible": true
+    },
+    {
+     "index": 3055,
+     "utc": "2026-11-22T05:10:00Z",
+     "body": "sun",
+     "azDeg": 359.9865,
+     "elDeg": 6.4243,
+     "horizonDeg": 2.020954,
+     "visible": true
+    },
+    {
+     "index": 474,
+     "utc": "2026-11-04T07:00:00Z",
+     "body": "earth",
+     "azDeg": 338.894,
+     "elDeg": 2.4659,
+     "horizonDeg": 2.457154,
+     "visible": true
+    },
+    {
+     "index": 475,
+     "utc": "2026-11-04T07:10:00Z",
+     "body": "earth",
+     "azDeg": 338.8951,
+     "elDeg": 2.4557,
+     "horizonDeg": 2.4571441,
+     "visible": false
+    },
+    {
+     "index": 8573,
+     "utc": "2026-12-30T12:50:00Z",
+     "body": "earth",
+     "azDeg": 340.9486,
+     "elDeg": -0.3204,
+     "horizonDeg": 2.4322196,
+     "visible": false
+    }
+   ]
+  },
+  "ArtemisMouton": {
+   "samples": 8785,
+   "percentVisible": {
+    "sun": 100.0,
+    "earth": 56.59,
+    "both": 56.59
+   },
+   "sunDiskFractionMean": 1.0,
+   "neverVisible": {
+    "sun": false,
+    "earth": false
+   },
+   "alwaysVisible": {
+    "sun": true,
+    "earth": false
+   },
+   "events": {
+    "sun": 0,
+    "earth": 5
+   },
+   "longestHidden": {
+    "sun": null,
+    "earth": {
+     "startIndex": 525,
+     "startUtc": "2026-11-04T15:30:00Z",
+     "durationS": 1012200,
+     "openAtStart": false,
+     "openAtEnd": false
+    }
+   },
+   "windows": {
+    "sun": [
+     {
+      "startIndex": 0,
+      "endIndex": 8785,
+      "durationS": 5271000,
+      "openAtStart": true,
+      "openAtEnd": true
+     }
+    ],
+    "earth": [
+     {
+      "startIndex": 0,
+      "endIndex": 525,
+      "durationS": 315000,
+      "openAtStart": true,
+      "openAtEnd": false
+     },
+     {
+      "startIndex": 2212,
+      "endIndex": 4427,
+      "durationS": 1329000,
+      "openAtStart": false,
+      "openAtEnd": false
+     },
+     {
+      "startIndex": 6102,
+      "endIndex": 8333,
+      "durationS": 1338600,
+      "openAtStart": false,
+      "openAtEnd": false
+     }
+    ]
+   },
+   "spotChecks": [
+    {
+     "index": 0,
+     "utc": "2026-11-01T00:00:00Z",
+     "body": "sun",
+     "azDeg": 253.2187,
+     "elDeg": 0.1348,
+     "horizonDeg": -2.7656285,
+     "visible": true
+    },
+    {
+     "index": 0,
+     "utc": "2026-11-01T00:00:00Z",
+     "body": "earth",
+     "azDeg": 331.9088,
+     "elDeg": 6.9884,
+     "horizonDeg": 1.6635384,
+     "visible": true
+    },
+    {
+     "index": 8784,
+     "utc": "2027-01-01T00:00:00Z",
+     "body": "sun",
+     "azDeg": 231.2909,
+     "elDeg": -1.8545,
+     "horizonDeg": -3.4523908,
+     "visible": true
+    },
+    {
+     "index": 8784,
+     "utc": "2027-01-01T00:00:00Z",
+     "body": "earth",
+     "azDeg": 335.4651,
+     "elDeg": -2.0822,
+     "horizonDeg": 1.4219007,
+     "visible": false
+    },
+    {
+     "index": 2994,
+     "utc": "2026-11-21T19:00:00Z",
+     "body": "sun",
+     "azDeg": 359.9873,
+     "elDeg": 6.1213,
+     "horizonDeg": 0.953581,
+     "visible": true
+    },
+    {
+     "index": 524,
+     "utc": "2026-11-04T15:20:00Z",
+     "body": "earth",
+     "azDeg": 333.8059,
+     "elDeg": 1.5133,
+     "horizonDeg": 1.5129342,
+     "visible": true
+    },
+    {
+     "index": 525,
+     "utc": "2026-11-04T15:30:00Z",
+     "body": "earth",
+     "azDeg": 333.8066,
+     "elDeg": 1.5035,
+     "horizonDeg": 1.5128908,
+     "visible": false
+    },
+    {
+     "index": 8574,
+     "utc": "2026-12-30T13:00:00Z",
+     "body": "earth",
+     "azDeg": 335.8265,
+     "elDeg": -0.7679,
+     "horizonDeg": 1.40604,
+     "visible": false
+    }
+   ]
+  },
+  "ArtemisNobile1": {
+   "samples": 8785,
+   "percentVisible": {
+    "sun": 100.0,
+    "earth": 65.09,
+    "both": 65.09
+   },
+   "sunDiskFractionMean": 1.0,
+   "neverVisible": {
+    "sun": false,
+    "earth": false
+   },
+   "alwaysVisible": {
+    "sun": true,
+    "earth": false
+   },
+   "events": {
+    "sun": 0,
+    "earth": 5
+   },
+   "longestHidden": {
+    "sun": null,
+    "earth": {
+     "startIndex": 4524,
+     "startUtc": "2026-12-02T10:00:00Z",
+     "durationS": 815400,
+     "openAtStart": false,
+     "openAtEnd": false
+    }
+   },
+   "windows": {
+    "sun": [
+     {
+      "startIndex": 0,
+      "endIndex": 8785,
+      "durationS": 5271000,
+      "openAtStart": true,
+      "openAtEnd": true
+     }
+    ],
+    "earth": [
+     {
+      "startIndex": 0,
+      "endIndex": 642,
+      "durationS": 385200,
+      "openAtStart": true,
+      "openAtEnd": false
+     },
+     {
+      "startIndex": 1985,
+      "endIndex": 4524,
+      "durationS": 1523400,
+      "openAtStart": false,
+      "openAtEnd": false
+     },
+     {
+      "startIndex": 5883,
+      "endIndex": 8420,
+      "durationS": 1522200,
+      "openAtStart": false,
+      "openAtEnd": false
+     }
+    ]
+   },
+   "spotChecks": [
+    {
+     "index": 0,
+     "utc": "2026-11-01T00:00:00Z",
+     "body": "sun",
+     "azDeg": 248.1693,
+     "elDeg": -0.2922,
+     "horizonDeg": -1.8819657,
+     "visible": true
+    },
+    {
+     "index": 0,
+     "utc": "2026-11-01T00:00:00Z",
+     "body": "earth",
+     "azDeg": 326.807,
+     "elDeg": 6.8833,
+     "horizonDeg": 0.120472,
+     "visible": true
+    },
+    {
+     "index": 8784,
+     "utc": "2027-01-01T00:00:00Z",
+     "body": "sun",
+     "azDeg": 226.2351,
+     "elDeg": -2.2426,
+     "horizonDeg": -4.0618726,
+     "visible": true
+    },
+    {
+     "index": 8784,
+     "utc": "2027-01-01T00:00:00Z",
+     "body": "earth",
+     "azDeg": 330.4294,
+     "elDeg": -2.1611,
+     "horizonDeg": 0.4773754,
+     "visible": false
+    },
+    {
+     "index": 2934,
+     "utc": "2026-11-21T09:00:00Z",
+     "body": "sun",
+     "azDeg": 359.9797,
+     "elDeg": 6.2442,
+     "horizonDeg": 1.2040068,
+     "visible": true
+    },
+    {
+     "index": 641,
+     "utc": "2026-11-05T10:50:00Z",
+     "body": "earth",
+     "azDeg": 328.77,
+     "elDeg": 0.3179,
+     "horizonDeg": 0.317,
+     "visible": true
+    },
+    {
+     "index": 642,
+     "utc": "2026-11-05T11:00:00Z",
+     "body": "earth",
+     "azDeg": 328.7697,
+     "elDeg": 0.309,
+     "horizonDeg": 0.316967,
+     "visible": false
+    },
+    {
+     "index": 8578,
+     "utc": "2026-12-30T13:40:00Z",
+     "body": "earth",
+     "azDeg": 330.7813,
+     "elDeg": -0.8747,
+     "horizonDeg": 0.5086983,
+     "visible": false
+    }
+   ]
+  },
+  "ArtemisNobile2": {
+   "samples": 8785,
+   "percentVisible": {
+    "sun": 48.14,
+    "earth": 77.4,
+    "both": 44.72
+   },
+   "sunDiskFractionMean": 0.4813,
+   "neverVisible": {
+    "sun": false,
+    "earth": false
+   },
+   "alwaysVisible": {
+    "sun": false,
+    "earth": false
+   },
+   "events": {
+    "sun": 4,
+    "earth": 5
+   },
+   "longestHidden": {
+    "sun": {
+     "startIndex": 3659,
+     "startUtc": "2026-11-26T09:50:00Z",
+     "durationS": 1286400,
+     "openAtStart": false,
+     "openAtEnd": false
+    },
+    "earth": {
+     "startIndex": 881,
+     "startUtc": "2026-11-07T02:50:00Z",
+     "durationS": 573600,
+     "openAtStart": false,
+     "openAtEnd": false
+    }
+   },
+   "windows": {
+    "sun": [
+     {
+      "startIndex": 1537,
+      "endIndex": 3659,
+      "durationS": 1273200,
+      "openAtStart": false,
+      "openAtEnd": false
+     },
+     {
+      "startIndex": 5803,
+      "endIndex": 7910,
+      "durationS": 1264200,
+      "openAtStart": false,
+      "openAtEnd": false
+     }
+    ],
+    "earth": [
+     {
+      "startIndex": 0,
+      "endIndex": 881,
+      "durationS": 528600,
+      "openAtStart": true,
+      "openAtEnd": false
+     },
+     {
+      "startIndex": 1837,
+      "endIndex": 4790,
+      "durationS": 1771800,
+      "openAtStart": false,
+      "openAtEnd": false
+     },
+     {
+      "startIndex": 5723,
+      "endIndex": 8689,
+      "durationS": 1779600,
+      "openAtStart": false,
+      "openAtEnd": false
+     }
+    ]
+   },
+   "spotChecks": [
+    {
+     "index": 0,
+     "utc": "2026-11-01T00:00:00Z",
+     "body": "sun",
+     "azDeg": 228.6893,
+     "elDeg": -2.4722,
+     "horizonDeg": 3.6887568,
+     "visible": false
+    },
+    {
+     "index": 0,
+     "utc": "2026-11-01T00:00:00Z",
+     "body": "earth",
+     "azDeg": 307.0608,
+     "elDeg": 6.5435,
+     "horizonDeg": -1.7484336,
+     "visible": true
+    },
+    {
+     "index": 8784,
+     "utc": "2027-01-01T00:00:00Z",
+     "body": "sun",
+     "azDeg": 206.7113,
+     "elDeg": -4.3003,
+     "horizonDeg": 1.3670175,
+     "visible": false
+    },
+    {
+     "index": 8784,
+     "utc": "2027-01-01T00:00:00Z",
+     "body": "earth",
+     "azDeg": 311.0232,
+     "elDeg": -2.3575,
+     "horizonDeg": -1.820748,
+     "visible": false
+    },
+    {
+     "index": 1536,
+     "utc": "2026-11-11T16:00:00Z",
+     "body": "sun",
+     "azDeg": 98.7034,
+     "elDeg": 0.6576,
+     "horizonDeg": 0.6643868,
+     "visible": false
+    },
+    {
+     "index": 1537,
+     "utc": "2026-11-11T16:10:00Z",
+     "body": "sun",
+     "azDeg": 98.6191,
+     "elDeg": 0.6663,
+     "horizonDeg": 0.64752,
+     "visible": true
+    },
+    {
+     "index": 6964,
+     "utc": "2026-12-19T08:40:00Z",
+     "body": "sun",
+     "azDeg": 0.0135,
+     "elDeg": 7.2426,
+     "horizonDeg": -1.626939,
+     "visible": true
+    },
+    {
+     "index": 880,
+     "utc": "2026-11-07T02:40:00Z",
+     "body": "earth",
+     "azDeg": 309.0219,
+     "elDeg": -1.782,
+     "horizonDeg": -1.7838161,
+     "visible": true
+    },
+    {
+     "index": 881,
+     "utc": "2026-11-07T02:50:00Z",
+     "body": "earth",
+     "azDeg": 309.0198,
+     "elDeg": -1.7883,
+     "horizonDeg": -1.7837762,
+     "visible": false
+    },
+    {
+     "index": 8591,
+     "utc": "2026-12-30T15:50:00Z",
+     "body": "earth",
+     "azDeg": 311.3281,
+     "elDeg": -1.1567,
+     "horizonDeg": -1.8252215,
+     "visible": true
+    }
+   ]
+  },
+  "ArtemisGerlache2": {
+   "samples": 8785,
+   "percentVisible": {
+    "sun": 88.24,
+    "earth": 50.94,
+    "both": 41.91
+   },
+   "sunDiskFractionMean": 0.8804,
+   "neverVisible": {
+    "sun": false,
+    "earth": false
+   },
+   "alwaysVisible": {
+    "sun": false,
+    "earth": false
+   },
+   "events": {
+    "sun": 4,
+    "earth": 5
+   },
+   "longestHidden": {
+    "sun": {
+     "startIndex": 6250,
+     "startUtc": "2026-12-14T09:40:00Z",
+     "durationS": 316200,
+     "openAtStart": false,
+     "openAtEnd": false
+    },
+    "earth": {
+     "startIndex": 4273,
+     "startUtc": "2026-11-30T16:10:00Z",
+     "durationS": 1117200,
+     "openAtStart": false,
+     "openAtEnd": false
+    }
+   },
+   "windows": {
+    "sun": [
+     {
+      "startIndex": 0,
+      "endIndex": 1993,
+      "durationS": 1195800,
+      "openAtStart": true,
+      "openAtEnd": false
+     },
+     {
+      "startIndex": 2499,
+      "endIndex": 6250,
+      "durationS": 2250600,
+      "openAtStart": false,
+      "openAtEnd": false
+     },
+     {
+      "startIndex": 6777,
+      "endIndex": 8785,
+      "durationS": 1204800,
+      "openAtStart": false,
+      "openAtEnd": true
+     }
+    ],
+    "earth": [
+     {
+      "startIndex": 0,
+      "endIndex": 384,
+      "durationS": 230400,
+      "openAtStart": true,
+      "openAtEnd": false
+     },
+     {
+      "startIndex": 2233,
+      "endIndex": 4273,
+      "durationS": 1224000,
+      "openAtStart": false,
+      "openAtEnd": false
+     },
+     {
+      "startIndex": 6135,
+      "endIndex": 8186,
+      "durationS": 1230600,
+      "openAtStart": false,
+      "openAtEnd": false
+     }
+    ]
+   },
+   "spotChecks": [
+    {
+     "index": 0,
+     "utc": "2026-11-01T00:00:00Z",
+     "body": "sun",
+     "azDeg": 353.9891,
+     "elDeg": 3.0587,
+     "horizonDeg": -1.2173929,
+     "visible": true
+    },
+    {
+     "index": 0,
+     "utc": "2026-11-01T00:00:00Z",
+     "body": "earth",
+     "azDeg": 72.9146,
+     "elDeg": 3.4141,
+     "horizonDeg": -0.7141112,
+     "visible": true
+    },
+    {
+     "index": 8784,
+     "utc": "2027-01-01T00:00:00Z",
+     "body": "sun",
+     "azDeg": 331.9579,
+     "elDeg": 2.436,
+     "horizonDeg": -1.3199052,
+     "visible": true
+    },
+    {
+     "index": 8784,
+     "utc": "2027-01-01T00:00:00Z",
+     "body": "earth",
+     "azDeg": 75.8918,
+     "elDeg": -5.8581,
+     "horizonDeg": -0.6872312,
+     "visible": false
+    },
+    {
+     "index": 1992,
+     "utc": "2026-11-14T20:00:00Z",
+     "body": "sun",
+     "azDeg": 185.325,
+     "elDeg": -0.0476,
+     "horizonDeg": -0.057625,
+     "visible": true
+    },
+    {
+     "index": 1993,
+     "utc": "2026-11-14T20:10:00Z",
+     "body": "sun",
+     "azDeg": 185.2404,
+     "elDeg": -0.0478,
+     "horizonDeg": -0.0211124,
+     "visible": false
+    },
+    {
+     "index": 8452,
+     "utc": "2026-12-29T16:40:00Z",
+     "body": "sun",
+     "azDeg": 0.0066,
+     "elDeg": 2.6667,
+     "horizonDeg": -1.2047364,
+     "visible": true
+    },
+    {
+     "index": 383,
+     "utc": "2026-11-03T15:50:00Z",
+     "body": "earth",
+     "azDeg": 74.3482,
+     "elDeg": -0.7072,
+     "horizonDeg": -0.7114288,
+     "visible": true
+    },
+    {
+     "index": 384,
+     "utc": "2026-11-03T16:00:00Z",
+     "body": "earth",
+     "azDeg": 74.3497,
+     "elDeg": -0.7179,
+     "horizonDeg": -0.7114048,
+     "visible": false
+    },
+    {
+     "index": 6812,
+     "utc": "2026-12-18T07:20:00Z",
+     "body": "earth",
+     "azDeg": 61.0581,
+     "elDeg": 5.3344,
+     "horizonDeg": -1.0219637,
+     "visible": true
+    }
+   ]
+  },
+  "ArtemisSlater": {
+   "samples": 8785,
+   "percentVisible": {
+    "sun": 59.82,
+    "earth": 32.35,
+    "both": 17.72
+   },
+   "sunDiskFractionMean": 0.5884,
+   "neverVisible": {
+    "sun": false,
+    "earth": false
+   },
+   "alwaysVisible": {
+    "sun": false,
+    "earth": false
+   },
+   "events": {
+    "sun": 4,
+    "earth": 5
+   },
+   "longestHidden": {
+    "sun": {
+     "startIndex": 3312,
+     "startUtc": "2026-11-24T00:00:00Z",
+     "durationS": 969000,
+     "openAtStart": false,
+     "openAtEnd": false
+    },
+    "earth": {
+     "startIndex": 4038,
+     "startUtc": "2026-11-29T01:00:00Z",
+     "durationS": 1533600,
+     "openAtStart": false,
+     "openAtEnd": false
+    }
+   },
+   "windows": {
+    "sun": [
+     {
+      "startIndex": 657,
+      "endIndex": 3312,
+      "durationS": 1593000,
+      "openAtStart": false,
+      "openAtEnd": false
+     },
+     {
+      "startIndex": 4927,
+      "endIndex": 7527,
+      "durationS": 1560000,
+      "openAtStart": false,
+      "openAtEnd": false
+     }
+    ],
+    "earth": [
+     {
+      "startIndex": 0,
+      "endIndex": 134,
+      "durationS": 80400,
+      "openAtStart": true,
+      "openAtEnd": false
+     },
+     {
+      "startIndex": 2688,
+      "endIndex": 4038,
+      "durationS": 810000,
+      "openAtStart": false,
+      "openAtEnd": false
+     },
+     {
+      "startIndex": 6594,
+      "endIndex": 7952,
+      "durationS": 814800,
+      "openAtStart": false,
+      "openAtEnd": false
+     }
+    ]
+   },
+   "spotChecks": [
+    {
+     "index": 0,
+     "utc": "2026-11-01T00:00:00Z",
+     "body": "sun",
+     "azDeg": 160.6137,
+     "elDeg": -0.9225,
+     "horizonDeg": 2.9427055,
+     "visible": false
+    },
+    {
+     "index": 0,
+     "utc": "2026-11-01T00:00:00Z",
+     "body": "earth",
+     "azDeg": 239.3386,
+     "elDeg": 1.6549,
+     "horizonDeg": 0.3590682,
+     "visible": true
+    },
+    {
+     "index": 8784,
+     "utc": "2027-01-01T00:00:00Z",
+     "body": "sun",
+     "azDeg": 138.5967,
+     "elDeg": -0.8779,
+     "horizonDeg": 1.7732053,
+     "visible": false
+    },
+    {
+     "index": 8784,
+     "utc": "2027-01-01T00:00:00Z",
+     "body": "earth",
+     "azDeg": 242.923,
+     "elDeg": -7.4008,
+     "horizonDeg": 0.134928,
+     "visible": false
+    },
+    {
+     "index": 656,
+     "utc": "2026-11-05T13:20:00Z",
+     "body": "sun",
+     "azDeg": 105.1618,
+     "elDeg": 0.8455,
+     "horizonDeg": 0.848709,
+     "visible": false
+    },
+    {
+     "index": 657,
+     "utc": "2026-11-05T13:30:00Z",
+     "body": "sun",
+     "azDeg": 105.0772,
+     "elDeg": 0.8492,
+     "horizonDeg": 0.8484912,
+     "visible": true
+    },
+    {
+     "index": 1897,
+     "utc": "2026-11-14T04:10:00Z",
+     "body": "sun",
+     "azDeg": 359.9804,
+     "elDeg": 4.0786,
+     "horizonDeg": 0.7821392,
+     "visible": true
+    },
+    {
+     "index": 133,
+     "utc": "2026-11-01T22:10:00Z",
+     "body": "earth",
+     "azDeg": 240.1356,
+     "elDeg": 0.3124,
+     "horizonDeg": 0.3086572,
+     "visible": true
+    },
+    {
+     "index": 134,
+     "utc": "2026-11-01T22:20:00Z",
+     "body": "earth",
+     "azDeg": 240.1407,
+     "elDeg": 0.3019,
+     "horizonDeg": 0.3083359,
+     "visible": false
+    },
+    {
+     "index": 8576,
+     "utc": "2026-12-30T13:20:00Z",
+     "body": "earth",
+     "azDeg": 243.2784,
+     "elDeg": -6.1001,
+     "horizonDeg": 0.1207648,
+     "visible": false
+    }
+   ]
   }
  }
 }

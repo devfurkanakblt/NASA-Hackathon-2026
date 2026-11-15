@@ -20,6 +20,11 @@ export interface SiteEntry {
   derivation?: string
   /** `contrast`: a point outside the south polar region, for educational comparison. */
   category?: string
+  mission?: string
+  program?: string
+  coordinateStatus?: 'landed' | 'region-representative' | 'research-candidate'
+  regionSource?: string
+  aliases?: string[]
 }
 
 export interface SitesDoc {
@@ -187,6 +192,23 @@ export interface MapDoc {
   warnings?: string[]
 }
 
+/** Where a scenario site's numbers come from and how precise they are. */
+export interface Provenance {
+  latDeg: number
+  lonDeg: number
+  observerHeightM: number
+  /** Observer eye height above the 1737.4 km reference sphere. */
+  eyeM: number
+  /** Azimuth step of the terrain horizon: 0.1 catalogue, 1 map cell, 0.1 refined cell. */
+  horizonResolutionDeg: number
+  horizonSource: 'catalogue' | 'map-cell' | 'refined-cell'
+  ephemerisSource: string
+  /** `year.sha256` of the one-year series; null on the two-month series. */
+  dataHash: string | null
+  precision: 'catalogue' | 'regional screening estimate'
+  coverageWarnings: string[]
+}
+
 /** Everything the app knows about one site. */
 export interface SiteData {
   site: SiteEntry
@@ -202,9 +224,25 @@ export interface SiteData {
   /** Optional regional and annual context panels from A/B. */
   map?: MapDoc
   season?: SeasonDoc
+  /** Source and precision of this scenario site; set by loadAllData and cellSiteData. */
+  provenance?: Provenance
+}
+
+/** `coverage.json`: the supported area and time range, written by `python -m preprocess.coverage`. */
+export interface CoverageDoc {
+  version: 1
+  time: { startUtc: string; endUtc: string; stepS: number; mainPeriodEndUtc: string }
+  catalogue: { siteId: string; latDeg: number; lonDeg: number; horizonResolutionDeg: number }[]
+  maps: { siteId: string; halfSizeM: number; spacingM: number; horizonResolutionDeg: number; summaryResolutionDeg: number; summaryPeriod: [string, string] }[]
+  dems: ({ name: string; kind: 'local-5m'; bounds: { crs: string; xMin: number; yMin: number; xMax: number; yMax: number } }
+    | { name: string; kind: 'regional-80m'; latMaxDeg: number }
+    | { name: string; kind: 'global-474m' })[]
+  freePoints: string
 }
 
 export interface LoadedData {
   sites: SitesDoc
   bySite: Record<string, SiteData>
+  /** Supported area and time range; absent when `coverage.json` has not been generated. */
+  coverage?: CoverageDoc
 }

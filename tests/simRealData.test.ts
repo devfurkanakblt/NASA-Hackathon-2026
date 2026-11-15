@@ -121,7 +121,7 @@ describe('default mission (15 Nov 2026, 7 days, example hardware) on real data',
     for (const r of Object.values(results)) {
       expect(r.startIndex).toBe(14 * 144)
       expect(r.count).toBe(7 * 144 + 1)
-      expect(r.model.ephemerisSource).toBe('jpl-horizons')
+      expect(r.model.ephemerisSource).toBe(bySite[r.siteId].ephemeris.source)
     }
   })
 
