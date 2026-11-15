@@ -71,7 +71,7 @@ def test_horizon_params_name_global_dem_for_contrast_sites():
     from preprocess.build_all import GLOBAL_DEM_NOTE, horizon_params
     polar, note = horizon_params("Site01", 250_000.0)
     assert note is None and "nearDem" not in polar
-    for site in ("CE6", "Apollo11"):
+    for site in ("CE6", "Apollo12"):
         params, note = horizon_params(site, 250_000.0)
         assert params["nearDem"].startswith("LDEM_64") and note == GLOBAL_DEM_NOTE
         assert {k: v for k, v in params.items() if k != "nearDem"} == polar

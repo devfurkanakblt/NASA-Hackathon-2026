@@ -1,10 +1,10 @@
 import type { CSSProperties } from 'react'
 import type { SiteEntry } from '../data/contract.ts'
-import { isOnGlobe, placeGroups } from './globeView.ts'
+import { placeGroups } from './globeView.ts'
 
 /**
- * Every catalogue place as a toggle, grouped like the research alternatives. The globe cannot
- * show places in the northern hemisphere, and the pole is too crowded to read every name there.
+ * Every catalogue place as a toggle, grouped like the research alternatives: the pole is too
+ * crowded on the globe to read every name there.
  */
 export function PlaceList({ sites, chosen, colors, onToggle }: {
   sites: SiteEntry[]
@@ -29,7 +29,6 @@ export function PlaceList({ sites, chosen, colors, onToggle }: {
                   title={on ? 'Remove this place from the comparison' : full ? 'Three places are chosen; remove one first' : 'Add this place to the comparison'}
                   onClick={() => onToggle(site)}>
                   {on && `${String.fromCharCode(65 + index)} · `}{site.name}
-                  {!isOnGlobe(site) && <span className="place-list__note"> · north, not on the globe</span>}
                 </button>
               )
             })}

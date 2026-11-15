@@ -198,7 +198,7 @@ export function MissionApp() {
   // one-year series of every scenario's site so later dates open without waiting.
   const wanted = useMemo(() => {
     if (!loaded) return { years: [] as string[], cells: [] as string[] }
-    const need = sitesNeeded(scenarios, loaded.sites.coverage.endUtc, settings.durationDays)
+    const need = sitesNeeded(scenarios, loaded.sites.coverage.endUtc, settings.durationDays, loaded.bySite)
     const bases = scenarios.map((s) => parseCellId(s.siteId)?.siteId ?? s.siteId).filter((id) => id in loaded.bySite)
     // The Research tab compares every catalogue place on the chosen dates: past the two-month
     // period that needs each place's one-year series, so fetch them only then (≈1.3 MB each).

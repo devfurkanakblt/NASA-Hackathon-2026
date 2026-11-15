@@ -1,4 +1,4 @@
-"""Source-pinned mission points; regions are represented by explicitly labelled research points.
+"""Source-pinned mission points (southern hemisphere only); regions are represented by explicitly labelled research points.
 
 No polygon containment is inferred from a shared name or the nearest existing tile.
 """
@@ -22,29 +22,17 @@ def point(name, lat, lon, source, program, dem="ldem64", status="landed"):
 
 MISSION_SITES = {
     f"Apollo{n}": point(f"Apollo {n} landing site", lat, lon, APOLLO_SOURCE, "Apollo")
-    for n, lat, lon in [(12, -3.0128, -23.4219), (14, -3.64589, -17.47194),
-                        (15, 26.13239, 3.63330), (16, -8.9734, 15.5011), (17, 20.1911, 30.7723)]
+    for n, lat, lon in [(12, -3.0128, -23.4219), (14, -3.64589, -17.47194), (16, -8.9734, 15.5011)]
 }
 for sid, name, lat, lon, dem in [
     ("IM1", "Intuitive Machines IM-1 (Odysseus)", -80.13, 1.44, "regional80"),
     ("IM2", "Intuitive Machines IM-2 (Athena)", -84.7906, 29.1957, "regional80"),
-    ("BlueGhost1", "Firefly Blue Ghost Mission 1", 18.562, 61.810, "ldem64"),
     ("Chandrayaan3", "Chandrayaan-3 landing site", -69.3741, 32.32, "ldem64"),
     ("SLIM", "JAXA SLIM landing site", -13.3160, 25.2510, "ldem64"),
-    ("CE3", "Chang'e-3 landing site", 44.1214, -19.5117, "ldem64"),
     ("CE4", "Chang'e-4 landing site", -45.4561, 177.5885, "ldem64"),
-    ("CE5", "Chang'e-5 landing site", 43.0576, -51.9161, "ldem64"),
 ]:
     MISSION_SITES[sid] = point(name, lat, lon, LANDER_SOURCE,
-                             "CLPS" if sid in ("IM1", "IM2", "BlueGhost1") else "International", dem)
-
-MISSION_SITES["PeregrineTarget"] = point(
-    "Astrobotic Peregrine target region (Sinus Viscositatis centre)", 35.25, -40.99,
-    "https://planetarynames.wr.usgs.gov/Feature/16118 (LOLA 2011 feature centre); "
-    "https://www.nasa.gov/missions/artemis/clps/astrobotic/ (mission/region association)",
-    "CLPS", status="region-representative")
-MISSION_SITES["PeregrineTarget"]["notes"] += [
-    "Peregrine did not land on the Moon. This is the named target region centre, not a touchdown or precise target coordinate."]
+                             "CLPS" if sid in ("IM1", "IM2") else "International", dem)
 
 # One published research candidate per NASA October 2024 region. These are NOT NASA-approved
 # touchdown points or region centroids. The paper's candidate id remains in the name/source.

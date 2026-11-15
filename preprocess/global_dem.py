@@ -59,7 +59,7 @@ def fetch_rows(i0, i1):
     if path.exists():
         return np.load(path)
     CACHE.mkdir(parents=True, exist_ok=True)
-    # Reuse overlapping latitude windows (e.g. Apollo 12/14 or Chang'e-3/5).
+    # Reuse overlapping latitude windows (e.g. Apollo 12/14).
     z = np.empty((i1 - i0, SAMPLES), dtype="<i2")
     available = np.zeros(i1 - i0, dtype=bool)
     for cached in CACHE.glob("ldem64_rows_*_*.npy"):

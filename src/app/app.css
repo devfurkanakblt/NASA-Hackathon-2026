@@ -2450,4 +2450,3 @@
 .place-list__items { display: flex; flex-wrap: wrap; gap: 6px; }
 .app .place-list__items button { font-size: 12px; padding: 4px 9px; min-height: 30px; border-radius: 14px; text-align: left; }
 .app .place-list__items button[aria-pressed='true'] { background: var(--place-color, #1a2032); border-color: var(--place-color, currentColor); color: white; }
-.place-list__note { font-size: 11px; opacity: .75; }

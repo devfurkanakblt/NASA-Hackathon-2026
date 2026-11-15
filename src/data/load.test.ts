@@ -151,16 +151,16 @@ describe('map and independent annual season merge regressions', () => {
   })
 
   it('does not request a regional map for contrast sites, but still loads their season', async () => {
-    const f = fixture('Apollo11')
+    const f = fixture('Apollo12')
     f.sites.sites[0].category = 'contrast'
     const { map, season } = summaryFiles(f.id)
     f.docs[`/data/${f.id}/map.json`] = map // would succeed, but must never be requested
     f.docs[`/data/${f.id}/season.json`] = season
     const fetch = mockFiles(f.docs)
-    const data = (await loadAllData('/data')).bySite.Apollo11
+    const data = (await loadAllData('/data')).bySite.Apollo12
     expect(data.map).toBeUndefined()
     expect(data.season).toEqual(season)
-    expect(fetch.mock.calls.map(([url]) => String(url))).not.toContain('/data/Apollo11/map.json')
+    expect(fetch.mock.calls.map(([url]) => String(url))).not.toContain('/data/Apollo12/map.json')
     expect(fetch).toHaveBeenCalledTimes(10) // + psr-south.json and coverage.json, once per catalogue load
   })
 
