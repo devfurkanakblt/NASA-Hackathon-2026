@@ -1,23 +1,23 @@
 .scene-mission { padding: 14px; margin-bottom: 18px; background: #141820; border: 1px solid #343a47; border-radius: 12px; }
-.scene-mission__scenarios, .scene-mission__shifts { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font-size: 12px; }
+.scene-mission__scenarios, .scene-mission__shifts { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font-size: 14px; }
 .scene-mission__scenarios { margin-bottom: 12px; }
 .scene-mission__scenarios button[aria-pressed=true] { background: #574185; border-color: #a38ade; color: #fff; }
 .scene-mission__fields { display: grid; grid-template-columns: minmax(200px, 1.6fr) minmax(220px, 1fr) 125px; gap: 12px; }
-.scene-mission__fields label { display: flex; flex-direction: column; gap: 6px; min-width: 0; font-size: 12px; }
+.scene-mission__fields label { display: flex; flex-direction: column; gap: 6px; min-width: 0; font-size: 14px; }
 .scene-mission__fields input, .scene-mission__fields select { width: 100%; min-width: 0; box-sizing: border-box; }
 .scene-mission__shifts { margin-top: 12px; }
-.scene-mission__hint { color: #b0b6c5; font-size: 11px; }
+.scene-mission__hint { color: #b0b6c5; font-size: 13px; }
 .scene-summary { margin: 16px 0; }
 .scene-summary h3 { margin-bottom: 6px; }
-.scene-summary .scene-mission__facts p { margin: 7px 0 0; font-size: 12px; color: #c0c6d3; }
+.scene-summary .scene-mission__facts p { margin: 7px 0 0; font-size: 14px; color: #c0c6d3; }
 .scene-summary details { margin-top: 10px; }
 .scene-summary summary { cursor: pointer; padding: 8px 0; }
 .scene-summary details p { max-width: 85ch; font-size: 13px; }
 .scene-mission__facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
 .scene-mission__facts > div { padding: 12px; border: 1px solid #343a47; border-radius: 10px; background: #141820; }
-.scene-mission__facts dt { font-size: 12px; color: #c0c6d3; }
+.scene-mission__facts dt { font-size: 14px; color: #c0c6d3; }
 .scene-mission__facts dd { margin: 5px 0 0; font-size: 16px; }
-.scene-mission__facts small { display: block; margin-top: 6px; color: #b0b6c5; font-size: 11px; }
+.scene-mission__facts small { display: block; margin-top: 6px; color: #b0b6c5; font-size: 13px; }
 @media(max-width: 760px) {
   .scene-mission__fields { grid-template-columns: minmax(0, 1fr) 100px; }
   .scene-mission__fields label:first-child { grid-column: 1 / -1; }
