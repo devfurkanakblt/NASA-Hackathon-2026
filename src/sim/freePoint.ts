@@ -106,6 +106,10 @@ export function globalHorizon(dem: GlobalDem, latDeg: number, lonDeg: number, ey
 }
 
 export interface FreePointInput {
+  /** Screening searches can project only the requested mission window. */
+  window?: { startIndex: number; count: number }
+  azStepDeg?: number
+  skipSeason?: boolean
   latDeg: number
   lonDeg: number
   dem: GlobalDem
@@ -126,8 +130,8 @@ export function freePointSiteData(input: FreePointInput): SiteData {
   const point: Observer = { latDeg, lonDeg, eyeM }
   const centre: Observer = { latDeg: yearSite.latDeg, lonDeg: yearSite.lonDeg, eyeM: yearSite.surfaceElevationM + yearSite.observerHeightM }
   const mf = moonFixedSeries(year, centre, moonFixedKey({ dataHash: input.yearSha256, ...centre, horizonResolutionDeg: 0.1 }))
-  const ephemeris = { ...projectWindow(mf, point, 0, mf.count), siteId: id }
-  const horizon = globalHorizon(dem, latDeg, lonDeg, eyeM)
+  const ephemeris = { ...projectWindow(mf, point, input.window?.startIndex ?? 0, input.window ? input.window.startIndex + input.window.count : mf.count), siteId: id }
+  const horizon = globalHorizon(dem, latDeg, lonDeg, eyeM, input.azStepDeg)
   const fmt = (v: number, pos: string, neg: string) => `${Math.abs(v).toFixed(4)}°${v >= 0 ? pos : neg}`
   const warnings = [
     ...horizon.warnings!,
@@ -152,10 +156,10 @@ export function freePointSiteData(input: FreePointInput): SiteData {
     ephemeris,
     horizon,
     provenance: {
-      latDeg, lonDeg, observerHeightM: OBSERVER_HEIGHT_M, eyeM, horizonResolutionDeg: FREE_AZ_STEP_DEG, horizonSource: 'global-dem',
+      latDeg, lonDeg, observerHeightM: OBSERVER_HEIGHT_M, eyeM, horizonResolutionDeg: input.azStepDeg ?? FREE_AZ_STEP_DEG, horizonSource: 'global-dem',
       ephemerisSource: `${year.source} (Moon-fixed vectors of ${yearSite.id} re-projected to this point)`, dataHash: input.yearSha256,
       precision: 'global screening estimate', coverageWarnings: warnings,
     },
   }
-  return { ...data, season: { ...seasonFromSeries(ephemeris, horizon), siteId: id } }
+  return input.skipSeason ? data : { ...data, season: { ...seasonFromSeries(ephemeris, horizon), siteId: id } }
 }

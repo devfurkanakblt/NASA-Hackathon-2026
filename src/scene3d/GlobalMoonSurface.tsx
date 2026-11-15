@@ -90,7 +90,11 @@ export function Photograph({ clip, patch, frame }: { clip: boolean; patch: Patch
 }
 
 /** Continuous whole-Moon measured terrain, plus a camera-following refined display mesh. */
-export function GlobalMoonSurface({ terrain, meshRef }: { terrain: GlobalTerrain | null; meshRef: RefObject<Mesh | null> }) {
+export function GlobalMoonSurface({ terrain, meshRef, refine = true }: {
+  terrain: GlobalTerrain | null; meshRef: RefObject<Mesh | null>
+  /** Off while the camera flies: rebuilding the refined patch every few frames stalls the flight. */
+  refine?: boolean
+}) {
   const global = useMemo(() => terrain ? globalGeometry(terrain) : new SphereGeometry(1, 256, 128), [terrain])
   const [patch, setPatch] = useState<Patch | null>(null)
   const last = useRef<Patch | null>(null)
@@ -109,8 +113,9 @@ export function GlobalMoonSurface({ terrain, meshRef }: { terrain: GlobalTerrain
   const patchGeometry = useMemo(() => patch && detail?.patch === patch ? globalGeometry(detail.terrain, patch.direction, patch.angle) : null, [detail, patch])
   useEffect(() => () => global.dispose(), [global])
   useEffect(() => () => patchGeometry?.dispose(), [patchGeometry])
+  useEffect(() => { if (!refine) { last.current = null; setPatch(null) } }, [refine])
   useFrame(({ camera }) => {
-    if (!terrain) return
+    if (!terrain || !refine) return
     const altitude = camera.position.length() - 1
     if (altitude > .35) { if (last.current) { last.current = null; setPatch(null) }; return }
     const direction = camera.position.clone().normalize(), angle = Math.max(.015, Math.min(.5, altitude * 3))

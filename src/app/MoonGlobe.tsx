@@ -119,6 +119,7 @@ export default function MoonGlobe({ sites, selected, onSelect, onPickPoint, flig
   active?: boolean; flight?: MoonFlight; onComplete?: () => void
 }) {
   const moon = useRef<Mesh>(null!)
+  const occluder = useRef<Mesh>(null!)
   const [poleRequest, setPoleRequest] = useState(0)
   // drei <Html> roots created while the canvas is still being set up can come out empty
   // (the first place label went missing). Mount the labels on the first frame after setup.
@@ -153,8 +154,12 @@ export default function MoonGlobe({ sites, selected, onSelect, onPickPoint, flig
         const { latDeg, lonDeg } = moonLatLon(local)
         onPickPoint(latDeg, lonDeg)
       }}>
-      <GlobalMoonSurface terrain={terrain} meshRef={moon} />
+      <GlobalMoonSurface terrain={terrain} meshRef={moon} refine={!flight} />
       </group>
+      {/* Label occlusion raycasts every label on every frame; against the ~260k-triangle terrain
+          mesh that stalls the flight. A hidden low-poly sphere just under the lowest terrain
+          (~-9 km, 0.9948 R) hides labels on the far side at a fraction of the cost. */}
+      <mesh ref={occluder} visible={false}><sphereGeometry args={[.994, 48, 24]} /></mesh>
       {!labelsReady && <FirstFrame onFrame={() => setLabelsReady(true)} />}
       {labelsReady && <KeepLabelsInFrame positions={labelPositions} refs={labelRefs} />}
       {labelsReady && labelSites.map((site, i) => {
@@ -165,7 +170,7 @@ export default function MoonGlobe({ sites, selected, onSelect, onPickPoint, flig
         const refs = (labelRefs.current[i] ??= { label: null, line: null })
         return <group key={`${site.id}-${i}`} position={position}>
           <mesh><sphereGeometry args={[.002, 12, 12]} /><meshBasicMaterial color={color} depthTest={false} /></mesh>
-          <Html center occlude={[moon]} zIndexRange={[20, 0]} style={{ pointerEvents: flight ? 'none' : 'auto' }}>
+          <Html center occlude={[occluder]} zIndexRange={[20, 0]} style={{ pointerEvents: flight ? 'none' : 'auto' }}>
             <svg className="moon-leader" width="1" height="1" aria-hidden="true" style={{ color }}><line ref={el => { refs.line = el }} x1="0" y1="0" x2={pin.x} y2={pin.y} /></svg>
             <div ref={el => { refs.label = el }} className="moon-label" style={{ color, '--pin-x': `${pin.x}px`, '--pin-y': `${pin.y}px`, '--pin-mobile-x': `${pin.mobileX}px`, '--pin-mobile-y': `${pin.mobileY}px` } as CSSProperties}>
             <button type="button" className="moon-pin" style={{ color }}
@@ -176,7 +181,7 @@ export default function MoonGlobe({ sites, selected, onSelect, onPickPoint, flig
         </group>
       })}
       {labelsReady && dotSites.map(site => <group key={site.id} position={displayPosition(site)}>
-        <Html center occlude={[moon]} zIndexRange={[19, 0]}>
+        <Html center occlude={[occluder]} zIndexRange={[19, 0]}>
           <button type="button" className="moon-dot" style={{ color: selected.find(p => p.site.id === site.id)?.color }} onClick={() => onSelect?.(site)} aria-pressed={selected.some(p => p.site.id === site.id)} aria-label={`${selected.some(p => p.site.id === site.id) ? 'Remove' : 'Add'} ${site.name} ${selected.some(p => p.site.id === site.id) ? 'from' : 'to'} the comparison`}>
             <span className="moon-dot__name" aria-hidden="true">{selected.filter(p => p.site.id === site.id).map(p => p.letter).join(' / ')} {site.name}</span>
           </button>
@@ -185,7 +190,7 @@ export default function MoonGlobe({ sites, selected, onSelect, onPickPoint, flig
       {flight && onComplete ? <FlightCamera flight={flight} onComplete={onComplete} /> : <OrbitControls makeDefault enablePan={false} minDistance={1.001} maxDistance={4} enableDamping dampingFactor={.12} />}
     </Canvas>
     {!flight && <button type="button" style={{ position: 'absolute', left: 12, top: 12, zIndex: 25 }} onClick={() => setPoleRequest(n => n + 1)}>Focus south pole</button>}
-    {!flight && <span className="moon-globe__hint">Rotate the whole Moon · Click the surface to compare a point · Scroll to zoom</span>}
+    {!flight && <span className="moon-globe__hint">Rotate the whole Moon · Hover a dot for its name · Click the surface to compare a point · Scroll to zoom</span>}
     <span className="moon-globe__credit" title="Archival LROC photographs show their original illumination, not the selected mission time. Display terrain uses the shared NASA LOLA global tiles at ~1.9 km per pixel, true height; the mesh refines on zoom without adding source detail. Scientific coverage and precision are reported with each result.">{terrain ? 'NASA LOLA terrain · ~1.9 km/px' : error ? 'Terrain unavailable · Locator only' : 'Loading checked NASA LOLA terrain…'} · {photograph.texture ? 'LROC archive imagery' : photograph.failed ? 'Global image unavailable' : 'Loading global image…'}</span>
   </div>
 }

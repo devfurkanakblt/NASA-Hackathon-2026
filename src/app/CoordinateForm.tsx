@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { REFERENCE_LANDINGS } from './referenceLandings.ts'
 
 interface Props {
   /** Button text, e.g. "Add point". */
@@ -22,7 +23,6 @@ export function CoordinateForm({ action, disabled, onUse }: Props) {
         setMsg(onUse(num(lat), num(lon)))
       }}
     >
-      <p className="small muted">Any point on the Moon. Latitude −90 to 90 (south negative), longitude east positive (−180 to 360).</p>
       <div className="coordinate-form__row">
         <label>
           <span>Latitude °</span>
@@ -35,6 +35,14 @@ export function CoordinateForm({ action, disabled, onUse }: Props) {
         <button type="submit" disabled={disabled}>
           {action}
         </button>
+      </div>
+      <div className="coordinate-form__presets" role="group" aria-label="Past landings outside the south-polar catalogue">
+        <span className="small muted">Past landings (northern &amp; equatorial, global-terrain estimate):</span>
+        {REFERENCE_LANDINGS.map((p) => (
+          <button key={p.name} type="button" disabled={disabled} onClick={() => { setLat(String(p.latDeg)); setLon(String(p.lonDeg)); setMsg(onUse(p.latDeg, p.lonDeg)) }}>
+            {p.name}
+          </button>
+        ))}
       </div>
       {msg && (
         <p className={`small ${msg.ok ? 'muted' : 'bad'}`} role="status">

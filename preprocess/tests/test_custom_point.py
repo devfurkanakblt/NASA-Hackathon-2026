@@ -26,6 +26,7 @@ def test_rejects_point_without_5m_near_field(tmp_path):
     assert not any(tmp_path.iterdir())
 
 
+@needs_dem
 def test_rejects_point_near_tile_edge(tmp_path):
     from preprocess.coverage import point_inside_tile_edge
     lat, lon = point_inside_tile_edge("Site01", 2000)  # inside the tile, near range spills out

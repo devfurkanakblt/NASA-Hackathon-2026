@@ -5,6 +5,7 @@
 import type { SiteData } from '../data/contract.ts'
 import { parseCellId } from './extendedSites.ts'
 import { parseFreePointId } from '../sim/freePoint.ts'
+import { fmtLatLon } from './format.ts'
 
 const COMPASS = ['north', 'north-east', 'east', 'south-east', 'south', 'south-west', 'west', 'north-west']
 
@@ -27,14 +28,27 @@ export function mapPointWhere(id: string, bySite: Record<string, SiteData>): str
 /** Title for cards and lists: the site name, or "Map point near Connecting Ridge". */
 export function placeTitle(id: string, bySite: Record<string, SiteData>): string {
   const free = parseFreePointId(id)
-  if (free) {
-    const f = (v: number, pos: string, neg: string) => `${Math.abs(v).toFixed(3)}°${v >= 0 ? pos : neg}`
-    return `Your point ${f(free.latDeg, 'N', 'S')}, ${f(free.lonDeg, 'E', 'W')}`
-  }
+  if (free) return `Your point ${fmtLatLon(free.latDeg, free.lonDeg)}`
   const cell = parseCellId(id)
   if (cell) {
     const base = bySite[cell.siteId]?.site.name
     return base ? `Map point near ${base}` : 'Map point'
   }
   return bySite[id]?.site.name ?? id
+}
+
+/** "15 Nov 2026 06:00" (UTC); minutes only when not midnight. */
+function shortUtc(iso: string): string {
+  const d = new Date(iso)
+  const day = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
+  return d.getUTCHours() || d.getUTCMinutes() ? `${day} ${d.toISOString().slice(11, 16)} UTC` : day
+}
+
+/**
+ * Title for a scenario in chips and lists: the place, plus its start date when another scenario
+ * uses the same place (so "B Shackleton Rim" and "C Shackleton Rim" can be told apart).
+ */
+export function scenarioTitle(s: { key: string; siteId: string; startUtc: string }, all: { key: string; siteId: string }[], bySite: Record<string, SiteData>): string {
+  const title = placeTitle(s.siteId, bySite)
+  return all.some(o => o.key !== s.key && o.siteId === s.siteId) ? `${title} · ${shortUtc(s.startUtc)}` : title
 }
