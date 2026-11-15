@@ -40,22 +40,6 @@ const TABS: { key: Tab; label: string }[] = [
   { key: 'sources', label: 'Data & limits' },
 ]
 
-const TOUR_SEEN_KEY = 'lsn-tour-seen'
-function readFlag(key: string): boolean {
-  try {
-    return window.localStorage.getItem(key) === '1'
-  } catch {
-    return false
-  }
-}
-function writeFlag(key: string) {
-  try {
-    window.localStorage.setItem(key, '1')
-  } catch {
-    // Storage blocked (private window): the tour simply shows again next time.
-  }
-}
-
 /** Scenario colours A, B, C (distinct on the dark background and for common colour blindness). */
 const COLORS = ['#7a5be0', '#3a9468', '#cc6cbb']
 const STEPS_PER_FRAME = 2
@@ -112,8 +96,7 @@ export function MissionApp() {
         setLoaded(data)
         setScenarios(initial)
         setActiveKey(initial[shared?.active ?? 0]?.key ?? null)
-        // First visit (and not opened from a shared link): show the short tour once.
-        if (!shared && !readFlag(TOUR_SEEN_KEY)) setTourOpen(true)
+        // The hero introduces the app; visitors can launch the tour when ready.
       })
       .catch((e) => !cancelled && setLoadError(errorMessage(e)))
     return () => {
@@ -270,7 +253,6 @@ export function MissionApp() {
   ]
   const closeTour = () => {
     setTourOpen(false)
-    writeFlag(TOUR_SEEN_KEY)
   }
 
   const header = (
@@ -287,10 +269,26 @@ export function MissionApp() {
           <span aria-hidden>?</span> How it works
         </button>
       </div>
-      <div className="app__title">
-        <h1>Find the light before you land.</h1>
+      <section className="lunar-hero" aria-labelledby="hero-title">
+        <img className="lunar-hero__image" src={`${import.meta.env.BASE_URL}images/rimlight-lunar-hero-v1.webp`} alt="" fetchPriority="high" width="1672" height="941" />
+        <div className="lunar-hero__content">
+        <h1 id="hero-title">Find the light<br />before you <span>land.</span></h1>
         <p>Compare landing spots near the Moon&rsquo;s south pole: will the lander have power, and can it talk to Earth?</p>
-      </div>
+        <div className="lunar-hero__actions">
+          <a className="lunar-hero__cta" href="#mission-planner" onClick={(event) => {
+            event.preventDefault()
+            const planner = document.getElementById('mission-planner')
+            planner?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' })
+            planner?.focus({ preventScroll: true })
+          }}>Explore landing sites <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><path d="M4 12h15M13 5l7 7-7 7" /></svg></a>
+          <button type="button" className="lunar-hero__tour" onClick={() => setTourOpen(true)}>Take a guided tour</button>
+        </div>
+        </div>
+        <div className="lunar-hero__footer">
+          <span>Sunlight. Power. A connection home.</span>
+          <span className="lunar-hero__caption">Lunar south pole <span aria-hidden="true">/</span> Artist&rsquo;s impression</span>
+        </div>
+      </section>
       <HorizonRule horizon={activeData?.horizon} siteName={activeData?.site.name} />
     </header>
   )
@@ -330,7 +328,7 @@ export function MissionApp() {
     <div className="app">
       {header}
       <Tour steps={tourSteps} open={tourOpen} onClose={closeTour} />
-      <div className="app__layout">
+      <div className="app__layout" id="mission-planner" tabIndex={-1} aria-label="Mission planner">
         <aside className="app__side">
           <section className="card" data-tour="places">
             <h2>
