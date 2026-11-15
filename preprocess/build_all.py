@@ -36,6 +36,25 @@ def ephemeris(site_id, eye_alt_m, source):
     return W.ephemeris_doc(site_id, "skyfield-de421", sun, earth)
 
 
+GLOBAL_DEM_NOTE = ("near field uses the global LOLA DEM (~474 m/px); nearStepM is the ray sampling step, "
+                   "not the DEM resolution")
+
+
+def horizon_params(site_id, far_range_m):
+    """`params` for horizon.json, plus a warning for sites whose near field is the global DEM.
+
+    nearStepM/farStepM are ray sampling steps. On the global LDEM_64 a 2.5 m step only interpolates a
+    ~474 m grid, so those sites name their DEM in `params.nearDem` and carry a note.
+    """
+    params = {"nearRangeM": C.NEAR_RANGE_M, "nearStepM": C.NEAR_STEP_M,
+              "maxRangeM": far_range_m, "farStepM": C.FAR_STEP_M,
+              "minRangeM": C.MIN_RANGE_M, "curvature": True}
+    if C.SITES[site_id].get("dem") == "ldem64":
+        params["nearDem"] = "LDEM_64 (~474 m/px)"
+        return params, GLOBAL_DEM_NOTE
+    return params, None
+
+
 def build_site(site_id, args):
     t0 = time.time()
     s = C.SITES[site_id]
@@ -66,9 +85,9 @@ def build_site(site_id, args):
                   f"{args.far_range / 1000:.0f} km; terrain beyond could raise the horizon at "
                   f"{len(affected)} azimuths (bound: {C.MAX_LUNAR_HEIGHT_M / 1000:.1f} km high terrain)")
     print(f"  coverage: {n_leave} rays leave the DEM, {len(affected)} azimuths possibly affected")
-    params = {"nearRangeM": C.NEAR_RANGE_M, "nearStepM": C.NEAR_STEP_M,
-              "maxRangeM": args.far_range, "farStepM": C.FAR_STEP_M,
-              "minRangeM": C.MIN_RANGE_M, "curvature": True}
+    params, dem_note = horizon_params(site_id, args.far_range)
+    if dem_note:
+        hw.append(dem_note)
     doc = W.horizon_doc(site_id, elev, dist, params, hw)
     doc["refinedAzDeg"] = refined_az
     if affected:

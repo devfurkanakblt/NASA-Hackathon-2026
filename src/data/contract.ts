@@ -59,7 +59,7 @@ export interface HorizonDoc {
   /** Distance to the terrain point that forms the horizon; absent for regional map cells. */
   distanceM?: number[]
   warnings?: string[]
-  params?: { nearRangeM: number; nearStepM: number; maxRangeM: number; farStepM: number; minRangeM: number; curvature: boolean }
+  params?: { nearRangeM: number; nearStepM: number; maxRangeM: number; farStepM: number; minRangeM: number; curvature: boolean; nearDem?: string }
 }
 
 export interface TerrainDoc {
