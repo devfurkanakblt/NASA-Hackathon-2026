@@ -1574,3 +1574,194 @@
 .card__tagline {
   margin-bottom: 14px;
 }
+
+/* ==== Pages: navigation, landing, simulation ==== */
+.app__bar {
+  flex-wrap: wrap;
+}
+.app .brand--link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--text);
+  text-align: left;
+}
+.app .brand--link:hover:not(:disabled) {
+  background: none;
+}
+.pages {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+  margin-right: 8px;
+}
+.app .pages button {
+  background: none;
+  color: var(--muted);
+  border-radius: 0;
+  padding: 8px 12px 9px;
+  border-bottom: 2px solid transparent;
+  font-weight: 500;
+}
+.app .pages button:hover:not(:disabled) {
+  background: none;
+  color: var(--text);
+}
+.app .pages button.is-on {
+  color: var(--text);
+  border-bottom-color: var(--sun);
+}
+.app .horizon-rule {
+  margin-top: 18px;
+}
+
+/* Landing: words and one picture, no numbers */
+.landing {
+  max-width: 1080px;
+  margin: 0 auto;
+}
+.landing__hero {
+  padding-block: clamp(36px, 8vw, 88px) 8px;
+}
+.app .landing h1 {
+  font-family: var(--f-display);
+  font-stretch: 125%;
+  font-weight: 800;
+  font-size: clamp(32px, 6vw, 64px);
+  line-height: 1.04;
+  letter-spacing: 0.01em;
+  margin: 0;
+  max-width: 16ch;
+  text-wrap: balance;
+}
+.landing__lead {
+  max-width: 58ch;
+  margin: 22px 0 0;
+  font-size: clamp(16px, 1.6vw, 19px);
+  line-height: 1.6;
+  color: #c9d0dc;
+}
+.landing__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 30px;
+}
+.app .landing__actions button {
+  padding: 11px 20px;
+  font-size: 15px;
+  font-weight: 600;
+  border-radius: 8px;
+}
+.landing__picture {
+  display: block;
+  width: 100%;
+  height: clamp(150px, 24vw, 260px);
+  margin-top: 36px;
+}
+.landing__section {
+  padding-block: 44px;
+  border-top: 1px solid var(--line);
+}
+.landing__picture + .landing__section {
+  border-top: none;
+}
+.app .landing h2 {
+  font-family: var(--f-display);
+  font-weight: 700;
+  font-size: clamp(22px, 2.6vw, 30px);
+  margin: 0 0 22px;
+}
+.landing__why h2 {
+  font-stretch: 125%;
+}
+.landing__cols {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 20px 36px;
+}
+.landing__cols p,
+.landing__data p {
+  margin: 0;
+  max-width: 62ch;
+  font-size: 16px;
+  line-height: 1.65;
+  color: #c9d0dc;
+}
+.landing__data p + p {
+  margin-top: 14px;
+}
+.landing__steps {
+  list-style: none;
+  counter-reset: step;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 24px 36px;
+  margin: 0;
+  padding: 0;
+}
+.landing__steps li {
+  counter-increment: step;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 15px;
+  line-height: 1.6;
+  color: #c9d0dc;
+}
+.landing__steps li::before {
+  content: counter(step);
+  font-family: var(--f-display);
+  font-stretch: 125%;
+  font-weight: 800;
+  font-size: 28px;
+  color: var(--sun);
+  line-height: 1;
+}
+.landing__steps b {
+  font-size: 17px;
+  color: var(--text);
+}
+.app .landing__steps .link {
+  align-self: flex-start;
+  margin-top: 2px;
+}
+.app--home .app__footer {
+  max-width: 1080px;
+  margin-inline: auto;
+}
+
+/* Simulation page */
+.scene-box--large {
+  height: clamp(380px, 62vh, 680px);
+}
+.sim .card__head {
+  flex-wrap: wrap;
+  align-items: flex-start;
+  margin-bottom: 14px;
+}
+.sim .timebar {
+  position: static;
+  background: none;
+  border: none;
+  padding: 12px 0 0;
+}
+.sim__note {
+  padding: 40px 0;
+  max-width: 60ch;
+}
+.sim__next {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 18px;
+}
+@media (max-width: 700px) {
+  .pages {
+    order: 3;
+    width: 100%;
+    margin: 6px 0 0;
+  }
+  .app .pages button {
+    padding: 8px 10px;
+  }
+}

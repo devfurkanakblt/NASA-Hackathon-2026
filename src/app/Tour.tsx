@@ -80,7 +80,10 @@ export function Tour({ steps, open, onClose }: Props) {
   if (rect && !narrow) {
     const left = Math.min(Math.max(12, rect.left), vw - CARD_W - 12)
     const below = rect.bottom + PAD + 12
-    cardStyle = below + 200 < vh ? { left, top: below } : { left, bottom: Math.max(12, vh - rect.top + PAD + 12) }
+    if (below + 220 < vh) cardStyle = { left, top: below }
+    else if (rect.top - PAD - 12 > 240) cardStyle = { left, bottom: vh - rect.top + PAD + 12 }
+    // Target fills the screen (the 3D view): keep the card on screen, over its lower part.
+    else cardStyle = { left, bottom: 16 }
   }
 
   return (

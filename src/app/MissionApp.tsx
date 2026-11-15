@@ -16,6 +16,8 @@ import { SeasonChart } from './charts/SeasonChart.tsx'
 import { SiteMap } from './charts/SiteMap.tsx'
 import { HorizonRule, RimlightMark } from './Brand.tsx'
 import { Comparison } from './Comparison.tsx'
+import { Landing } from './Landing.tsx'
+import { placeTitle } from './placeName.ts'
 import { errorMessage, fmtDuration, fmtUtc } from './format.ts'
 import { ScenarioList } from './ScenarioList.tsx'
 import { cellId, isKnownSiteId, parseCellId, resolveSiteData, sitesNeeded, snapToCell } from './extendedSites.ts'
@@ -40,20 +42,18 @@ const TABS: { key: Tab; label: string }[] = [
   { key: 'sources', label: 'Data & limits' },
 ]
 
-const TOUR_SEEN_KEY = 'lsn-tour-seen'
-function readFlag(key: string): boolean {
-  try {
-    return window.localStorage.getItem(key) === '1'
-  } catch {
-    return false
-  }
-}
-function writeFlag(key: string) {
-  try {
-    window.localStorage.setItem(key, '1')
-  } catch {
-    // Storage blocked (private window): the tour simply shows again next time.
-  }
+/** The three pages: introduction, 3D simulation, results with the numbers. */
+type View = 'home' | 'simulation' | 'results'
+const VIEWS: { key: View; label: string }[] = [
+  { key: 'home', label: 'Home' },
+  { key: 'simulation', label: 'Simulation' },
+  { key: 'results', label: 'Results' },
+]
+/** `?view=` in the address; a shared comparison link without it opens the results. */
+function viewFromLocation(): View {
+  const v = new URLSearchParams(window.location.search).get('view')
+  if (v === 'simulation' || v === 'results') return v
+  return /(^#|&)s=/.test(window.location.hash) ? 'results' : 'home'
 }
 
 /** Scenario colours A, B, C (distinct on the dark background and for common colour blindness). */
@@ -90,7 +90,7 @@ export function MissionApp() {
   const [activeKey, setActiveKey] = useState<string | null>(null)
   const [step, setStep] = useState(0)
   const [playing, setPlaying] = useState(false)
-  const [show3d, setShow3d] = useState(true)
+  const [view, setView] = useState<View>(viewFromLocation)
   const [tab, setTab] = useState<Tab>('sky')
   const [tourOpen, setTourOpen] = useState(false)
   const diagnostics = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('diagnostics') === '1'
@@ -112,8 +112,6 @@ export function MissionApp() {
         setLoaded(data)
         setScenarios(initial)
         setActiveKey(initial[shared?.active ?? 0]?.key ?? null)
-        // First visit (and not opened from a shared link): show the short tour once.
-        if (!shared && !readFlag(TOUR_SEEN_KEY)) setTourOpen(true)
       })
       .catch((e) => !cancelled && setLoadError(errorMessage(e)))
     return () => {
@@ -124,8 +122,23 @@ export function MissionApp() {
   // Keep the address bar in step with the comparison, so the link can be copied at any time.
   const shareHash = loaded && scenarios.length ? encodeShare({ scenarios, active: Math.max(0, scenarios.findIndex((s) => s.key === activeKey)), settings }) : null
   useEffect(() => {
-    if (shareHash && window.location.hash !== shareHash) window.history.replaceState(null, '', shareHash)
-  }, [shareHash])
+    if (view !== 'home' && shareHash && window.location.hash !== shareHash) window.history.replaceState(null, '', shareHash)
+  }, [shareHash, view])
+
+  // Page changes go into the browser history, so Back and Forward work.
+  const go = useCallback((next: View) => {
+    const url = new URL(window.location.href)
+    if (next === 'home') url.searchParams.delete('view')
+    else url.searchParams.set('view', next)
+    window.history.pushState(null, '', `${url.pathname}${url.search}${next === 'home' ? '' : url.hash}`)
+    setView(next)
+    window.scrollTo({ top: 0 })
+  }, [])
+  useEffect(() => {
+    const onPop = () => setView(viewFromLocation())
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [])
   const copied = copyResult && copyResult.hash === shareHash ? (copyResult.ok ? 'done' : 'failed') : 'idle'
   const copyLink = () => {
     const hash = shareHash ?? ''
@@ -256,44 +269,69 @@ export function MissionApp() {
       title: 'Find the light before you land.',
       body: "Near the Moon's south pole the Sun and Earth stay low on the horizon, so a hill or a crater rim can hide them. The light is on the rim. Rimlight checks two things for a landing spot: does the lander get enough sunlight for power, and can it see Earth to send data home?",
     },
-    { target: 'places', title: '1. Pick places to compare', body: 'Choose up to three landing spots and any start date within a year. Each one keeps its letter and colour (A, B, C) everywhere on the page.' },
-    { target: 'result', title: '2. Read the answer', body: 'Each column answers the two questions: a tick means the goal is met, a red cross means it is not. No hidden score, just conditions. The first example compares Shackleton Rim with a ridge 1.9 km away: 1.9 km apart, a different mission.' },
+    { target: 'places', title: '1. Pick places to compare', body: 'Choose up to three landing spots and any start date within a year. Each one keeps its letter and colour (A, B, C) on every page.', before: () => go('simulation') },
+    { target: 'scene', title: '2. Watch the simulation', body: 'The 3D view shows the real terrain around the lander, with the Sun and Earth where they really are. Drag to look around.', before: () => go('simulation') },
+    { target: 'timebar', title: 'Move through time', body: 'Press Play or drag the slider to move through the mission. The line under the view says whether the Sun and Earth are in sight.', before: () => go('simulation') },
+    {
+      target: 'result',
+      title: '3. Read the answer',
+      body: 'On the results page each column answers the two questions: a tick means the goal is met, a red cross means it is not. No hidden score, just conditions.',
+      before: () => go('results'),
+    },
     {
       target: 'tabs',
-      title: '3. See why',
-      body: 'These tabs show the reason behind the answer: the skyline the lander sees, the battery over time, a map of the area and how things change through the year. On the area map you can pick any spot and test it as a landing place.',
-      before: () => setTab('sky'),
+      title: 'See why',
+      body: 'These tabs show the reason behind the answer: the skyline the lander sees, the battery over time, a map of the area and how things change through the year.',
+      before: () => {
+        go('results')
+        setTab('sky')
+      },
     },
-    { target: 'timebar', title: 'Move through time', body: 'Press Play or drag the slider. The skyline, the timelines and the 3D view all follow the same moment.', before: () => setTab('sky') },
-    { target: 'settings', title: 'Change the lander', body: 'Open the lander settings to try a bigger battery, more solar panel or a longer mission. Every place is checked again instantly.' },
-    { target: 'share', title: 'Share what you found', body: 'Copy link saves this exact comparison. Anyone who opens the link sees the same places, dates and settings.' },
+    { target: 'settings', title: 'Change the lander', body: 'Open the lander settings to try a bigger battery, more solar panel or a longer mission. Every place is checked again instantly.', before: () => go('results') },
+    { target: 'share', title: 'Share what you found', body: 'Copy link saves this exact comparison. Anyone who opens the link sees the same places, dates and settings.', before: () => go('results') },
   ]
-  const closeTour = () => {
-    setTourOpen(false)
-    writeFlag(TOUR_SEEN_KEY)
-  }
 
   const header = (
     <header className="app__header">
       <div className="app__bar">
-        <div className="brand">
-          <RimlightMark size={40} />
-          <div className="brand__text">
+        <button type="button" className="brand brand--link" onClick={() => go('home')} aria-label="Rimlight, home">
+          <RimlightMark size={36} />
+          <span className="brand__text">
             <span className="brand__word">Rimlight</span>
             <span className="brand__desc">Lunar Landing Site Navigator</span>
-          </div>
-        </div>
-        <button type="button" className="app__help" onClick={() => setTourOpen(true)}>
-          <span aria-hidden>?</span> How it works
+          </span>
         </button>
+        <nav className="pages" aria-label="Pages">
+          {VIEWS.map((v) => (
+            <button key={v.key} type="button" className={view === v.key ? 'is-on' : undefined} aria-current={view === v.key ? 'page' : undefined} onClick={() => go(v.key)}>
+              {v.label}
+            </button>
+          ))}
+        </nav>
+        {view !== 'home' && (
+          <button type="button" className="app__help" onClick={() => setTourOpen(true)}>
+            <span aria-hidden>?</span> How it works
+          </button>
+        )}
       </div>
-      <div className="app__title">
-        <h1>Find the light before you land.</h1>
-        <p>Compare landing spots near the Moon&rsquo;s south pole: will the lander have power, and can it talk to Earth?</p>
-      </div>
-      <HorizonRule horizon={activeData?.horizon} siteName={activeData?.site.name} />
+      {view !== 'home' && <HorizonRule horizon={activeData?.horizon} siteName={activeData ? placeTitle(activeData.site.id, shownBySite) : undefined} />}
     </header>
   )
+  const footer = (
+    <footer className="app__footer">
+      <RimlightMark size={20} />
+      <span>Research regions, not certified landing sites. Built on NASA data; not endorsed by NASA.</span>
+    </footer>
+  )
+
+  if (view === 'home')
+    return (
+      <div className="app app--home">
+        {header}
+        <Landing horizon={loaded?.bySite.Site04R?.horizon ?? activeData?.horizon} onSimulation={() => go('simulation')} onResults={() => go('results')} />
+        {footer}
+      </div>
+    )
 
   if (loadError)
     return (
@@ -325,241 +363,285 @@ export function MissionApp() {
       </span>
     </div>
   )
+  const status = active && now && (
+    <p className="status">
+      <span className={now.sun.visible ? 'ok' : 'bad'}>
+        <b>Sun</b> {countdown(active.result.sunWindows, now.sun.visible, now.tS)}
+      </span>
+      <span className={now.earth.visible ? 'ok' : 'bad'}>
+        <b>Earth</b> {countdown(active.result.earthWindows, now.earth.visible, now.tS)}
+      </span>
+    </p>
+  )
+  const placeChips = evaluated.length > 1 && (
+    <div className="explore__which" role="group" aria-label="Place shown">
+      <span className="muted small">Showing</span>
+      {evaluated.map((o) => (
+        <button
+          key={o.scenario.key}
+          type="button"
+          className={`chip${o === active ? ' is-on' : ''}`}
+          style={{ '--chip': COLORS[outcomes.indexOf(o)] } as CSSProperties}
+          aria-pressed={o === active}
+          onClick={() => setActiveKey(o.scenario.key)}
+        >
+          {o.letter}
+        </button>
+      ))}
+    </div>
+  )
+  const places = (
+    <section className="card" data-tour="places">
+      <h2>
+        <span className="step">1</span> Pick places to compare
+      </h2>
+      <ScenarioList
+        sites={loaded.sites}
+        scenarios={scenarios}
+        outcomes={outcomes}
+        colors={COLORS}
+        activeKey={chosenKey}
+        busy={chosenLoading}
+        maxStartFor={maxStartFor}
+        snap={(lat, lon) => snapToCell(lat, lon, loaded.bySite)}
+        cellId={cellId}
+        bySite={loaded.bySite}
+        onChange={(next) => {
+          setScenarios(next)
+          if (!next.some((s) => s.key === activeKey)) setActiveKey(next[0]?.key ?? null)
+        }}
+        onActivate={setActiveKey}
+      />
+    </section>
+  )
 
   return (
     <div className="app">
       {header}
-      <Tour steps={tourSteps} open={tourOpen} onClose={closeTour} />
-      <div className="app__layout">
-        <aside className="app__side">
-          <section className="card" data-tour="places">
-            <h2>
-              <span className="step">1</span> Pick places to compare
-            </h2>
-            <ScenarioList
-              sites={loaded.sites}
-              scenarios={scenarios}
-              outcomes={outcomes}
-              colors={COLORS}
-              activeKey={chosenKey}
-              busy={chosenLoading}
-              maxStartFor={maxStartFor}
-              snap={(lat, lon) => snapToCell(lat, lon, loaded.bySite)}
-              cellId={cellId}
-              bySite={loaded.bySite}
-              onChange={(next) => {
-                setScenarios(next)
-                if (!next.some((s) => s.key === activeKey)) setActiveKey(next[0]?.key ?? null)
-              }}
-              onActivate={setActiveKey}
-            />
-          </section>
-          <section className="card" data-tour="settings">
-            <details className="settings-box" open={issues.length > 0 || undefined}>
-              <summary>
-                <span className="settings-box__title">
-                  <span className="step">2</span> Lander settings <span className="muted small">(optional)</span>
-                </span>
-                <span className="muted small">{settingsSummary}</span>
-              </summary>
-              <SettingsForm settings={settings} issues={issues} onChange={(patch) => setSettings((s) => ({ ...s, ...patch }))} onReset={() => setSettings(DEFAULT_SETTINGS)} />
-            </details>
-          </section>
-        </aside>
-
-        <main className="app__main">
-          <section className="card" data-tour="result">
-            <div className="card__head">
-              <div>
-                <h2>
-                  <span className="step">3</span> Result
-                </h2>
-                <p className="card__tagline">No hidden score. Just conditions.</p>
-              </div>
-              <button type="button" onClick={copyLink} data-tour="share" title="Copy a link that opens this comparison (places, dates and lander settings)">
-                {copied === 'done' ? 'Link copied' : 'Copy link'}
-              </button>
-            </div>
-            {copied === 'failed' && <p className="small muted">This browser blocked copying. Copy the address bar instead; it already holds this comparison.</p>}
-            {issues.length > 0 ? (
-              <p className="bad">Some lander settings are out of range. Fix them in step 2 to see the result.</p>
-            ) : (
-              <Comparison outcomes={outcomes} settings={settings} bySite={shownBySite} colors={COLORS} />
-            )}
-          </section>
-
-          {active && now && activeData && tracks && (
-            <section className="card explore">
-              <h2>See why</h2>
-              <div className="explore__head">
-                <div className="tabs" role="tablist" aria-label="See why" data-tour="tabs">
-                  {TABS.map((t) => (
-                    <button
-                      key={t.key}
-                      type="button"
-                      role="tab"
-                      id={`tab-${t.key}`}
-                      aria-selected={tab === t.key}
-                      aria-controls="tabpanel"
-                      className={tab === t.key ? 'is-on' : undefined}
-                      onClick={() => setTab(t.key)}
-                    >
-                      {t.label}
-                    </button>
-                  ))}
+      <Tour steps={tourSteps} open={tourOpen} onClose={() => setTourOpen(false)} />
+      {view === 'simulation' && (
+        <div className="app__layout">
+          <aside className="app__side">{places}</aside>
+          <main className="app__main">
+            <section className="card sim">
+              <div className="card__head">
+                <div>
+                  <h2>
+                    <span className="step">2</span> Simulation
+                    {active && activeData && (
+                      <>
+                        {' '}
+                        at <span style={{ color: activeColor }}>{active.letter}</span>, {placeTitle(activeData.site.id, shownBySite)}
+                      </>
+                    )}
+                  </h2>
+                  <p className="card__tagline">The real terrain around the lander, with the Sun and Earth where they really are. Drag to look around.</p>
                 </div>
-                {evaluated.length > 1 && tab !== 'power' && (
-                  <div className="explore__which" role="group" aria-label="Place shown">
-                    <span className="muted small">Showing</span>
-                    {evaluated.map((o) => (
+                {placeChips}
+              </div>
+              {issues.length > 0 && <p className="bad">Some lander settings are out of range. Fix them on the results page to run the simulation.</p>}
+              {active && now && activeData && tracks ? (
+                <>
+                  {activeCell && activeData.map ? (
+                    <p className="muted sim__note">
+                      The 3D view shows catalogue points only. This map point is {cellOffset(activeData.map, activeCell.row, activeCell.col)}; its skyline and numbers are on the results page.
+                    </p>
+                  ) : (
+                    <div className="scene-box scene-box--large" data-tour="scene">
+                      <MissionScene3D
+                        terrain={activeData.terrain}
+                        farTerrain={activeData.terrainFar}
+                        horizon={activeData.horizon}
+                        sun={now.sun}
+                        earth={now.earth}
+                        sunPath={tracks.sunPath}
+                        earthPath={tracks.earthPath}
+                        earthOrientation={earthOrientationAt(activeData.earthOrientation, now.utc)}
+                        earthSunDirection={earthSunDirectionAt(activeData.earthOrientation, now.utc)}
+                        panelPowerW={active.result.generationW[now.kk]}
+                        diagnostics={diagnostics}
+                        panel={panel}
+                        observerHeightM={activeData.site.observerHeightM}
+                        surfaceElevationM={activeData.site.surfaceElevationM}
+                      />
+                    </div>
+                  )}
+                  {timebar}
+                  {status}
+                  <div className="sim__next">
+                    <button type="button" className="primary" onClick={() => go('results')}>
+                      See the results
+                    </button>
+                  </div>
+                </>
+              ) : (
+                !issues.length && <p className="muted">{chosenOutcome?.error ?? 'Preparing the simulation…'}</p>
+              )}
+            </section>
+          </main>
+        </div>
+      )}
+
+      {view === 'results' && (
+        <div className="app__layout">
+          <aside className="app__side">
+            {places}
+            <section className="card" data-tour="settings">
+              <details className="settings-box" open={issues.length > 0 || undefined}>
+                <summary>
+                  <span className="settings-box__title">
+                    Lander settings <span className="muted small">(optional)</span>
+                  </span>
+                  <span className="muted small">{settingsSummary}</span>
+                </summary>
+                <SettingsForm settings={settings} issues={issues} onChange={(patch) => setSettings((s) => ({ ...s, ...patch }))} onReset={() => setSettings(DEFAULT_SETTINGS)} />
+              </details>
+            </section>
+          </aside>
+
+          <main className="app__main">
+            <section className="card" data-tour="result">
+              <div className="card__head">
+                <div>
+                  <h2>
+                    <span className="step">3</span> Result
+                  </h2>
+                  <p className="card__tagline">No hidden score. Just conditions.</p>
+                </div>
+                <button type="button" onClick={copyLink} data-tour="share" title="Copy a link that opens this comparison (places, dates and lander settings)">
+                  {copied === 'done' ? 'Link copied' : 'Copy link'}
+                </button>
+              </div>
+              {copied === 'failed' && <p className="small muted">This browser blocked copying. Copy the address bar instead; it already holds this comparison.</p>}
+              {issues.length > 0 ? (
+                <p className="bad">Some lander settings are out of range. Fix them in step 2 to see the result.</p>
+              ) : (
+                <Comparison outcomes={outcomes} settings={settings} bySite={shownBySite} colors={COLORS} />
+              )}
+            </section>
+
+            {active && now && activeData && tracks && (
+              <section className="card explore">
+                <h2>See why</h2>
+                <div className="explore__head">
+                  <div className="tabs" role="tablist" aria-label="See why" data-tour="tabs">
+                    {TABS.map((t) => (
                       <button
-                        key={o.scenario.key}
+                        key={t.key}
                         type="button"
-                        className={`chip${o === active ? ' is-on' : ''}`}
-                        style={{ '--chip': COLORS[outcomes.indexOf(o)] } as CSSProperties}
-                        aria-pressed={o === active}
-                        onClick={() => setActiveKey(o.scenario.key)}
+                        role="tab"
+                        id={`tab-${t.key}`}
+                        aria-selected={tab === t.key}
+                        aria-controls="tabpanel"
+                        className={tab === t.key ? 'is-on' : undefined}
+                        onClick={() => setTab(t.key)}
                       >
-                        {o.letter}
+                        {t.label}
                       </button>
                     ))}
                   </div>
-                )}
-              </div>
+                  {tab !== 'power' && placeChips}
+                </div>
 
-              <div id="tabpanel" role="tabpanel" aria-labelledby={`tab-${tab}`} className="explore__panel">
-                {tab === 'sky' && (
-                  <>
-                    <p className="explain">
-                      The grey shape is the real skyline around the lander. Behind it, the <b className="sun">Sun</b> gives no power and <b className="earth">Earth</b> cannot be reached.
-                    </p>
-                    {timebar}
-                    <h3>
-                      Skyline at <span style={{ color: activeColor }}>{active.letter}</span>, {activeData.site.name}
-                    </h3>
-                    <Panorama horizon={activeData.horizon} sun={tracks.sunPath} earth={tracks.earthPath} k={now.kk} />
-                    <p className="status">
-                      <span className={now.sun.visible ? 'ok' : 'bad'}>
-                        <b>Sun</b> {countdown(active.result.sunWindows, now.sun.visible, now.tS)}
-                      </span>
-                      <span className={now.earth.visible ? 'ok' : 'bad'}>
-                        <b>Earth</b> {countdown(active.result.earthWindows, now.earth.visible, now.tS)}
-                      </span>
-                    </p>
-                    <h3>In view during the mission</h3>
-                    <Timelines outcomes={evaluated} colors={colorsOfEvaluated} k={k} />
-                    <div className="card__head">
-                      <h3>3D view</h3>
-                      <label className="field--check">
-                        <input type="checkbox" checked={show3d} onChange={(e) => setShow3d(e.target.checked)} /> Show
-                      </label>
-                    </div>
-                    {show3d && activeCell && activeData.map && (
-                      <p className="muted small">
-                        The 3D view shows the catalogue point; the selected map point is {cellOffset(activeData.map, activeCell.row, activeCell.col)}.
+                <div id="tabpanel" role="tabpanel" aria-labelledby={`tab-${tab}`} className="explore__panel">
+                  {tab === 'sky' && (
+                    <>
+                      <p className="explain">
+                        The grey shape is the real skyline around the lander. Behind it, the <b className="sun">Sun</b> gives no power and <b className="earth">Earth</b> cannot be reached.
                       </p>
-                    )}
-                    {show3d && !activeCell && (
-                      <div className="scene-box">
-                        <MissionScene3D
-                          terrain={activeData.terrain}
-                          farTerrain={activeData.terrainFar}
-                          horizon={activeData.horizon}
-                          sun={now.sun}
-                          earth={now.earth}
-                          sunPath={tracks.sunPath}
-                          earthPath={tracks.earthPath}
-                          earthOrientation={earthOrientationAt(activeData.earthOrientation, now.utc)}
-                          earthSunDirection={earthSunDirectionAt(activeData.earthOrientation, now.utc)}
-                          panelPowerW={active.result.generationW[now.kk]}
-                          diagnostics={diagnostics}
-                          panel={panel}
-                          observerHeightM={activeData.site.observerHeightM}
-                          surfaceElevationM={activeData.site.surfaceElevationM}
-                        />
-                      </div>
-                    )}
-                  </>
-                )}
+                      {timebar}
+                      <h3>
+                        Skyline at <span style={{ color: activeColor }}>{active.letter}</span>, {placeTitle(activeData.site.id, shownBySite)}
+                      </h3>
+                      <Panorama horizon={activeData.horizon} sun={tracks.sunPath} earth={tracks.earthPath} k={now.kk} />
+                      {status}
+                      <h3>In view during the mission</h3>
+                      <Timelines outcomes={evaluated} colors={colorsOfEvaluated} k={k} />
+                      <p className="small muted">
+                        For the 3D view of this moment, open the{' '}
+                        <button type="button" className="link" onClick={() => go('simulation')}>
+                          simulation
+                        </button>
+                        .
+                      </p>
+                    </>
+                  )}
 
-                {tab === 'power' && (
-                  <>
-                    <p className="explain">The panel charges the battery while the Sun is up. Below the red dashed line the lander is into its safety reserve.</p>
-                    {timebar}
-                    <h3>Battery charge</h3>
-                    <LineChart
-                      series={socSeries}
-                      stepH={active.result.stepS / 3600}
-                      yMin={0}
-                      yMax={100}
-                      yUnit=" %"
-                      refLines={[{ value: settings.reserveFraction * 100, label: `safety reserve ${Math.round(settings.reserveFraction * 100)} %` }]}
-                      markers={socMarkers}
-                      k={k}
-                      ariaLabel="Battery charge of every place"
-                    />
-                    <h3>
-                      Power in and out at <span style={{ color: activeColor }}>{active.letter}</span>
-                    </h3>
-                    <LineChart
-                      series={[
-                        { label: 'Solar panel output (W)', color: '#ffd166', values: active.result.generationW },
-                        { label: 'Power used (W)', color: '#aab3c2', values: active.result.loadW, dashed: true },
-                      ]}
-                      stepH={active.result.stepS / 3600}
-                      yMin={0}
-                      yMax={Math.ceil(powerMax / 50) * 50}
-                      yUnit=" W"
-                      k={k}
-                      ariaLabel="Solar panel output and power used"
-                    />
-                  </>
-                )}
-
-                {tab === 'map' && (
-                  <>
-                    <p className="explain">Every spot within {activeData.map ? activeData.map.grid.halfSizeM / 1000 : 3} km. Brighter means more time in view. Click a spot to read it, then test it as a landing place.</p>
-                    {activeData.map ? (
-                      <SiteMap
-                        map={activeData.map}
-                        sites={loaded.sites.sites}
-                        selected={activeCell ?? undefined}
-                        onSimulate={(siteId, row, col) => setActiveSite(cellId(siteId, row, col))}
-                        busy={chosenLoading ? (chosenOutcome?.error ?? 'Loading…') : undefined}
+                  {tab === 'power' && (
+                    <>
+                      <p className="explain">The panel charges the battery while the Sun is up. Below the red dashed line the lander is into its safety reserve.</p>
+                      {timebar}
+                      <h3>Battery charge</h3>
+                      <LineChart
+                        series={socSeries}
+                        stepH={active.result.stepS / 3600}
+                        yMin={0}
+                        yMax={100}
+                        yUnit=" %"
+                        refLines={[{ value: settings.reserveFraction * 100, label: `safety reserve ${Math.round(settings.reserveFraction * 100)} %` }]}
+                        markers={socMarkers}
+                        k={k}
+                        ariaLabel="Battery charge of every place"
                       />
-                    ) : (
-                      <p className="muted">
-                        No area map here{activeData.site.category === 'contrast' ? ': this is a comparison point away from the pole' : ''}. Pick a south-pole site to see one.
+                      <h3>
+                        Power in and out at <span style={{ color: activeColor }}>{active.letter}</span>
+                      </h3>
+                      <LineChart
+                        series={[
+                          { label: 'Solar panel output (W)', color: '#ffd166', values: active.result.generationW },
+                          { label: 'Power used (W)', color: '#aab3c2', values: active.result.loadW, dashed: true },
+                        ]}
+                        stepH={active.result.stepS / 3600}
+                        yMin={0}
+                        yMax={Math.ceil(powerMax / 50) * 50}
+                        yUnit=" W"
+                        k={k}
+                        ariaLabel="Solar panel output and power used"
+                      />
+                    </>
+                  )}
+
+                  {tab === 'map' && (
+                    <>
+                      <p className="explain">
+                        Every spot within {activeData.map ? activeData.map.grid.halfSizeM / 1000 : 3} km. Brighter means more time in view. Click a spot to read it, then test it as a
+                        landing place.
                       </p>
-                    )}
-                  </>
-                )}
+                      {activeData.map ? (
+                        <SiteMap
+                          map={activeData.map}
+                          sites={loaded.sites.sites}
+                          selected={activeCell ?? undefined}
+                          onSimulate={(siteId, row, col) => setActiveSite(cellId(siteId, row, col))}
+                          busy={chosenLoading ? (chosenOutcome?.error ?? 'Loading…') : undefined}
+                        />
+                      ) : (
+                        <p className="muted">
+                          No area map here{activeData.site.category === 'contrast' ? ': this is a comparison point away from the pole' : ''}. Pick a south-pole site to see one.
+                        </p>
+                      )}
+                    </>
+                  )}
 
-                {tab === 'year' && (
-                  <>
-                    <p className="explain">Sunlight at the pole changes a lot with the season. One point per month.</p>
-                    {activeData.season ? (
-                      <SeasonChart season={activeData.season} missionStartUtc={active.result.alignedStartUtc} />
-                    ) : (
-                      <p className="muted">No one-year summary for this place.</p>
-                    )}
-                  </>
-                )}
+                  {tab === 'year' && (
+                    <>
+                      <p className="explain">Sunlight at the pole changes a lot with the season. One point per month.</p>
+                      {activeData.season ? (
+                        <SeasonChart season={activeData.season} missionStartUtc={active.result.alignedStartUtc} />
+                      ) : (
+                        <p className="muted">No one-year summary for this place.</p>
+                      )}
+                    </>
+                  )}
 
-                {tab === 'sources' && (
-                  <>
-                    <Sources data={activeData} result={active.result} />
-                  </>
-                )}
-              </div>
-            </section>
-          )}
-        </main>
-      </div>
-      <footer className="app__footer">
-        <RimlightMark size={20} />
-        <span>Research regions, not certified landing sites. Built on NASA data; not endorsed by NASA.</span>
-      </footer>
+                  {tab === 'sources' && <Sources data={activeData} result={active.result} />}
+                </div>
+              </section>
+            )}
+          </main>
+        </div>
+      )}
+      {footer}
     </div>
   )
 }
