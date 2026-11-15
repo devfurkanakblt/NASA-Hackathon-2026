@@ -1443,17 +1443,15 @@
   }
 }
 @media (max-width: 600px) {
+  /* Wrap instead of a hidden sideways scroll: on a phone the last tabs (Area map, Through the
+     year, Data & limits) sat off-screen with nothing showing they existed. */
   .tabs {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    scrollbar-width: none;
+    flex-wrap: wrap;
+    gap: 6px;
     max-width: 100%;
   }
-  .tabs::-webkit-scrollbar {
-    display: none;
-  }
   .app .tabs button {
-    flex: none;
+    flex: 1 1 auto;
   }
 }
 
