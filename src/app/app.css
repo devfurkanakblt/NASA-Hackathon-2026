@@ -2678,3 +2678,13 @@
   .app button.place-link:hover .place-link__go { color: var(--earth); }
 }
 .research__alts ul .place-link { margin-bottom: 2px; }
+
+/* Place list under the globe (C): every catalogue place as a toggle. */
+.place-list { display: grid; gap: 10px; margin-top: 4px; }
+.place-list fieldset { border: 1px solid var(--line); border-radius: 8px; margin: 0; padding: 8px 10px 10px; min-width: 0; }
+.place-list legend { padding: 0 4px; font-size: 13px; font-weight: 600; }
+.place-list__items { display: flex; flex-wrap: wrap; gap: 6px; }
+.app .place-list__items button { font-size: 12px; padding: 4px 9px; min-height: 30px; border-radius: 14px; text-align: left; }
+.app .place-list__items button[aria-pressed='true'] { background: var(--place-color, #1a2032); border-color: var(--place-color, currentColor); color: white; }
+/* Place list inside the one-screen picker: scrolls inside itself so the globe keeps its room. */
+.moon-picker__places .place-list { max-height: min(38vh, 320px); overflow: auto; padding-right: 4px; }

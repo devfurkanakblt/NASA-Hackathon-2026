@@ -2,12 +2,13 @@ import { useMemo } from 'react'
 import type { SiteEntry } from '../data/contract.ts'
 import { MissionScene3D } from './MissionScene3D.tsx'
 import type { MissionScene3DProps } from './MissionScene3D.tsx'
-import { useGlobalTerrain } from './useGlobalTerrain.ts'
+import { useDetailTerrain } from './useGlobalTerrain.ts'
 import { globalLocalTerrain } from './globalLocalTerrain.ts'
 
 /** Registered 3D view for points without a local display package; scientific inputs pass through. */
 export function GlobalPointScene({ site, ...scene }: Omit<MissionScene3DProps, 'terrain' | 'farTerrain'> & { site: SiteEntry }) {
-  const { terrain, error } = useGlobalTerrain()
+  // The far grid reaches 250 km from the point: load only the full-resolution tiles around it.
+  const { terrain, error } = useDetailTerrain(site.latDeg, site.lonDeg, 260000)
   const grids = useMemo(() => terrain ? {
     near: globalLocalTerrain(terrain, site, site.observerHeightM, 32000, 65),
     far: globalLocalTerrain(terrain, site, site.observerHeightM, 500000, 161),
