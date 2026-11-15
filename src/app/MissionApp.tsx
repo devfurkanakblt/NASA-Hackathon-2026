@@ -767,8 +767,11 @@ export function MissionApp() {
                   {tab === 'year' && (
                     <>
                       <p className="explain">One point per month.</p>
-                      {activeData.season && !activeCell ? (
-                        <SeasonChart season={activeData.season} missionStartUtc={active.result.alignedStartUtc} />
+                      {activeData.season && (!activeCell || activeData.season.siteId === activeData.site.id) ? (
+                        <>
+                          {activeCell && <p className="muted">This map point’s own monthly summary (its 1° terrain horizon and re-projected ephemeris), not the catalogue centre’s.</p>}
+                          <SeasonChart season={activeData.season} missionStartUtc={active.result.alignedStartUtc} />
+                        </>
                       ) : (
                         <p className="muted">No monthly summary for this exact point. Mission results above use this point’s own horizon; the catalogue centre’s annual summary is not substituted.</p>
                       )}
