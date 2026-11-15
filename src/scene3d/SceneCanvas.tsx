@@ -32,8 +32,11 @@ import { ReferenceSphere, Terrain } from './parts/Terrain.tsx'
 import './scene3d.css'
 import { getPreparedTerrain } from './terrainCache.ts'
 import type { BodyPath, BodyState, BodyStatus, CameraMode, HorizonProfile, LookTarget, PanelState, TerrainGrid, Vec3 } from './types.ts'
+import type { GlobalPhotoFrame } from './GlobalMoonSurface.tsx'
 
 export interface MissionScene3DProps {
+  /** Runtime-only global archive registration for C's coarse point-view fallback. */
+  globalPhotoFrame?: GlobalPhotoFrame
   onReady?: () => void
   /** Local elevation grid of the selected site (`terrain.json`). */
   terrain: TerrainGrid
@@ -129,6 +132,7 @@ function useLabel() {
 }
 
 export default function SceneCanvas({
+  globalPhotoFrame,
   onReady,
   terrain,
   farTerrain,
@@ -171,8 +175,8 @@ export default function SceneCanvas({
     terrain.sizeM, localImagery?.manifest.sizeM ?? terrain.sizeM)
   const { texture: regionalPhoto, failed: regionalPhotoFailed } = useLunarImageryTexture(farTerrain?.imagery?.textureUrl,
     farTerrain?.sizeM ?? terrain.sizeM, farTerrain?.imagery?.manifest.sizeM ?? farTerrain?.sizeM ?? terrain.sizeM)
-  const hasImagery = Boolean(localImagery || farTerrain?.imagery)
-  const imageryActive = showImagery && Boolean(localPhoto || regionalPhoto)
+  const hasImagery = Boolean(globalPhotoFrame || localImagery || farTerrain?.imagery)
+  const imageryActive = showImagery && Boolean(globalPhotoFrame || localPhoto || regionalPhoto)
 
   const { meshData, farMesh } = useMemo(() => getPreparedTerrain(terrain, farTerrain, observerHeightM), [terrain, farTerrain, observerHeightM])
   const half = meshData.halfExtentM
@@ -251,8 +255,8 @@ export default function SceneCanvas({
           shadow-normalBias={0.5}
         />
 
-        <Terrain data={meshData} reliefTint={reliefLighting} detailNormal={detailNormal} imageryTexture={showImagery ? localPhoto : null} />
-        {farMesh && <Terrain data={farMesh} reliefTint={reliefLighting} imageryTexture={showImagery ? regionalPhoto : null} />}
+        <Terrain data={meshData} reliefTint={reliefLighting} detailNormal={detailNormal} imageryTexture={showImagery ? localPhoto : null} globalPhotoFrame={showImagery ? globalPhotoFrame : undefined} />
+        {farMesh && <Terrain data={farMesh} reliefTint={reliefLighting} imageryTexture={showImagery ? regionalPhoto : null} globalPhotoFrame={showImagery ? globalPhotoFrame : undefined} />}
         {cameraMode === 'overview' && surfaceElevationM !== undefined && (
           <ReferenceSphere data={farMesh ?? meshData} siteElevationM={surfaceElevationM} outerRadiusM={half * (SKY_RADIUS - 5)} />
         )}

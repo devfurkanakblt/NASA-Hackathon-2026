@@ -1,7 +1,7 @@
 import type { Scenario } from '../app/scenarios.ts'
 import type { SitesDoc } from '../data/contract.ts'
 import { fromInputUtc, shiftUtc, toInputUtc } from '../app/format.ts'
-import { MAX_DURATION_DAYS, MIN_DURATION_DAYS } from '../sim/evaluate.ts'
+import { MIN_DURATION_DAYS } from '../sim/evaluate.ts'
 import { latestMissionStartUtc } from './missionDates.ts'
 import './sceneMissionControls.css'
 import { useState } from 'react'
@@ -69,7 +69,7 @@ export function SceneMissionControls({ sites, scenarios, chosenKey, durationDays
           <input aria-label="Simulation landing date and time UTC" type="datetime-local" step={600} value={toInputUtc(chosen.startUtc)} min={toInputUtc(sites.coverage.startUtc)} max={latest ? toInputUtc(latest) : undefined} onInput={e => dateChanged(e.currentTarget.value)} onChange={e => dateChanged(e.currentTarget.value)} />
         </label>
         <label className="scene-mission__duration"><span>Mission · days</span>
-          <input aria-label="Simulation mission duration in days" type="number" min={MIN_DURATION_DAYS} max={MAX_DURATION_DAYS} step={1} value={daysDraft ?? String(durationDays)}
+          <input aria-label="Simulation mission duration in days" type="number" min={MIN_DURATION_DAYS} step={1} value={daysDraft ?? String(durationDays)}
             onChange={e => { setDaysDraft(e.currentTarget.value); const value = e.currentTarget.valueAsNumber; if (Number.isFinite(value)) onDuration(value) }}
             onBlur={e => { if (!Number.isFinite(e.currentTarget.valueAsNumber)) onDuration(DEFAULT_MISSION_DAYS); setDaysDraft(null) }} />
         </label>
