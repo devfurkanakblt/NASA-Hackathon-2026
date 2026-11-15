@@ -102,11 +102,12 @@ rise/set time. DEM pixel size and the checks below are not a statement of absolu
 
 ### Validation (summary)
 
-- Horizons vs. Skyfield (DE421), every sample: ≤ 0.00006°.
+- Horizons vs. Skyfield (DE421), every sample: ≤ 0.00006°. One-year series (`year.bin`, incl. all of 2027): ≤ 0.00003°.
 - JSON vs. a fresh Horizons query at 14 epochs per site: ≤ 0.00005° (storage rounding).
 - Horizon convergence with halved ray steps: ≤ 0.019° (tolerance 0.05°).
 - Rise/set from 10-minute samples vs. a 1-minute Horizons series: ≤ 0.33 min (2.4 min at Site20).
 - NASA GSFC polar illumination maps (Mazarico et al., 18.6 years): all 7 polar sites within the local 3×3-pixel range; rank correlation 0.96 (Sun) and 0.96 (Earth); Shackleton floor permanently shadowed in both.
+- Same maps vs. every regional map cell (17 767 cells, 7 maps): mean abs difference 0.029 (Sun) / 0.021 (Earth), 96 % / 98 % within the 3×3-pixel range, rank correlation 0.93 / 0.96; differences sit mostly on flat ground ([`docs/validation.md`](docs/validation.md) §8).
 - Regional map cells vs. a full-resolution horizon at the same cell: ≤ 0.06 percentage points.
 - 3D terrain vs. NASA Moon Trek LOLA 5 m DEM: RMS 1.3–2.4 m on gentle ground, 16–18 m on Shackleton's steep wall.
 - The TypeScript engine reproduces the Python reference values (`docs/reference/`) exactly on all sites.

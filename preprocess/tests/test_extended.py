@@ -33,6 +33,16 @@ def test_year_matches_two_month_ephemeris(sid):
         assert np.max(np.abs(d)) <= tol, (b, f, float(np.max(np.abs(d))))
 
 
+@pytest.mark.skipif(not (C.RAW_DIR / "skyfield" / "de421.bsp").exists(), reason="Skyfield kernels not downloaded")
+def test_year_matches_skyfield_over_whole_year():
+    """Validation section 1b for one site: the 2027 part is not covered by the two-month checks."""
+    from preprocess.validate import TOL_EPHEM, check_year
+    _, rows = check_year("Site01")
+    for body, n, daz, dele, d27 in rows:
+        assert n == 52561
+        assert max(daz, dele, d27) <= TOL_EPHEM, (body, daz, dele, d27)
+
+
 MAP_SITES = ["Site01", "Site04", "Site04R", "Site07", "Site11", "Site20", "Site23"]
 
 
