@@ -1,5 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
+import { motion, useAnimate, useReducedMotion } from 'motion/react'
 import type { LoadedData, SiteData, SiteEntry } from '../data/contract.ts'
 import { loadCells, loadHeader, loadYear } from '../data/extended.ts'
 import { loadAllData } from '../data/load.ts'
@@ -122,6 +123,16 @@ export function MissionApp() {
   }
   const [mapUpdate, setMapUpdate] = useState<{ key: string; siteId: string; previous: string } | null>(null)
   const [tab, setTab] = useState<Tab>('sky')
+  const reducedMotion = useReducedMotion()
+  // Switching the place shown keeps the charts mounted (their state stays); only a soft fade.
+  const [panelScope, animatePanel] = useAnimate<HTMLDivElement>()
+  const shownPlace = useRef(activeKey)
+  useEffect(() => {
+    if (shownPlace.current === activeKey) return
+    shownPlace.current = activeKey
+    if (reducedMotion || !panelScope.current) return
+    void animatePanel(panelScope.current, { opacity: [0.35, 1] }, { duration: 0.42, ease: [0.23, 1, 0.32, 1] })
+  }, [activeKey, animatePanel, panelScope, reducedMotion])
   const [tourOpen, setTourOpen] = useState(false)
   const diagnostics = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('diagnostics') === '1'
   // Result of the last "Copy link", for the link it copied; a changed comparison clears it.
@@ -708,13 +719,21 @@ export function MissionApp() {
                         onClick={() => setTab(t.key)}
                       >
                         {t.label}
+                        {/* One underline that glides between tabs (Motion shared layout). */}
+                        {tab === t.key && <motion.span layoutId="explore-tab-underline" className="tabs__underline" aria-hidden="true"
+                          transition={reducedMotion ? { duration: 0 } : { type: 'spring', stiffness: 420, damping: 38, mass: 0.7 }} />}
                       </button>
                     ))}
                   </div>
                   {placeChips}
                 </div>
 
-                <div id="tabpanel" role="tabpanel" aria-labelledby={`tab-${tab}`} className="explore__panel">
+                <div id="tabpanel" role="tabpanel" aria-labelledby={`tab-${tab}`} className="explore__panel" ref={panelScope}>
+                  {/* A new tab fades and rises in; its content is rebuilt on tab change anyway. */}
+                  <motion.div key={tab} className="explore__view"
+                    initial={reducedMotion ? false : { opacity: 0, y: 10, filter: 'blur(3px)' }}
+                    animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                    transition={{ duration: 0.38, ease: [0.23, 1, 0.32, 1] }}>
                   {tab === 'sky' && (
                     <>
                       <p className="explain">
@@ -842,6 +861,7 @@ export function MissionApp() {
                   )}
 
                   {tab === 'sources' && <Sources data={activeData} result={active.result} />}
+                  </motion.div>
                 </div>
               </section>
             )}
