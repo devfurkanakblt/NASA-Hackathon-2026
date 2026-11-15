@@ -275,3 +275,28 @@ Ephemeris: projected Sun / Earth elevations match the sites' own series within 0
 coarse DEM cannot resolve hills and crater walls smaller than a few km, so near the poles, where
 the Sun grazes the horizon, the error can be much larger than at these sites: results are always
 labelled "global screening estimate" and the polar maps / catalogue sites are used where they exist.
+
+### South-polar free coordinates on the 80 m DEM (D, 15 Nov 2026)
+
+On the south-polar cap a free coordinate uses the regional LOLA DEM the catalogue itself uses for its
+`regional80` points (`LDEM_80S_80MPP_ADJ`), served as `public/data/polar-dem/` (`python -m
+preprocess.polar_tiles`): 80 m within 25 km, its 640 m block mean out to 250 km, global tiles only
+where a ray leaves the polar grid. Browser heights equal the Python reader of the GeoTIFF within the
+0.5 m storage quantum. Against the nine catalogue points whose horizon the pipeline built from the
+same DEM (`tests/polarFreePoint.test.ts`):
+
+| Site | Horizon RMS, 80 m / global tiles | Year Sun %: 80 m / global / catalogue | Year Earth %: 80 m / catalogue |
+|---|---|---|---|
+| IM1 | 0.20° / 2.43° | 38.42 / 43.52 / 38.41 | 100 / 100 |
+| IM2 | 0.01° / 1.24° | 43.83 / 46.69 / 43.86 | 80.09 / 80.09 |
+| ArtemisCabeusB | 0.03° / 2.36° | 42.33 / 47.51 / 42.12 | 26.16 / 26.15 |
+| ArtemisHaworth | 0.13° / 0.60° | 57.92 / 55.67 / 57.52 | 63.16 / 61.83 |
+| ArtemisMoutonPlateau | 0.02° / 1.10° | 37.00 / 45.10 / 36.84 | 56.34 / 56.06 |
+| ArtemisNobile1 | 0.06° / 2.39° | 74.64 / 86.71 / 74.35 | 66.13 / 65.95 |
+| ArtemisNobile2 | 0.02° / 0.50° | 44.12 / 26.36 / 44.10 | 76.50 / 76.54 |
+| ArtemisGerlache2 | 0.06° / 1.04° | 70.24 / 68.01 / 69.81 | 53.26 / 52.83 |
+| ArtemisSlater | 0.02° / 1.53° | 41.37 / 45.86 / 41.32 | 35.72 / 35.57 |
+
+With the 80 m DEM the yearly Sun share is within 0.5 points of the catalogue; with the ~1.9 km global
+tiles alone it was off by up to 18 points at the pole, which is why the polar grid is used wherever
+it covers the point. A 10 km, ~78 m 3D display patch comes from the same DEM.

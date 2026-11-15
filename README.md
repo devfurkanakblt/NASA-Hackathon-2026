@@ -179,10 +179,12 @@ contract are wired into the engine and the searches.
 point on the Moon. Inside the ±3 km polar maps the nearest map cell is used and its distance is
 shown; anywhere else the app computes that exact point in the browser: the Sun and Earth from the
 loaded JPL Horizons year series re-projected to the point (checked against five catalogue sites'
-own series, ≤ 0.003° elevation), and a 0.1° terrain horizon ray-marched out to 250 km on the
-global LOLA LDEM_64 tiles (`public/data/global-dem/`, 4 × 4 block mean, ~1.9 km/px,
-`python -m preprocess.global_tiles`). Such points are labelled **global screening estimate**:
-hills and crater walls smaller than a few km are not resolved. See
+own series, ≤ 0.003° elevation), and a 0.1° terrain horizon ray-marched out to 250 km. On the
+south-polar cap it uses the LOLA 80 m regional DEM (`public/data/polar-dem/`, 640 m beyond 25 km,
+`python -m preprocess.polar_tiles`; within 0.01–0.20° RMS of the catalogue's own 80 m horizons) and
+shows a 10 km 3D patch from it (**regional screening estimate**); elsewhere the global LOLA LDEM_64
+tiles (`public/data/global-dem/`, 4 × 4 block mean, ~1.9 km/px, `python -m preprocess.global_tiles`;
+**global screening estimate**, hills and crater walls smaller than a few km unresolved). See
 [preprocessing](preprocess/README.md) and [package contract](docs/data-contract.md).
 
 ### Model

@@ -375,6 +375,24 @@ New packages and the three-year example are independently checked against Horizo
 14 epochs per body spanning the full period, with 32-azimuth horizon convergence checks.
 See [validation-missions.md](validation-missions.md); hashes bind the measurements to files.
 
+## `polar-dem/` (south-polar free coordinates, D)
+
+Written by `python -m preprocess.polar_tiles` from `LDEM_80S_80MPP_ADJ` (80 m/px, 7600 × 7600, south
+polar stereographic on the 1737.4 km sphere: `+proj=stere +lat_0=-90 +lat_ts=-90 +lon_0=0`;
+ρ = 2R·tan(45° + φ/2), x = ρ sin λ, y = ρ cos λ; pixel centre x = left + (c + 0.5)·res,
+y = top − (r + 0.5)·res).
+
+- `n_<r>_<c>.bin.gz`: the 80 m grid in 256 × 256 tiles; `far.bin.gz`: its 8 × 8 block mean
+  (640 m, 950 × 950). All int16 in 0.5 m above 1737.4 km, −32768 = no data, row-major, each row
+  delta-encoded (first value, then differences), gzip. `manifest.json`: geometry, scale, and
+  `{sha256, bytes}` of every file as published.
+- `src/data/polarDem.ts` loads the 80 m tiles within 25 km of the point plus the far grid, checks
+  size and hash, decompresses (`DecompressionStream`), interpolates bilinearly; NaN outside the grid
+  or on no data. `src/sim/freePoint.ts` uses it whenever the point lies on the grid:
+  `provenance.horizonSource: 'regional-dem'`, `precision: 'regional screening estimate'`, horizon
+  80 m within 25 km and 640 m out to 250 km (global tiles only where a ray leaves the grid, reported
+  as a warning), and `terrain` = a 10 km, 128-cell display patch from the 80 m grid.
+
 ## `global-dem/` (free coordinates in the browser, D)
 
 Written by `python -m preprocess.global_tiles [--ppd 16] [--tile-deg 30]` from the project's global

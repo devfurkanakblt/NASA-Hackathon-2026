@@ -203,7 +203,7 @@ export interface Provenance {
   /** Azimuth step of the terrain horizon: 0.1 catalogue, 1 map cell, 0.1 refined cell. */
   horizonResolutionDeg: number
   /** `global-dem`: a free coordinate, horizon ray-marched in the browser on the global LDEM_64 tiles. */
-  horizonSource: 'catalogue' | 'map-cell' | 'refined-cell' | 'global-dem'
+  horizonSource: 'catalogue' | 'map-cell' | 'refined-cell' | 'global-dem' | 'regional-dem'
   ephemerisSource: string
   /** `year.sha256` of the one-year series; null on the two-month series. */
   dataHash: string | null

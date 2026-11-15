@@ -203,6 +203,7 @@ export function precisionOf(data: SiteData, fallback: Precision): { precision: P
   const p: Provenance | undefined = data.provenance
   if (!p) return { precision: fallback, label: LABELS[fallback] }
   if (p.horizonSource === 'global-dem') return { precision: 'global', label: `Global screening estimate: ${p.horizonResolutionDeg}° horizon sampling; coarse global terrain` }
+  if (p.horizonSource === 'regional-dem') return { precision: 'global', label: `Regional screening estimate: ${p.horizonResolutionDeg}° horizon sampling; 80 m south-polar terrain` }
   if (p.horizonSource === 'refined-cell') return { precision: 'refined', label: REFINED_CELL_LABEL }
   if (p.horizonSource === 'map-cell') return { precision: 'cell', label: CELL_PRECISION }
   const kind = data.site.category === 'custom' ? `Scientific package ${data.site.id}` : 'Catalogue site'

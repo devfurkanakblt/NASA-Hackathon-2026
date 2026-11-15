@@ -119,8 +119,10 @@ landing-site decision. "Through the year" tab shows the monthly picture.
   percentages, every window, horizon test vectors, mean Sun-disk fraction) exactly on all 26
   catalogue sites; 843 automated tests (553 TypeScript, 290 Python).
 - **Free coordinates:** Sun / Earth directions re-projected from Site01's series match five
-  catalogue sites' own series within 0.003°; the ~1.9 km global-terrain horizon gives yearly Sun
-  shares within 0.43 points of sites with an LDEM_64 horizon (`docs/validation.md`).
+  catalogue sites' own series within 0.003°. Near the pole the 80 m south-polar horizon is within
+  0.01–0.20° RMS of the nine `regional80` catalogue points (yearly Sun share within 0.5 points);
+  elsewhere the ~1.9 km global horizon gives yearly Sun shares within 0.43 points of sites with an
+  LDEM_64 horizon (`docs/validation.md`).
 - **One-year series:** `year.bin` reproduces `ephemeris.json` sample by sample over the two shared
   months, and its monthly Sun / Earth / both shares match `season.json` (`tests/extended.test.ts`).
 - **Map points:** the Sun / Earth direction re-projected into a cell's frame matches Python within
@@ -152,8 +154,9 @@ landing-site decision. "Through the year" tab shows the monthly picture.
   (warning carried in `horizon.json`).
 - Map points use a 1° horizon (catalogue sites 0.1°, or 0.1° where `refined.json` revalidated
   them) and have no 3D patch of their own.
-- A coordinate outside the polar maps is a screening estimate: ~1.9 km global terrain (small hills
-  and crater walls unresolved), no 3D view. Catalogue-quality terrain needs an offline package.
+- A coordinate outside the polar maps is a screening estimate: 80 m south-polar terrain near the
+  pole (no 5 m near field), ~1.9 km global terrain elsewhere (small hills and crater walls
+  unresolved). Catalogue-quality terrain needs an offline package.
 - Research suitability is not claimed: no place has a verified research profile yet.
 - Sites are research region centres, not certified landing sites. Pixel size and these checks are
   not a statement of the DEM's absolute accuracy.
