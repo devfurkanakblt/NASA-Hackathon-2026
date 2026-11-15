@@ -544,7 +544,7 @@ export function MissionApp() {
                 </div>)}
               </div>
               <details className="moon-picker__coords">
-                <summary>Enter your own coordinates</summary>
+                <summary><span className="moon-picker__coords-icon" aria-hidden="true">⌖</span><span>Enter your own coordinates</span><span className="moon-picker__coords-hint">any point on the Moon</span></summary>
                 <CoordinateForm action="Add point" onUse={addCoordinate} />
               </details>
               {pickMessage && <p className={`small moon-picker__message ${pickMessage.ok ? 'muted' : 'bad'}`} role="status">{pickMessage.text}</p>}

@@ -11,9 +11,11 @@ Lunar Landing Site Navigator
 
 ## High-level project summary
 
-We built a browser-based mission-control tool with 32 lunar evaluation points: the original seven
-south-polar points and two contrast sites, plus Apollo, CLPS, international landing sites and
-representative research points for the dated October 2024 Artemis III candidate-region list. For a site and
+We built a browser-based mission-control tool with 26 southern-hemisphere lunar evaluation points:
+the original seven south-polar points and a contrast site, plus Apollo, CLPS and international
+landing sites, a future CLPS target (VIPER at Mons Mouton, CLPS CS-7, planned for late 2027) and
+representative research points for the dated October 2024 Artemis III candidate-region list. Any
+other coordinate can be entered and is computed in the browser as a screening estimate. For a site and
 a start date it shows where the Sun and Earth are against the real terrain horizon, how much power
 a solar panel produces, when the battery drops below its reserve, and when there is a line of
 sight to Earth. Up to three scenarios (sites or dates) are compared with the same hardware, and

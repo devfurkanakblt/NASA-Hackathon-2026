@@ -54,3 +54,21 @@ describe('extended catalogue in the engine', () => {
     if (r.best) expect(r.best.summary).toEqual(evaluateScenario(data(r.best.siteId), r.best.startUtc, DEFAULT_SETTINGS).summary)
   })
 })
+
+describe('future CLPS target', () => {
+  it('VIPER at Mons Mouton is a source-pinned planned target, not a landing', () => {
+    const v = sites.find((s) => s.id === 'VIPER')!
+    expect(v).toBeDefined()
+    expect([v.latDeg, v.lonDeg]).toEqual([-85.42088, 31.6218])
+    expect(v.program).toBe('CLPS')
+    expect(v.coordinateStatus).toBe('planned-target')
+    expect(v.coordSource).toMatch(/ntrs\.nasa\.gov\/citations\/20260005586/)
+    expect(v.regionSource).toMatch(/nasa\.gov\/news-release\/nasa-selects-blue-origin-to-deliver-viper/)
+    expect(v.label).toMatch(/^Planned CLPS target.*not a landing/)
+    expect(v.warnings.join(' ')).toMatch(/CS-7/)
+    expect(v.demNear).toMatch(/5 m.*Site20/)
+    // runs through the engine on its own one-year series
+    const year = parseYear('VIPER', read<ExtendedHeader>('VIPER/extended.json'), bin('VIPER/year.bin'))
+    expect(evaluateScenario({ ...data('VIPER'), ephemeris: year }, '2027-10-20T00:00:00Z', DEFAULT_SETTINGS).count).toBe(1009)
+  })
+})

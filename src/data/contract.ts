@@ -22,7 +22,8 @@ export interface SiteEntry {
   category?: string
   mission?: string
   program?: string
-  coordinateStatus?: 'landed' | 'region-representative' | 'research-candidate'
+  /** `planned-target`: a published target of a future mission, not a landing (e.g. VIPER, CLPS CS-7). */
+  coordinateStatus?: 'landed' | 'region-representative' | 'research-candidate' | 'planned-target'
   regionSource?: string
   aliases?: string[]
 }
