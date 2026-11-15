@@ -22,7 +22,7 @@ import { Comparison } from './Comparison.tsx'
 import { Landing } from './Landing.tsx'
 import { mapPointWhere, placeTitle } from './placeName.ts'
 import { errorMessage, fmtDuration, fmtHours, fmtUtc } from './format.ts'
-import { cellId, isKnownSiteId, parseCellId, resolveSiteData, sitesNeeded } from './extendedSites.ts'
+import { cellId, isKnownSiteId, needsYear, parseCellId, resolveSiteData, sitesNeeded } from './extendedSites.ts'
 import type { ExtendedState } from './extendedSites.ts'
 import { cellAt } from './mapGrid.ts'
 import { defaultScenarios, evaluateAll, isEvaluated, newKey, targetScenarioKey } from './scenarios.ts'
@@ -199,8 +199,14 @@ export function MissionApp() {
     if (!loaded) return { years: [] as string[], cells: [] as string[] }
     const need = sitesNeeded(scenarios, loaded.sites.coverage.endUtc, settings.durationDays)
     const bases = scenarios.map((s) => parseCellId(s.siteId)?.siteId ?? s.siteId).filter((id) => id in loaded.bySite)
-    return { years: [...new Set([...need.years, ...bases])], cells: need.cells }
-  }, [loaded, scenarios, settings.durationDays])
+    // The Research tab compares every catalogue place on the chosen dates: past the two-month
+    // period that needs each place's one-year series, so fetch them only then (≈1.3 MB each).
+    const focus = scenarios.find((s) => s.key === activeKey) ?? scenarios[0]
+    const research = tab === 'research' && focus
+      && needsYear(parseCellId(focus.siteId)?.siteId ?? focus.siteId, focus.startUtc, loaded.sites.coverage.endUtc, settings.durationDays)
+      ? Object.keys(loaded.bySite) : []
+    return { years: [...new Set([...need.years, ...bases, ...research])], cells: need.cells }
+  }, [loaded, scenarios, settings.durationDays, tab, activeKey])
   const wantedKey = `${wanted.years.join(',')}|${wanted.cells.join(',')}`
   useEffect(() => {
     const years = wanted.years.filter((id) => ext.years[id] === undefined)
@@ -690,6 +696,7 @@ export function MissionApp() {
                       startUtc={active.scenario.startUtc}
                       settings={settings}
                       catalogue={loaded.bySite}
+                      resolveCatalogue={resolve}
                       psrs={loaded.psrs ?? []}
                       inScenarios={scenarios.map((s) => s.siteId)}
                       canAdd={scenarios.length < 3}
