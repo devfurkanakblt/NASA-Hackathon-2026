@@ -302,3 +302,26 @@ export function loadRefined(siteId: string, baseUrl = defaultBase()): Promise<Re
     return null
   })
 }
+
+/** Home-page descent terrain (preprocess/hero_terrain.py): display-only LOLA heights near Shackleton. */
+export interface HeroTerrainCrop { bounds: number[]; 'mesh-desktop': number; 'mesh-mobile': number }
+export interface HeroTerrainData {
+  meta: { crops: { near: HeroTerrainCrop; far: HeroTerrainCrop } }
+  near: ArrayBuffer
+  far: ArrayBuffer
+}
+
+const heroTerrain = new Map<string, Promise<HeroTerrainData>>()
+
+/** Heights for the descent, loaded on demand after the intro is showing (cached per variant). */
+export function loadHeroTerrain(mobile: boolean, baseUrl = `${import.meta.env.BASE_URL}assets/hero/terrain`): Promise<HeroTerrainData> {
+  const suffix = mobile ? '-mobile' : ''
+  return cached(heroTerrain, `${baseUrl}${suffix}`, async () => {
+    const [meta, near, far] = await Promise.all([
+      getOk(`${baseUrl}/terrain.json`).then((r) => r.json() as Promise<HeroTerrainData['meta']>),
+      getOk(`${baseUrl}/near${suffix}-height.bin`).then((r) => r.arrayBuffer()),
+      getOk(`${baseUrl}/far${suffix}-height.bin`).then((r) => r.arrayBuffer()),
+    ])
+    return { meta, near, far }
+  })
+}

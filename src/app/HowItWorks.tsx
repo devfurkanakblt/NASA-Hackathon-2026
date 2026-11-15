@@ -25,22 +25,24 @@ export function HowItWorks({ onSimulation, onResults }: Props) {
       const travel = root.offsetHeight - stage.offsetHeight
       const progress = enabled ? Math.max(0, Math.min(2, -root.getBoundingClientRect().top / Math.max(1, travel) * 2)) : 0
       const active = Math.round(progress)
-      // A stack: the current card in front, its neighbours smaller, fainter and behind it,
-      // peeking out on either side. Everything follows the scroll position continuously.
-      const spread = cards[0].offsetWidth * 0.42
-      // On a phone only a sliver of each neighbour shows, so dim it further.
-      const dim = window.innerWidth < 700 ? 0.72 : 0.55
+      // An orbit: the three cards sit 120° apart on a tilted ellipse. Scrolling turns the orbit,
+      // so the front card swings back to the left as the next one comes round from the right.
+      // Everything follows the scroll position continuously.
+      const radiusX = cards[0].offsetWidth * (window.innerWidth < 700 ? 0.34 : 0.62)
+      const rise = Math.min(stage.offsetHeight * 0.13, 70) // the far side of the orbit sits higher
+      // On a phone only a sliver of each card behind shows, so dim it further.
+      const dim = window.innerWidth < 700 ? 0.72 : 0.6
       cards.forEach((card, index) => {
-        const offset = index - progress
-        const away = Math.abs(offset)
-        const near = Math.min(away, 1)
-        const far = Math.max(0, Math.min(away - 1, 1))
-        card.style.transform = enabled ? `translateX(${offset * spread}px) scale(${1 - 0.14 * near - 0.08 * far})` : ''
-        // Cards stay opaque so the front one always covers the ones behind; neighbours fade by
-        // dimming, and only a card two steps away fades out.
-        card.style.opacity = enabled ? String(1 - far) : ''
-        card.style.zIndex = enabled ? String(1000 - Math.round(away * 100) * 2 + (offset < 0 ? 1 : 0)) : ''
-        card.style.filter = enabled && near > 0.02 ? `brightness(${1 - dim * near}) saturate(${1 - 0.6 * near})` : ''
+        const angle = (index - progress) * (Math.PI * 2 / 3)
+        const depth = (1 + Math.cos(angle)) / 2 // 1 in front, 0 at the back
+        const behind = 1 - depth
+        card.style.transform = enabled
+          ? `translate3d(${Math.sin(angle) * radiusX}px, ${-behind * rise}px, 0) rotateY(${Math.sin(angle) * -14}deg) scale(${0.66 + 0.34 * depth})`
+          : ''
+        // Cards stay opaque so the front one always covers the ones behind; depth reads as dimming.
+        card.style.opacity = ''
+        card.style.zIndex = enabled ? String(Math.round(depth * 1000)) : ''
+        card.style.filter = enabled && behind > 0.01 ? `brightness(${1 - dim * behind}) saturate(${1 - 0.6 * behind})` : ''
         // Cards behind the current one cannot receive focus or appear in the accessibility tree.
         card.inert = enabled && index !== active
       })
@@ -72,21 +74,22 @@ export function HowItWorks({ onSimulation, onResults }: Props) {
       <div className="how__stage">
         <h2 id="how-title">How it works</h2>
         <div className="how__viewport">
+          <span className="how__orbit" aria-hidden="true" />
           <ol className="how__cards">
             <li className="how__card">
-              <span className="how__number" aria-hidden="true">01</span>
+              <span className="how__number" aria-hidden="true">1</span>
               <h3>Pick a place and a date</h3>
               <p>Choose landing spots near the south pole, or any spot on their surrounding maps, and a start date within a year.</p>
               <span className="how__hint">Scroll to follow the mission</span>
             </li>
             <li className="how__card">
-              <span className="how__number" aria-hidden="true">02</span>
+              <span className="how__number" aria-hidden="true">2</span>
               <h3>Watch the Sun and Earth over the terrain</h3>
               <p>The 3D simulation moves through the mission and shows when the skyline hides them.</p>
               <button type="button" className="link" onClick={onSimulation}>Open the simulation</button>
             </li>
             <li className="how__card">
-              <span className="how__number" aria-hidden="true">03</span>
+              <span className="how__number" aria-hidden="true">3</span>
               <h3>Read the answer</h3>
               <p>Will the lander have power? Can it talk to Earth? Each place gets a plain answer, with the charts behind it.</p>
               <button type="button" className="link" onClick={onResults}>See the results</button>
