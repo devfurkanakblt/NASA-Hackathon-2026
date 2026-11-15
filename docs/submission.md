@@ -68,8 +68,8 @@ on gentle ground. Against NASA GSFC's independent polar illumination maps (Mazar
 years) our Sun and Earth visibility falls within the map's local 3×3-pixel range at all 7 polar
 sites (rank correlation 0.96 for both), and Shackleton's floor is permanently shadowed in both.
 The TypeScript engine reproduces the Python reference values exactly; map points with the 1°
-horizon stay within 0.15 points of the 0.5° map values. The current suite has 719 passing tests
-(401 TypeScript, 318 Python). All 23 new catalogue packages and both coordinate-package examples
+horizon stay within 0.15 points of the 0.5° map values. The current suite has 775 passing tests
+(457 TypeScript, 318 Python). All 23 new catalogue packages and both coordinate-package examples
 pass independent Horizons checks at 14 epochs per body; maximum sky angle difference is
 0.00002442°, and the 32-direction horizon convergence difference is below 0.01550°
 ([validation report](validation-missions.md)).

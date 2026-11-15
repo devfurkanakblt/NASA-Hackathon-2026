@@ -70,7 +70,7 @@ export function validateExtendedHeader(h: unknown, siteId: string): string[] {
     if (y.file !== 'year.bin') bad('year.file must be year.bin')
     if (!isSha(y.sha256)) bad('year.sha256 must be 64 lowercase hex characters')
     if (y.stepS !== 600) bad(`year.stepS must be 600, got ${JSON.stringify(y.stepS)}`)
-    if (!isPosInt(y.count)) bad(`year.count must be a positive integer, got ${JSON.stringify(y.count)}`)
+    if (!isPosInt(y.count) || y.count < 2) bad(`year.count must be an integer of at least 2, got ${JSON.stringify(y.count)}`)
     if (!['jpl-horizons', 'skyfield-de421'].includes(y.source as string)) bad('year.source must be jpl-horizons or skyfield-de421')
     const start = utcTime(y.startUtc)
     const end = utcTime(y.endUtc)
@@ -129,20 +129,32 @@ export interface CellHorizons {
   unitDeg: number
 }
 
-/** Six float32 blocks of `count`: sun az, el, distance, earth az, el, distance. */
+/**
+ * Six float32 blocks of `count`: sun az, el, distance, earth az, el, distance. Every value must
+ * be finite, azimuths in [0, 360], elevations in [−90, 90] and distances positive; a bad value is
+ * an error naming the block and sample, never a silent zero.
+ */
 export function parseYear(siteId: string, header: ExtendedHeader, buf: ArrayBuffer): EphemerisDoc {
   assertValidHeader(siteId, header)
   const { count, startUtc, stepS, source } = header.year
   if (buf.byteLength !== 6 * count * 4) throw new Error(`${siteId}/year.bin: expected ${6 * count * 4} bytes, got ${buf.byteLength}`)
   const f = new Float32Array(buf)
-  for (let i = 0; i < f.length; i++) {
-    if (!Number.isFinite(f[i])) throw new Error(`${siteId}/year.bin: value ${f[i]} at index ${i} is not finite`)
+  const ok = [(v: number) => v >= 0 && v <= 360, (v: number) => v >= -90 && v <= 90, (v: number) => v > 0]
+  for (let k = 0; k < 6; k++) {
+    const test = ok[k % 3]
+    for (let i = 0; i < count; i++) {
+      const v = f[k * count + i]
+      if (!Number.isFinite(v) || !test(v)) {
+        throw new Error(`${siteId}/year.bin: ${YEAR_FIELDS[k].replace('.', ' ')}[${i}] = ${v} is ${Number.isFinite(v) ? 'out of range' : 'not finite'}.`)
+      }
+    }
   }
   const block = (k: number) => Array.from(f.subarray(k * count, (k + 1) * count))
   const body = (k: number): BodySeries => ({ azDeg: block(k), elDeg: block(k + 1), distanceM: block(k + 2) })
   return { siteId, source, startUtc, stepS, count, sun: body(0), earth: body(3) }
 }
 
+/** Int16 horizon values; each must stay within ±90° once scaled by `unitDeg` (int16 has no NaN). */
 export function parseCells(header: ExtendedHeader, buf: ArrayBuffer): CellHorizons {
   const siteId = header.siteId
   assertValidHeader(siteId, header)
@@ -152,6 +164,10 @@ export function parseCells(header: ExtendedHeader, buf: ArrayBuffer): CellHorizo
   const data = new Int16Array(buf)
   const at = data.indexOf(-32768)
   if (at >= 0) throw new Error(`${siteId}/cells.bin: sentinel value -32768 at index ${at} (no horizon was computed)`)
+  const limit = 90 / c.unitDeg
+  for (let i = 0; i < data.length; i++) {
+    if (Math.abs(data[i]) > limit) throw new Error(`${siteId}/cells.bin: cell ${Math.floor(i / c.count)} azimuth ${(i % c.count) * c.azStepDeg}° has horizon ${data[i] * c.unitDeg}° (outside ±90°).`)
+  }
   return { azStepDeg: c.azStepDeg, count: c.count, n: c.n, eyeM: c.eyeM, data, unitDeg: c.unitDeg }
 }
 

@@ -96,3 +96,33 @@ describe('performance (plan: three scenarios in about two seconds)', () => {
     expect(elapsedMs).toBeLessThan(500)
   })
 })
+
+describe('battery across a rise inside a step (analytic)', () => {
+  // Flat 0° horizon, 600 s steps. Sun: −1° → +1° over step 0 (rises at its middle), then up.
+  // Earth: −1° → +1° over step 2 (rises at its middle), then up. Battery starts empty.
+  const n = 200
+  const series = (el: (i: number) => number, d: number) => ({ azDeg: new Array(n).fill(0), elDeg: Array.from({ length: n }, (_, i) => el(i)), distanceM: new Array(n).fill(d) })
+  const data = {
+    site: { id: 'S', latDeg: 0, lonDeg: 0, surfaceElevationM: 0, observerHeightM: 2 },
+    ephemeris: { siteId: 'S', source: 't', startUtc: '2026-11-01T00:00:00Z', stepS: 600, count: n, sun: series((i) => (i === 0 ? -1 : 1), 1.496e11), earth: series((i) => (i <= 2 ? -1 : 1), 3.84e8) },
+    horizon: { azStepDeg: 1, count: 360, elevDeg: new Array(360).fill(0) },
+  } as unknown as SiteData
+  const s = { ...DEFAULT_SETTINGS, durationDays: 1, initialSocFraction: 0, reserveFraction: 0, maxEarthOutageH: 1000 }
+
+  it('demand before sunrise is unmet, not paid by generation later in the same step', () => {
+    const r = evaluateScenario(data, '2026-11-01T00:00:00Z', s)
+    // 300 s of base load with an empty battery and no Sun
+    expect(r.summary.unmetEnergyJ).toBeCloseTo(s.baseLoadW * 300, 6)
+    // after sunrise the panel covers the load and charges: SoC after step 0 is the stored surplus
+    const panelW = r.generationW[1]
+    expect(r.socJ[1]).toBeCloseTo((panelW - s.baseLoadW) * 300 * s.chargeEfficiency, 6)
+  })
+
+  it('the comm load starts at Earthrise inside the step; energy totals are exact', () => {
+    const r = evaluateScenario(data, '2026-11-01T00:00:00Z', s)
+    const T = r.durationS
+    const earthUpS = T - 2.5 * 600
+    expect(r.summary.energyDemandJ).toBeCloseTo(s.baseLoadW * T + s.commLoadW * earthUpS, 6)
+    expect(r.summary.earthVisibleFraction).toBeCloseTo(earthUpS / T, 12)
+  })
+})

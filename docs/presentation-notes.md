@@ -15,7 +15,7 @@ efficiency, 200 W base load + 100 W while Earth is in view, 6 h accepted Earth o
 | 1 | Problem & promise | At the south pole the Sun and Earth skim the horizon: a few hundred metres of terrain decide power and contact. We show it and let planners test it. | Polar map with the 9 sites (7 south-pole sites + 2 contrast points: Chang'e-6, Apollo 11) |
 | 2 | User flow | Three pages: **Home** (what the tool is for, no numbers) → **Simulation** (pick up to 3 places — a catalogue site, a map point or a lat / lon within 3 km of a site — and any start date from 1 Nov 2026 to 1 Nov 2027; watch the 3D terrain, Sun and Earth move) → **Results** (cards answer "Power?" and "Talk to Earth?", optional lander settings, "See why" tabs). Built-in "How it works" tour. No server, instant updates. | Screenshot of each page (Home hero, Simulation 3D, Results cards) |
 | 3 | Terrain evidence | Horizon panorama: real skyline vs. flat horizon, Sun/Earth tracks; Site04 Earth hidden behind the crater wall all week. | Panorama screenshot (+ 3D view if ready) |
-| 4 | Energy evidence | Same site, change the hardware or date → battery result changes (Site04: +72 h start → unmet 1.0 → 15.4 kWh). | "Battery" tab screenshot |
+| 4 | Energy evidence | Same site, change the hardware or date → battery result changes (Site04: +72 h start → unmet 1.1 → 15.5 kWh). | "Battery" tab screenshot |
 | 5 | Comparison | Site04 vs. Site04R vs. Site04R +72 h with the same hardware; plain answers, no score. Then two quick changes on the same screen: a map point 630 m from Site01 (story 2) and the same site in April 2027 (story 3). | Result cards A / B / C screenshot; optional second screenshot of story 2 or 3 |
 | 6 | Scientific basis | NASA data, validation numbers, model limits (sections below). | Small table of checks |
 | 7 | Impact & access | Live app, source (MIT), offline build, team, next steps (free coordinates anywhere on the Moon, thermal / relay-satellite models). | Links + QR code, team names |
@@ -47,7 +47,7 @@ the time (two-week day, two-week night) and Earth is either always up (near side
 
 | Site | Sun | Earth | Longest Earth outage | Battery reserve | Unmet demand |
 |---|---|---|---|---|---|
-| Site04 | 83.5 % | 0 % | 168 h (whole mission) | broken after 158 h, battery empties | 1.0 kWh |
+| Site04 | 83.5 % | 0 % | 168 h (whole mission) | broken after 158 h, battery empties | 1.1 kWh |
 | Site04R | 100 % | 72 % | 47 h | kept (never below 80 %) | 0 |
 | Site01 | 100 % | 46 % | 90 h | kept | 0 |
 | Site07 | 100 % | 75 % | 42 h | kept | 0 |
@@ -56,7 +56,7 @@ the time (two-week day, two-week night) and Earth is either always up (near side
 
 | Site | Sun | Earth | Longest Earth outage | Battery reserve | Unmet demand |
 |---|---|---|---|---|---|
-| Site04 | 40.6 % | 0 % | 168 h | broken after 86 h | 15.4 kWh |
+| Site04 | 40.6 % | 0 % | 168 h | broken after 86 h | 15.5 kWh |
 | Site04R | 100 % | 100 % | 0 h | kept | 0 |
 | Site07 | 100 % | 100 % | 0 h | kept | 0 |
 | Site01 | 100 % | 89 % | 18 h | kept | 0 |
@@ -116,7 +116,7 @@ landing-site decision. "Through the year" tab shows the monthly picture.
   RMS 1.3–2.4 m on gentle ground (< 10°), 16–18 m on Shackleton's steep wall (> 25°).
 - **Engine:** the TypeScript engine reproduces the Python pipeline's reference values (visibility
   percentages, every window, horizon test vectors, mean Sun-disk fraction) exactly on all nine
-  sites; 395 automated tests (285 TypeScript, 110 Python).
+  sites; 451 automated tests (341 TypeScript, 110 Python).
 - **One-year series:** `year.bin` reproduces `ephemeris.json` sample by sample over the two shared
   months, and its monthly Sun / Earth / both shares match `season.json` (`tests/extended.test.ts`).
 - **Map points:** the Sun / Earth direction re-projected into a cell's frame matches Python within
@@ -127,7 +127,7 @@ landing-site decision. "Through the year" tab shows the monthly picture.
 
 - Visibility is decided by the centre of the Sun/Earth against the terrain horizon. An optional
   partial-disk mode scales panel output by the visible share of the disk (linear approximation);
-  it is off by default and changes the results little (Site04 unmet demand 1.0 → 0.6 kWh).
+  it is off by default and changes the results little (Site04 unmet demand 1.1 → 0.6 kWh).
 - No eclipses, temperature effects, dust, or battery ageing.
 - Earth view is line of sight only: no ground-station schedule, antenna or link budget.
 - Near the pole the Sun and Earth cross the horizon slowly: a 0.05° horizon error is 29–242 min
