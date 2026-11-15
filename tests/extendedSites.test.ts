@@ -62,6 +62,8 @@ describe('cell ids', () => {
     expect(needsYear('Site01', '2026-12-25T00:00:00Z', END, 7)).toBe(false)
     expect(needsYear('Site01', '2026-12-02T00:00:00Z', END, 30)).toBe(false)
     expect(needsYear('Site01', '2026-12-03T00:00:00Z', END, 30)).toBe(true)
+    // 90 days never fit the two-month base series, so any such mission loads the year.
+    expect(needsYear('Site01', '2026-11-01T00:00:00Z', END, 90)).toBe(true)
   })
 
   it('a mission crossing the two-month end evaluates once the year is loaded', () => {
