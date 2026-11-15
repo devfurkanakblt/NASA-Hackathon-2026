@@ -2116,7 +2116,9 @@
   to { opacity: 1; transform: none; }
 }
 .sim { position: relative; }
-.sim__route { display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; margin-bottom: 24px; }
+.sim__top { display: flex; margin-bottom: 16px; }
+.app .sim__top button { min-height: 44px; }
+.sim__route { display: flex; align-items: center; justify-content: flex-end; gap: 20px; flex-wrap: wrap; margin: 24px 0; padding-top: 20px; border-top: 1px solid var(--line); }
 .sim__route-nav { display: flex; align-items: center; gap: 16px; }
 .sim__route-nav > span { font-size: 14px; text-align: center; }
 .sim__route-nav small { display: block; color: var(--muted); font-size: 11px; margin-top: 4px; }
