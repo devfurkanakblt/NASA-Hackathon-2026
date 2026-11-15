@@ -23,7 +23,7 @@ direction (`el > horizonAt(az)`).
 | Topography near the site | LOLA 5 m/px site DEMs (Barker et al. 2021), PGDA | horizon up to 7 km, slope, 3D view |
 | Regional topography | LOLA `LDEM_80S_80MPP_ADJ`, 80 m/px (Barker et al. 2023), PGDA | horizon 7–250 km |
 | Topography at the contrast points | LOLA global `LDEM_64` (64 px/deg, ~474 m/px), PDS `LRO-L-LOLA-4-GDR-V1.0` | CE6, Apollo12 horizon and 3D view |
-| Topography for free coordinates | The same `LDEM_64`, 4 × 4 block mean (16 px/deg, ~1.9 km/px), 72 hash-checked tiles in `public/data/global-dem/` | horizon of any typed or clicked coordinate outside the polar maps (screening estimate) |
+| Topography for free coordinates | South of ~80° S: `LDEM_80S_80MPP_ADJ` (80 m within 25 km, 640 m mean beyond), hash-checked tiles in `public/data/polar-dem/`; elsewhere `LDEM_64` 4 × 4 block mean (16 px/deg, ~1.9 km/px) in `public/data/global-dem/` | horizon and 3D view of any typed or clicked coordinate outside the polar maps (screening estimate) |
 | Future CLPS target | Heldmann et al., *The Relevance of the VIPER mission to NASA's Artemis human exploration of the Moon*, NASA NTRS 20260005586, §3.1.2; NASA news release of 19 Sep 2025 (CLPS task order CS-7) | VIPER's Mons Mouton mission-area centre |
 | Sun and Earth positions | JPL Horizons, observer on the Moon (`coord@301`, MEAN_ME frame), airless, 10-min steps | az/el/distance per sample |
 | Independent ephemeris | Skyfield + DE421, `MOON_ME_DE421` frame | cross-check, 18.6-year runs |
@@ -69,8 +69,10 @@ are documented in [data-contract.md](data-contract.md).
 cell (the distance is shown). Anywhere else the app computes the exact point in the browser: the Sun
 and Earth positions of a loaded Horizons year series are rebuilt in the Moon-fixed frame and projected
 into the point's local frame (the map-point formula), and a 0.1° horizon is ray-marched out to
-250 km on the global LDEM_64 tiles with the same rule as `preprocess/horizon.py`, eye 2 m above the
-tile surface. Checked against five catalogue sites: Sun / Earth within 0.003°; with their own
+250 km with the same rule as `preprocess/horizon.py`, eye 2 m above the DEM surface: on the
+south-polar cap on the 80 m regional DEM (640 m mean beyond 25 km; horizon RMS 0.01–0.20° and yearly
+Sun share within 0.5 points of the nine `regional80` catalogue points), elsewhere on the global
+LDEM_64 tiles. Checked against five catalogue sites: Sun / Earth within 0.003°; with their own
 LDEM_64 horizons, horizon RMS 0.07–0.54° and yearly Sun share within 0.43 points
 (`validation.md`, free coordinates).
 
@@ -163,10 +165,10 @@ Apollo 12 the loop stays high (Earth always up); at CE6 it stays below (Earth ne
 - **Regional map colours** are two-month (main period) summaries. A map point run as a scenario gets the
   full time series and energy simulation, but with a 1° horizon instead of the 0.1° used at listed
   sites. Slope is a terrain descriptor, not a landing-safety assessment.
-- **Free coordinates are a screening estimate.** Outside the polar maps a typed or clicked point uses
-  ~1.9 km global terrain: hills and crater walls smaller than a few km are not resolved, which matters
-  most near the pole where the Sun grazes the horizon. There is no 3D view for such a point;
-  catalogue-quality terrain needs an offline package (`python -m preprocess.custom_point`).
+- **Free coordinates are a screening estimate.** On the south-polar cap a typed or clicked point uses
+  the 80 m regional DEM (features under ~100 m unresolved; no 5 m near field); elsewhere ~1.9 km global
+  terrain, where hills and crater walls smaller than a few km are not resolved. Catalogue-quality
+  terrain needs an offline package (`python -m preprocess.custom_point`).
 - **Good illumination does not mean flat or safe terrain for landing.** Sun and Earth visibility says
   nothing about slope at the lander scale, rocks, or hazards; slope shown is a coarse terrain descriptor.
 - **Map-point horizon is a regional screening estimate.** The 1° cell horizon (`cells.bin`) is a screening

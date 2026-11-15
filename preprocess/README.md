@@ -23,6 +23,7 @@ python -m preprocess.make_sample       # synthetic sample in public/data/_sample
 python -m preprocess.custom_point --id P001 --lat -89.45 --lon -137.2 [--start ... --stop ...] [--source skyfield]
                                        # -> custom/P001/ data package for a free coordinate (see below)
 python -m preprocess.global_tiles      # -> global-dem/ LDEM_64 tiles (4x4 mean, ~33 MB) for free points in the browser
+python -m preprocess.polar_tiles       # -> polar-dem/ 80 m south-polar tiles + 640 m far grid (~51 MB) for polar free points
 ```
 
 ## Custom point packages

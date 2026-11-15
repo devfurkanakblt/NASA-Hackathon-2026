@@ -723,6 +723,7 @@ export function MissionApp() {
                     <div data-tour="scene">
                       <Suspense fallback={<p role="status">Loading point view…</p>}><GlobalPointScene
                         key={activeData.site.id} site={activeData.site} horizon={activeData.horizon}
+                        nearTerrain={activeFree && activeData.terrain ? activeData.terrain : undefined}
                         sun={now.sun} earth={now.earth} sunPath={tracks.sunPath} earthPath={tracks.earthPath}
                         panel={panel} panelPowerW={active.result.generationW[now.kk]} diagnostics={diagnostics}
                         observerHeightM={activeData.site.observerHeightM} surfaceElevationM={activeData.site.surfaceElevationM}

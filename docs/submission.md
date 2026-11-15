@@ -66,7 +66,8 @@ one-year ephemeris and the per-cell 1° horizons are small binary files fetched 
 a scenario needs them; a map point re-projects the site's Sun/Earth positions into the cell's own
 local frame. Any other coordinate is computed in the browser: the Sun and Earth from a loaded JPL
 Horizons year series re-projected to the point, and a 0.1° terrain horizon ray-marched out to 250 km
-on tiles of the global LOLA LDEM_64 (4 × 4 block mean, ~1.9 km/px). The searches run in a Web Worker
+on the LOLA 80 m south-polar DEM near the pole (640 m beyond 25 km) or on tiles of the global LOLA
+LDEM_64 elsewhere (4 × 4 block mean, ~1.9 km/px). The searches run in a Web Worker
 on the same engine. The 3D terrain is for orientation only; visibility always comes from the horizon
 profile.
 
@@ -96,8 +97,8 @@ examples pass independent Horizons checks at 14 epochs per body; maximum sky ang
 example assumptions. Not modelled: eclipses, temperature, dust, battery ageing, ground-station
 schedules and link budgets. Near the pole a 0.05° horizon error equals about 30 minutes to 4 hours of
 rise/set time. The contrast points use the 474 m/px global LOLA map, so small nearby hills are
-not resolved. A free coordinate is a screening estimate on ~1.9 km terrain (no 3D view); for
-catalogue-quality terrain a package is generated offline. Earth view is line of sight only.
+not resolved. A free coordinate is a screening estimate: 80 m terrain near the south pole, ~1.9 km
+elsewhere; for catalogue-quality terrain a package is generated offline. Earth view is line of sight only.
 Research suitability is not claimed: no place has a verified research profile yet.
 
 **Tools.** Python (NumPy, SciPy, Rasterio, PyProj, Skyfield, Requests, Matplotlib), TypeScript, React, three.js /
@@ -106,8 +107,7 @@ build runs offline.
 
 **Next steps.** Sourced research profiles per place, so searches can keep the same science goal;
 a generation service behind the existing request contract (packages are imported in the app today,
-generated offline); finer terrain for free coordinates near the pole (80 m regional DEM in the
-browser); thermal and relay-satellite models.
+generated offline); finer global terrain for free coordinates away from the pole; thermal and relay-satellite models.
 
 ## Use of Artificial Intelligence (AI)
 

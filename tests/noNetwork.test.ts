@@ -28,7 +28,7 @@ describe('network use in the app', () => {
 
   it('fetches only in the data loaders', () => {
     const network = /\bfetch\s*\(|XMLHttpRequest|new\s+WebSocket|EventSource|navigator\.sendBeacon/
-    expect(files.filter((f) => network.test(f.text)).map((f) => f.path).sort()).toEqual(['data/extended.ts', 'data/globalDem.ts', 'data/load.ts', 'data/packageService.ts'])
+    expect(files.filter((f) => network.test(f.text)).map((f) => f.path).sort()).toEqual(['data/extended.ts', 'data/globalDem.ts', 'data/load.ts', 'data/packageService.ts', 'data/polarDem.ts'])
   })
 
   it('never addresses an outside host (no JPL / NASA API calls from the browser)', () => {

@@ -7,7 +7,7 @@
 - Terrain: LOLA 5 m/px site maps + 80 m regional map (Barker et al. 2021, 2023)
 - Sun & Earth: JPL Horizons, every 10 min for a full year (1 Nov 2026 – 1 Nov 2027), observer 2 m above the surface
 - Horizon: 3600 directions × 250 km, lunar curvature included
-- Any point on the Moon (click the globe or type lat/lon): inside the ±3 km polar maps the nearest map cell; elsewhere the exact point, Sun/Earth re-projected to it and a horizon from global LOLA LDEM_64 tiles (~1.9 km/px, screening estimate)
+- Any point on the Moon (click the globe or type lat/lon): inside the ±3 km polar maps the nearest map cell; elsewhere the exact point, Sun/Earth re-projected to it and a horizon from the LOLA 80 m south-polar DEM near the pole or global LDEM_64 tiles (~1.9 km/px) elsewhere (screening estimate)
 
 **Right column — Validation (one table)**
 
@@ -27,7 +27,7 @@ for slides 3–5; `season-polar-sites.png` (Nov–Dec is the sunny season; year 
 
 **Bottom strip — Limits (small font)**
 One observer height (2 m) · partial Sun disk approximated · DEM accuracy not claimed ·
-near the pole a 0.05° horizon error = 30 min to 4 h in sunrise time · map points use a 1° horizon · free coordinates use ~1.9 km terrain (screening only) ·
+near the pole a 0.05° horizon error = 30 min to 4 h in sunrise time · map points use a 1° horizon · free coordinates use 80 m polar / ~1.9 km global terrain (screening only) ·
 Earth view = line of sight only · not a landing-site certification
 
 **Speaker note (≈20 s):** "Every number comes from NASA and JPL data through scripts in our repo. We
