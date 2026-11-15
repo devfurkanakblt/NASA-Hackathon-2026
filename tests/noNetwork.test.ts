@@ -3,7 +3,9 @@
  * Acceptance check from the plan (§5 "Performans"): the browser never talks to the JPL API.
  * Network code lives in two loaders only: `loadAllData()` in src/data/load.ts, which runs once
  * at start-up, and the per-site one-year / map-point loaders in src/data/extended.ts (fetched
- * on demand after the first render; design 2026-11-15-year-and-custom-point, approach 1).
+ * on demand after the first render; design 2026-11-15-year-and-custom-point, approach 1), and the
+ * scientific package loader in src/data/packageService.ts (same-origin `data/packages…` files, only
+ * when the user opens a package).
  */
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
@@ -25,7 +27,7 @@ describe('network use in the app', () => {
 
   it('fetches only in the data loaders', () => {
     const network = /\bfetch\s*\(|XMLHttpRequest|new\s+WebSocket|EventSource|navigator\.sendBeacon/
-    expect(files.filter((f) => network.test(f.text)).map((f) => f.path).sort()).toEqual(['data/extended.ts', 'data/load.ts'])
+    expect(files.filter((f) => network.test(f.text)).map((f) => f.path).sort()).toEqual(['data/extended.ts', 'data/load.ts', 'data/packageService.ts'])
   })
 
   it('never addresses an outside host (no JPL / NASA API calls from the browser)', () => {

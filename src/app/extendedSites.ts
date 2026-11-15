@@ -50,6 +50,14 @@ export function needsYear(id: string, startUtc: string, coverageEndUtc: string, 
   return Date.parse(startUtc) + durationDays * DAY_MS > Date.parse(coverageEndUtc)
 }
 
+/**
+ * A site whose `ephemeris` already is its complete series (an imported or published scientific
+ * package): it has a data hash and is not a catalogue map cell. No `year.bin` is fetched for it.
+ */
+export function hasFullSeries(data: SiteData | undefined): boolean {
+  return !!data?.provenance?.dataHash && data.site.category === 'custom'
+}
+
 const isLoaded = <T>(v: Loadable<T> | undefined): v is T => v !== undefined && v !== 'loading' && v !== 'error'
 
 /** Data the engine should use for a scenario's site id: year series when loaded, a cell when its files are loaded. */
@@ -67,6 +75,8 @@ export function resolveSiteData(id: string, startUtc: string, coverageEndUtc: st
   }
   const base = bySite[id]
   if (!base) return { error: `No data for site ${id}.` }
+  // A package carries its own full period; the engine reports a start outside it as CoverageError.
+  if (hasFullSeries(base)) return { data: base }
   // Inside the two months the validated float64 series is used, so the demo numbers cannot shift.
   if (!needsYear(id, startUtc, coverageEndUtc, durationDays)) return { data: base }
   const year = ext.years[id]
@@ -76,12 +86,13 @@ export function resolveSiteData(id: string, startUtc: string, coverageEndUtc: st
 }
 
 /** Base site ids whose `year.bin` / `cells.bin` the scenarios need. */
-export function sitesNeeded(scenarios: { siteId: string; startUtc: string }[], coverageEndUtc: string, durationDays = 1): { years: string[]; cells: string[] } {
+export function sitesNeeded(scenarios: { siteId: string; startUtc: string }[], coverageEndUtc: string, durationDays = 1, bySite?: Record<string, SiteData>): { years: string[]; cells: string[] } {
   const years = new Set<string>()
   const cells = new Set<string>()
   for (const { siteId, startUtc } of scenarios) {
     const cell = parseCellId(siteId)
     const base = cell ? cell.siteId : siteId
+    if (!cell && hasFullSeries(bySite?.[siteId])) continue
     if (needsYear(siteId, startUtc, coverageEndUtc, durationDays)) years.add(base)
     if (cell) cells.add(base)
   }

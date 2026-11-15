@@ -1,4 +1,4 @@
-import type { SiteData } from '../data/contract.ts'
+import type { EphemerisDoc, SiteData } from '../data/contract.ts'
 import { J_PER_WH, SOLAR_CONSTANT_W_M2, clearSkyPanelPowerW, simulateBattery } from './energy.ts'
 import type { PanelSettings } from './energy.ts'
 import { intersectWindows, longestGapS, marginSeries, sunDiskFraction, totalDurationS, windowsFromMargins } from './visibility.ts'
@@ -173,6 +173,19 @@ const MODEL_NOTES: Record<SunDiskModel, string[]> = {
 
 /** Thrown when a mission does not fit inside the pre-computed data. */
 export class CoverageError extends RangeError {}
+
+/**
+ * First and last mission start the data supports for `durationDays` (both on the sample grid,
+ * the last one ending exactly on the final sample), or `null` when the series is shorter than
+ * the mission. Works for any series length: two months, one year, or a multi-year package.
+ */
+export function missionStartRange(ephemeris: Pick<EphemerisDoc, 'startUtc' | 'stepS' | 'count'>, durationDays: number): { firstStartUtc: string; lastStartUtc: string } | null {
+  const steps = Math.round((durationDays * 86400) / ephemeris.stepS)
+  if (!(steps >= 1) || ephemeris.count - 1 < steps) return null
+  const t0 = Date.parse(ephemeris.startUtc)
+  const iso = (ms: number) => new Date(ms).toISOString().replace('.000Z', 'Z')
+  return { firstStartUtc: iso(t0), lastStartUtc: iso(t0 + (ephemeris.count - 1 - steps) * ephemeris.stepS * 1000) }
+}
 
 /** Thrown when the data a mission needs has a missing, non-finite or impossible value. */
 export class DataError extends RangeError {}

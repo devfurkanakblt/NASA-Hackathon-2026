@@ -4,7 +4,7 @@
  * data product when it exists; until then pass none and every place stays `unknown`.
  */
 import type { EphemerisDoc, SiteData } from '../data/contract.ts'
-import type { CellHorizons } from '../data/extended.ts'
+import type { CellHorizons, ExtendedHeader, RefinedDoc } from '../data/extended.ts'
 import type { MissionSettings } from './evaluate.ts'
 import type { ResearchProfile } from './research.ts'
 import { cataloguePlaces, cellPlaces, findDatesForPlace, findNearbyEquivalentPlaces, findPlacesForDate } from './search.ts'
@@ -14,6 +14,9 @@ export interface CellSource {
   base: SiteData
   year: EphemerisDoc
   cells: CellHorizons
+  /** `extended.json` (shared Moon-fixed cache, provenance) and `refined.json` (0.1° finalists). */
+  header?: ExtendedHeader
+  refined?: RefinedDoc | null
   /** Only these cells (row, col); all cells when omitted. */
   only?: [number, number][]
 }
@@ -38,7 +41,7 @@ function placesOf(r: PlacesCommon): PlaceSource[] {
   const out = cataloguePlaces(r.catalogue)
   for (const c of r.cellSources) {
     const only = c.only ? new Set(c.only.map(([row, col]) => `${row},${col}`)) : null
-    out.push(...cellPlaces(c.base, c.year, c.cells, only ? (row, col) => only.has(`${row},${col}`) : undefined))
+    out.push(...cellPlaces(c.base, c.year, c.cells, { header: c.header, refined: c.refined, filter: only ? (row, col) => only.has(`${row},${col}`) : undefined }))
   }
   if (r.profiles) for (const p of out) p.profile = r.profiles[p.siteId] ?? null
   return out

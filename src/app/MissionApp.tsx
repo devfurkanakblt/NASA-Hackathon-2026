@@ -197,7 +197,7 @@ export function MissionApp() {
   // one-year series of every scenario's site so later dates open without waiting.
   const wanted = useMemo(() => {
     if (!loaded) return { years: [] as string[], cells: [] as string[] }
-    const need = sitesNeeded(scenarios, loaded.sites.coverage.endUtc, settings.durationDays)
+    const need = sitesNeeded(scenarios, loaded.sites.coverage.endUtc, settings.durationDays, loaded.bySite)
     const bases = scenarios.map((s) => parseCellId(s.siteId)?.siteId ?? s.siteId).filter((id) => id in loaded.bySite)
     return { years: [...new Set([...need.years, ...bases])], cells: need.cells }
   }, [loaded, scenarios, settings.durationDays])
