@@ -35,7 +35,8 @@ direction (`el > horizonAt(az)`).
    the finer steps.
 2. **Sun and Earth.** JPL Horizons gives azimuth, elevation and distance for the same observer
    (same coordinates and height) every 10 minutes, 1 Nov 2026 – 1 Jan 2027 (main period) and
-   1 Nov 2026 – 1 Nov 2027 (season table).
+   1 Nov 2026 – 1 Nov 2027 (season table and `year.bin`). The app loads `year.bin` for a site only
+   when a mission runs past the main period, so a mission can start on any date up to 1 Nov 2027.
 3. **Visibility.** At each sample: visible if `el > horizonAt(az)` (linear interpolation of the horizon).
    For the Sun, the visible fraction of the disk is approximated linearly from the disk's angular radius.
    Rise/set instants are interpolated between the two samples around a sign change.
@@ -44,6 +45,11 @@ direction (`el > horizonAt(az)`).
    the body position is rebuilt in the Moon-fixed frame from the site's Horizons data and projected
    into the cell's local frame. Near the pole a few kilometres turn the local north by degrees, so this
    step is required. Slope comes from the 5 m DEM over a 25 m baseline.
+   **Any map point as a scenario.** A clicked cell, or a typed latitude/longitude within ±3 km of a
+   map site (snapped to the nearest cell), is simulated like a listed site: its horizon is the cell's
+   map horizon at 1° steps (`cells.bin`, every second 0.5° value, no averaging), and the browser
+   re-projects the site's Sun/Earth series (two months or the full year) into the cell's local frame
+   with the same formula as the map. The energy model and timelines then run unchanged.
 5. **Derived point Site04R.** The Site04 catalogue coordinate lies on the ~32° inner wall of
    Shackleton. Site04R is the highest 5 m pixel with slope ≤ 10° within 2 km (rule in
    `preprocess/ridge.py`), 1.9 km away. It is labelled as derived, not as a catalogue site.
@@ -53,13 +59,16 @@ direction (`el > horizonAt(az)`).
 | Check | Result |
 |---|---|
 | Horizons vs Skyfield/DE421, every sample, 9 sites | ≤ 0.00006° (tolerance 0.01°) |
+| One-year series (`year.bin`, 52 561 samples incl. all of 2027) vs Skyfield/DE421, 9 sites | ≤ 0.00003° (tolerance 0.01°) |
 | JSON vs a fresh Horizons request (random epochs) | ≤ 0.00005° (= storage rounding) |
 | Horizon: halved ray steps, 32 azimuths per site | ≤ 0.02° (tolerance 0.05°) |
 | Rise/set from 10-min series vs 1-min reference | ≤ 0.33 min at 8 of 9 sites; 2.4 min at Site20 (slowest crossings) |
 | Season file: Nov–Dec of the 1-year series vs published reference values | identical, 9/9 sites |
 | **External:** 18.6-year Sun visibility vs Mazarico et al. product | 7/7 sites within the product's 3×3-pixel range; rank correlation 0.96 (Sun) and 0.96 (Earth) |
+| **External:** every regional map cell (17 767 cells, 7 maps) vs the same product, 18.6 years | mean abs diff 0.029 (Sun) / 0.021 (Earth); 96 % / 98 % within the product's 3×3-pixel range; rank correlation 0.93 / 0.96; larger differences on flat ground than on steep walls (`validation.md` §8) |
 | **External:** Shackleton crater floor | never lit in our model over 18.6 years (Sun ≥ 17.9° below the terrain horizon); product: permanent shadow |
 | Regional map vs full-resolution horizon (centre + 6 random cells per site, 7 maps) | ≤ 0.06 percentage points (tolerance 1) |
+| Map point simulation (1° horizon) vs `map.json` (centre + 6 fixed cells per map, 7 maps) | ≤ 0.15 percentage points |
 | **External:** terrain grid vs NASA Moon Trek LOLA 5 m DEM (`LRO_LOLA_DEM_SPole875_5mp_v04`), 5 sites (all inside the mosaic, 87.5–90 S) | RMS 1.3–2.4 m on slopes < 10°, 16–18 m on slopes > 25° (`validation-moontrek.md`) |
 
 ## Limits of the model
@@ -75,8 +84,11 @@ direction (`el > horizonAt(az)`).
 - **Coverage.** The 80 m regional DEM ends at 80° S. For Site20 and Site23 some rays leave it before
   250 km; a conservative bound (10.8 km high terrain at the DEM edge) shows the missing terrain cannot
   raise any horizon, and this check runs for every site.
-- **Regional maps are summaries** for the main period; time series and the energy simulation exist only
-  for the listed sites. Slope is a terrain descriptor, not a landing-safety assessment.
+- **Regional map colours** are two-month (main period) summaries. A map point run as a scenario gets the
+  full time series and energy simulation, but with a 1° horizon instead of the 0.1° used at listed
+  sites. Custom coordinates are limited to ±3 km around the 7 polar map sites (none around the
+  contrast points); the rest of the Moon is out of scope. Slope is a terrain descriptor, not a
+  landing-safety assessment.
 - **Not a landing-site certification.** Sites are research region centres from the Data Book.
 
 ## Seasons
