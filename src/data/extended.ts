@@ -4,6 +4,7 @@
  * if they are missing, the two-month simulation keeps working.
  */
 import type { BodySeries, EphemerisDoc, HorizonDoc } from './contract.ts'
+import { appBase } from './appBase.ts'
 
 /** The only `extendedSchema` this reader understands (docs/data-contract.md, extended.json). */
 export const SUPPORTED_EXTENDED_SCHEMA = 2
@@ -228,7 +229,7 @@ export function validateRefined(doc: unknown, siteId: string, header: ExtendedHe
   return out
 }
 
-const defaultBase = () => `${import.meta.env.BASE_URL}data`
+const defaultBase = () => `${appBase()}data`
 
 async function getOk(url: string): Promise<Response> {
   const response = await fetch(url)
@@ -314,7 +315,7 @@ export interface HeroTerrainData {
 const heroTerrain = new Map<string, Promise<HeroTerrainData>>()
 
 /** Heights for the descent, loaded on demand after the intro is showing (cached per variant). */
-export function loadHeroTerrain(mobile: boolean, baseUrl = `${import.meta.env.BASE_URL}assets/hero/terrain`): Promise<HeroTerrainData> {
+export function loadHeroTerrain(mobile: boolean, baseUrl = `${appBase()}assets/hero/terrain`): Promise<HeroTerrainData> {
   const suffix = mobile ? '-mobile' : ''
   return cached(heroTerrain, `${baseUrl}${suffix}`, async () => {
     const [meta, near, far] = await Promise.all([

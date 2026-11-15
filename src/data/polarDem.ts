@@ -1,3 +1,4 @@
+import { appBase } from './appBase.ts'
 /**
  * South-polar 80 m DEM for free coordinates (`public/data/polar-dem/`, written by
  * `python -m preprocess.polar_tiles` from LOLA LDEM_80S_80MPP_ADJ, the regional DEM the catalogue
@@ -139,7 +140,7 @@ export function nearTilesAround(m: PolarDemManifest, latDeg: number, lonDeg: num
 // ---------------------------------------------------------------------------------------------
 // Loading (same-origin files only)
 
-const defaultBase = () => `${import.meta.env.BASE_URL}data/polar-dem`
+const defaultBase = () => `${appBase()}data/polar-dem`
 
 async function getBytes(url: string, signal?: AbortSignal): Promise<ArrayBuffer> {
   const r = await fetch(url, { signal })
