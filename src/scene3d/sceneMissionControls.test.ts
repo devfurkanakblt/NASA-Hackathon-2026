@@ -3,6 +3,10 @@ import { latestMissionStartUtc } from './missionDates.ts'
 import { fromInputUtc, shiftUtc, toInputUtc } from '../app/format.ts'
 
 describe('simulation UTC date controls', () => {
+  it('reserves more than thirty days without a hidden picker clamp', () => {
+    expect(latestMissionStartUtc('2027-11-01T00:00:00Z', 365)).toBe('2026-11-01T00:00:00.000Z')
+    expect(latestMissionStartUtc('2027-11-01T00:00:00Z', 90)).toBe('2027-08-03T00:00:00.000Z')
+  })
   it('reserves the full mission at the end of annual data', () => {
     const end = '2027-11-01T00:00:00Z'
     const start = latestMissionStartUtc(end, 30)
@@ -11,11 +15,11 @@ describe('simulation UTC date controls', () => {
   })
   it('reserves a full 90-day mission at the end of annual data', () => {
     expect(latestMissionStartUtc('2027-11-01T00:00:00Z', 90)).toBe('2027-08-03T00:00:00.000Z')
-    expect(latestMissionStartUtc('2027-11-01T00:00:00Z', 91)).toBe('2027-08-03T00:00:00.000Z')
+    expect(latestMissionStartUtc('2027-11-01T00:00:00Z', 91)).toBe('2027-08-02T00:00:00.000Z')
   })
   it('does not crash the picker while invalid settings are being corrected', () => {
     for (const days of [1e9, -1e9, NaN, Infinity]) {
-      expect(latestMissionStartUtc('2027-11-01T00:00:00Z', days)).toMatch(/^2027-/)
+      expect(() => latestMissionStartUtc('2027-11-01T00:00:00Z', days)).not.toThrow()
     }
     expect(latestMissionStartUtc('invalid', 7)).toBeNull()
   })

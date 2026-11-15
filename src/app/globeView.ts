@@ -20,6 +20,26 @@ export function labelOffset(i: number): { x: number; y: number; mobileX: number;
 /** Space kept free around the globe frame (px): the bottom holds the hint and image credit. */
 export const LABEL_FRAME_PAD = { side: 8, top: 8, bottom: 64 }
 
+export interface LabelBox { x: number; y: number; w: number; h: number }
+/** Prefer an in-frame label position with no overlap; crowded tiny frames minimise overlap. */
+export function separateGlobeLabel(anchor: { x: number; y: number }, pin: { x: number; y: number },
+  label: { w: number; h: number }, frame: { w: number; h: number }, placed: LabelBox[]): LabelBox {
+  const initial = keepLabelInFrame(anchor, pin, label, frame)
+  const x = anchor.x + pin.x + initial.x, y = anchor.y + pin.y + initial.y
+  const xs = [x, ...placed.flatMap(p => [p.x - (p.w + label.w) / 2 - 6, p.x + (p.w + label.w) / 2 + 6])]
+  const ys = [y, ...placed.flatMap(p => [p.y - (p.h + label.h) / 2 - 6, p.y + (p.h + label.h) / 2 + 6])]
+  let best = { x, y, ...label }, overlap = Infinity, distance = Infinity
+  for (const cx of xs) for (const cy of ys) {
+    const shift = keepLabelInFrame({ x: cx, y: cy }, { x: 0, y: 0 }, label, frame)
+    const box = { x: cx + shift.x, y: cy + shift.y, ...label }
+    const area = placed.reduce((sum, p) => sum + Math.max(0, Math.min(box.x + box.w / 2, p.x + p.w / 2) - Math.max(box.x - box.w / 2, p.x - p.w / 2))
+      * Math.max(0, Math.min(box.y + box.h / 2, p.y + p.h / 2) - Math.max(box.y - box.h / 2, p.y - p.h / 2)), 0)
+    const d = (box.x - x) ** 2 + (box.y - y) ** 2
+    if (area < overlap || (area === overlap && d < distance)) { best = box; overlap = area; distance = d }
+  }
+  return best
+}
+
 /**
  * Extra shift (px) that keeps a label box inside the globe frame. Places near the rim of the
  * visible disc would otherwise push their label off the edge.

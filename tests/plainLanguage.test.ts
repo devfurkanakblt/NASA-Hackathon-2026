@@ -30,13 +30,13 @@ describe('plain-language result cards', () => {
   it('Site04 runs short of power and never sees Earth', () => {
     expect(powerVerdict(a, DEFAULT_SETTINGS)).toMatchObject({ ok: false, title: 'Runs short of power' })
     expect(powerVerdict(a, DEFAULT_SETTINGS).detail).toMatch(/day 7, then empty/)
-    expect(earthVerdict(a, DEFAULT_SETTINGS)).toMatchObject({ ok: false, title: 'No contact with Earth' })
+    expect(earthVerdict(a, DEFAULT_SETTINGS)).toMatchObject({ ok: false, title: 'No view of Earth' })
   })
 
   it('the ridge keeps power but has long silences; three days later Earth is always up', () => {
     expect(powerVerdict(b, DEFAULT_SETTINGS).ok).toBe(true)
-    expect(earthVerdict(b, DEFAULT_SETTINGS)).toMatchObject({ ok: false, title: 'Long silences' })
+    expect(earthVerdict(b, DEFAULT_SETTINGS)).toMatchObject({ ok: false, title: 'Long gaps without Earth' })
     expect(earthVerdict(b, DEFAULT_SETTINGS).detail).toContain('max 6 h')
-    expect(earthVerdict(c, DEFAULT_SETTINGS)).toMatchObject({ ok: true, title: 'Always in contact' })
+    expect(earthVerdict(c, DEFAULT_SETTINGS)).toMatchObject({ ok: true, title: 'Earth in view all mission' })
   })
 })

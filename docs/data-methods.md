@@ -23,14 +23,20 @@ direction (`el > horizonAt(az)`).
 | Topography near the site | LOLA 5 m/px site DEMs (Barker et al. 2021), PGDA | horizon up to 7 km, slope, 3D view |
 | Regional topography | LOLA `LDEM_80S_80MPP_ADJ`, 80 m/px (Barker et al. 2023), PGDA | horizon 7–250 km |
 | Topography at the contrast points | LOLA global `LDEM_64` (64 px/deg, ~474 m/px), PDS `LRO-L-LOLA-4-GDR-V1.0` | CE6, Apollo12 horizon and 3D view |
+| Topography for free coordinates | The same `LDEM_64`, 4 × 4 block mean (16 px/deg, ~1.9 km/px), 72 hash-checked tiles in `public/data/global-dem/` | horizon of any typed or clicked coordinate outside the polar maps (screening estimate) |
+| Future CLPS target | Heldmann et al., *The Relevance of the VIPER mission to NASA's Artemis human exploration of the Moon*, NASA NTRS 20260005586, §3.1.2; NASA news release of 19 Sep 2025 (CLPS task order CS-7) | VIPER's Mons Mouton mission-area centre |
 | Sun and Earth positions | JPL Horizons, observer on the Moon (`coord@301`, MEAN_ME frame), airless, 10-min steps | az/el/distance per sample |
 | Independent ephemeris | Skyfield + DE421, `MOON_ME_DE421` frame | cross-check, 18.6-year runs |
 | External reference | PGDA *Lunar Polar Illumination* (Mazarico et al.), 85S 60 m maps, 2016-08 | comparison only |
 | Regional terrain in the 3D view | NASA Moon Trek, LOLA 30 m/px south-pole DEM (`LRO_LOLA_DEM_SPole75_30mp_v04`) | display only; not used for visibility |
 | Earth image in the 3D view | Archive composite (Blue Marble Next Generation, Nov 2004), NASA Earth Observatory; not live imagery or weather | display only |
 
-The catalogue has 25 points, all in the southern hemisphere: the eight original points (seven polar
-sites and CE6) plus 17 mission/research points. Northern landing sites (Apollo 11/15/17, Blue
+The catalogue has 26 points, all in the southern hemisphere: the eight original points (seven polar
+sites and CE6) plus 18 mission/research points, among them one future CLPS target: the centre of
+VIPER's Mons Mouton mission area (85.42088° S, 31.6218° E), to be delivered by Blue Origin's Blue Moon
+MK1 under CLPS task order CS-7 in late 2027 (`coordinateStatus: "planned-target"`: not a landing, not
+a touchdown point). Griffin-1 and Chang'e-7 are not listed because no landing coordinate has been
+published. Northern landing sites (Apollo 11/15/17, Blue
 Ghost 1, Chang'e-3/5, Peregrine) were packaged and validated earlier but are left out of the
 published catalogue on purpose: the question is a south-pole question, and the globe shows the
 southern hemisphere only. Apollo 12 (3.0° S) replaces Apollo 11 as the near-side equatorial contrast
@@ -48,15 +54,25 @@ inside the Site20/Site23 full near-field coverage reuse the 5 m tiles; other mis
 explicitly labelled 80 m regional or ~474 m global DEMs. New ephemeris packages use
 Skyfield/DE421, checked independently against JPL Horizons; the original nine retain Horizons.
 The measured checks and DEM overlap distances are in [validation-missions.md](validation-missions.md).
-All 25 new packages (23 catalogue points and two coordinate examples) pass 14 independent JPL
-epochs per body: maximum sky angle error 0.00002442° and 32-direction horizon convergence
-below 0.01550°. File hashes are recorded in the machine-readable report.
+Every mission package in the report (the 18 current catalogue points, VIPER included, the six
+northern points packaged earlier, and two coordinate examples) passes 14 independent JPL epochs per
+body: maximum sky angle error 0.0000244° and 32-direction horizon convergence below 0.0155°. File hashes are recorded in the machine-readable report.
 
 The catalogue's one-year series remains unchanged. A separate Connecting Ridge package covers
 1 Nov 2026–1 Nov 2029. Coordinate packages can be generated with an explicit terrain choice
 and UTC range (2000–2040, maximum 1830 days each); their manifest declares the actual range,
-observer and hashes. The current app form still snaps coordinates to map cells. The package
-loader and B/D integration boundary are documented in [data-contract.md](data-contract.md).
+observer and hashes. Such a package can be opened in the app ("Open a data package"); it is checked
+file by file and never replaces a catalogue point. The package loader and B/D integration boundary
+are documented in [data-contract.md](data-contract.md).
+
+**Any other coordinate.** A typed or clicked point inside the ±3 km polar maps uses the nearest map
+cell (the distance is shown). Anywhere else the app computes the exact point in the browser: the Sun
+and Earth positions of a loaded Horizons year series are rebuilt in the Moon-fixed frame and projected
+into the point's local frame (the map-point formula), and a 0.1° horizon is ray-marched out to
+250 km on the global LDEM_64 tiles with the same rule as `preprocess/horizon.py`, eye 2 m above the
+tile surface. Checked against five catalogue sites: Sun / Earth within 0.003°; with their own
+LDEM_64 horizons, horizon RMS 0.07–0.54° and yearly Sun share within 0.43 points
+(`validation.md`, free coordinates).
 
 ## Method
 
@@ -146,9 +162,11 @@ Apollo 12 the loop stays high (Earth always up); at CE6 it stays below (Earth ne
   raise any horizon, and this check runs for every site.
 - **Regional map colours** are two-month (main period) summaries. A map point run as a scenario gets the
   full time series and energy simulation, but with a 1° horizon instead of the 0.1° used at listed
-  sites. Custom coordinates are limited to ±3 km around the 7 polar map sites (none around the
-  contrast points); the rest of the Moon is out of scope. Slope is a terrain descriptor, not a
-  landing-safety assessment.
+  sites. Slope is a terrain descriptor, not a landing-safety assessment.
+- **Free coordinates are a screening estimate.** Outside the polar maps a typed or clicked point uses
+  ~1.9 km global terrain: hills and crater walls smaller than a few km are not resolved, which matters
+  most near the pole where the Sun grazes the horizon. There is no 3D view for such a point;
+  catalogue-quality terrain needs an offline package (`python -m preprocess.custom_point`).
 - **Good illumination does not mean flat or safe terrain for landing.** Sun and Earth visibility says
   nothing about slope at the lander scale, rocks, or hazards; slope shown is a coarse terrain descriptor.
 - **Map-point horizon is a regional screening estimate.** The 1° cell horizon (`cells.bin`) is a screening

@@ -728,12 +728,40 @@
           "displayStepS": 3600,
           "method": "All native 10-minute source epochs compared with hourly shortest-arc quaternion SLERP and normalised linear Earth-to-Sun vectors"
         }
+      },
+      {
+        "siteId": "VIPER",
+        "path": "public/data/VIPER/earth-orientation.json",
+        "sha256": "932a738fe37f51092ecb37f69f5826c6ab6ea9b2c30b388f6efbe5aa5f1f3dc7",
+        "bytes": 859726,
+        "startUtc": "2026-11-01T00:00:00Z",
+        "endUtc": "2027-11-01T00:00:00Z",
+        "stepS": 3600,
+        "count": 8761,
+        "input": {
+          "file": "year.bin",
+          "sha256": "b76fe4a2edb0721a3b109947df6497577441499c42a8d8193e318479b30b9a71",
+          "headerFile": "extended.json",
+          "headerSha256": "abccbf55f065fb62cd619996e2b1f301bbc8735e7a661f2457be727ab7e0eef1",
+          "encoding": "six little-endian float32 blocks: Sun az/el/distance, Earth az/el/distance; degrees/metres"
+        },
+        "interpolation": {
+          "referenceSamples": 52561,
+          "intermediateSamples": 43800,
+          "maxAttitudeInterpolationErrorDeg": 0.006915956100199878,
+          "maxSunVectorInterpolationErrorDeg": 1.5133927887523893e-05,
+          "toleranceDeg": 0.01,
+          "pass": true,
+          "referenceStepS": 600,
+          "displayStepS": 3600,
+          "method": "All native 10-minute source epochs compared with hourly shortest-arc quaternion SLERP and normalised linear Earth-to-Sun vectors"
+        }
       }
     ],
-    "totalBytes": 21488743,
+    "totalBytes": 22348469,
     "interpolationMethod": "Shortest-arc quaternion SLERP; normalised linear Earth-to-Sun direction vectors",
     "toleranceDeg": 0.01,
-    "testedIntermediateEpochs": 1095000,
+    "testedIntermediateEpochs": 1138800,
     "maxAttitudeInterpolationErrorDeg": 0.006915959769162542,
     "maxSunVectorInterpolationErrorDeg": 1.5134643689906338e-05,
     "limits": [

@@ -31,9 +31,19 @@ describe('shareable link', () => {
     expect(strip(d)).toEqual({ scenarios: [{ siteId: 'CE6', startUtc: '2026-11-20T06:00:00Z' }], active: 0, settings: { ...DEFAULT_SETTINGS, baseLoadW: 250 } })
   })
 
-  it('keeps at most three scenarios', () => {
+  it('keeps every scenario without the former three-point truncation', () => {
     const many = '#s=' + Array(5).fill('Site04@2026-11-15T00:00').join(',')
-    expect(decodeShare(many, SITES)?.scenarios).toHaveLength(3)
+    expect(decodeShare(many, SITES)?.scenarios).toHaveLength(5)
+  })
+
+  it('round trips thirty scenarios, a label after Z, and a year-long duration', () => {
+    const many = Array.from({ length: 30 }, (_, i) => ({ ...scenarios[0], key: String(i) }))
+    const hash = encodeShare({ scenarios: many, active: 26, settings: { ...DEFAULT_SETTINGS, durationDays: 365 } })
+    expect(hash).toContain('a=AA')
+    const decoded = decodeShare(hash, SITES)!
+    expect(decoded.scenarios).toHaveLength(30)
+    expect(decoded.active).toBe(26)
+    expect(decoded.settings.durationDays).toBe(365)
   })
 
   it('share link keeps a cell scenario', () => {

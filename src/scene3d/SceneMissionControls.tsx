@@ -1,7 +1,7 @@
 import type { Scenario } from '../app/scenarios.ts'
 import type { SitesDoc } from '../data/contract.ts'
 import { fromInputUtc, shiftUtc, toInputUtc } from '../app/format.ts'
-import { MAX_DURATION_DAYS, MIN_DURATION_DAYS } from '../sim/evaluate.ts'
+import { MIN_DURATION_DAYS } from '../sim/evaluate.ts'
 import { latestMissionStartUtc } from './missionDates.ts'
 import './sceneMissionControls.css'
 import { useState } from 'react'
@@ -20,10 +20,12 @@ interface Props {
   onDuration: (days: number) => void
   onCoordinate?: (latitude: number, longitude: number) => string
   onCopy?: () => void
+  /** Adds a copy of the chosen scenario at this start; the chosen one is kept as it is. */
+  onCompareAt?: (startUtc: string) => void
 }
 
 /** A short editor for the same scenario state used by Results and shared links. */
-export function SceneMissionControls({ sites, scenarios, chosenKey, durationDays, endUtc, onChoose, onPatch, onDuration, onCoordinate, onCopy }: Props) {
+export function SceneMissionControls({ sites, scenarios, chosenKey, durationDays, endUtc, onPatch, onDuration, onCoordinate, onCompareAt }: Props) {
   const [latitude, setLatitude] = useState('')
   const [longitude, setLongitude] = useState('')
   const [coordinateMessage, setCoordinateMessage] = useState('')
@@ -44,13 +46,7 @@ export function SceneMissionControls({ sites, scenarios, chosenKey, durationDays
   }
   return (
     <div className="scene-mission" data-tour="places">
-      <div className="scene-mission__scenarios" role="group" aria-label="Scenario to explore">
-        <span>Explore scenario</span>
-        {scenarios.map((s, i) => <button key={s.key} type="button" aria-pressed={s.key === chosenKey} onClick={() => onChoose(s.key)}>{'ABC'[i]}</button>)}
-        <span className="scene-mission__hint">Changes also update Results.</span>
-        {onCopy && <button type="button" disabled={scenarios.length >= 3} title="Preserve this scenario, then change the copy’s place or date. Maximum three; remove a location in Edit locations if full." onClick={onCopy}>Keep baseline & add comparison</button>}
-      </div>
-      {onCoordinate && <details style={{ marginTop: 12 }}><summary>Choose your own coordinates</summary>
+      {onCoordinate && <details><summary>Choose your own coordinates</summary>
         <p className="scene-mission__hint">Any point on the Moon. Inside the ±3 km polar maps the nearest 100–200 m grid point is used (distance reported); elsewhere your exact coordinate is computed from the global LOLA terrain as a screening estimate.</p>
         <div className="scene-mission__fields">
           <label>Latitude · degrees<input aria-label="Custom latitude" inputMode="decimal" value={latitude} onChange={e => setLatitude(e.target.value)} /></label>
@@ -62,7 +58,7 @@ export function SceneMissionControls({ sites, scenarios, chosenKey, durationDays
       <div className="scene-mission__fields">
         <label><span>Location</span>
           <select aria-label="Simulation location" value={chosen.siteId} onChange={e => onPatch({ siteId: e.target.value })}>
-            {!isCatalogue && <option value={chosen.siteId}>{chosen.siteId.startsWith('pt:') ? 'Your coordinate' : 'Selected regional map point'}</option>}
+            {!isCatalogue && <option value={chosen.siteId}>{chosen.siteId.startsWith('pt:') ? 'Your coordinate' : /:r\d+c\d+$/.test(chosen.siteId) ? 'Selected regional map point' : 'Imported data package'}</option>}
             <optgroup label="South-pole research points">
               {sites.sites.filter(s => s.category !== 'contrast').map(s => <option key={s.id} value={s.id}>{s.name}{s.derivedFrom ? ' · derived point' : ''} ({s.id})</option>)}
             </optgroup>
@@ -75,7 +71,7 @@ export function SceneMissionControls({ sites, scenarios, chosenKey, durationDays
           <input aria-label="Simulation landing date and time UTC" type="datetime-local" step={600} value={toInputUtc(chosen.startUtc)} min={toInputUtc(sites.coverage.startUtc)} max={latest ? toInputUtc(latest) : undefined} onInput={e => dateChanged(e.currentTarget.value)} onChange={e => dateChanged(e.currentTarget.value)} />
         </label>
         <label className="scene-mission__duration"><span>Mission · days</span>
-          <input aria-label="Simulation mission duration in days" type="number" min={MIN_DURATION_DAYS} max={MAX_DURATION_DAYS} step={1} value={daysDraft ?? String(durationDays)}
+          <input aria-label="Simulation mission duration in days" type="number" min={MIN_DURATION_DAYS} step={1} value={daysDraft ?? String(durationDays)}
             onChange={e => { setDaysDraft(e.currentTarget.value); const value = e.currentTarget.valueAsNumber; if (Number.isFinite(value)) onDuration(value) }}
             onBlur={e => { if (!Number.isFinite(e.currentTarget.valueAsNumber)) onDuration(DEFAULT_MISSION_DAYS); setDaysDraft(null) }} />
         </label>
@@ -85,6 +81,12 @@ export function SceneMissionControls({ sites, scenarios, chosenKey, durationDays
         {[-1, 1, 5].map(days => <button key={days} type="button" disabled={!canShift(days)} onClick={() => onPatch({ startUtc: shiftUtc(chosen.startUtc, days * 24) })}>{days > 0 ? '+' : '−'}{Math.abs(days)} {Math.abs(days) === 1 ? 'day' : 'days'}</button>)}
         <span className="scene-mission__hint">Duration is shared by all selected scenarios.</span>
       </div>
+      {onCompareAt && <div className="scene-mission__shifts" role="group" aria-label="Compare the same place at another date">
+        <span>Keep this start and compare</span>
+        <button type="button" disabled={!canShift(5)} title={canShift(5) ? 'Adds a copy of this scenario 120 hours later; this one stays as it is.' : 'Five days later the mission would end after the available data.'}
+          onClick={() => onCompareAt(shiftUtc(chosen.startUtc, 120))}>Compare +5 days</button>
+        {!canShift(5) && <span className="scene-mission__hint">Not available: five days later the mission would end after the data ({latest ? toInputUtc(latest).replace('T', ' ') : 'no valid start'} UTC is the last start).</span>}
+      </div>}
     </div>
   )
 }

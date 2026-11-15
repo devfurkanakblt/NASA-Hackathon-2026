@@ -1,3 +1,5 @@
+import { loadGlobalDemAround } from './globalDem.ts'
+import type { GlobalTerrain } from '../scene3d/globalTerrain.ts'
 import type { LoadedData, Provenance, Psr } from './contract.ts'
 import { validateCoverage } from './coverage.ts'
 import { validateTerrainNormal } from './terrainNormal.ts'
@@ -101,4 +103,50 @@ export async function loadAllData(baseUrl = `${import.meta.env.BASE_URL}data`): 
   // Optional: a missing or invalid coverage.json only removes the supported-area report.
   const coverage = await optionalVisual(`${base}/coverage.json`, doc => validateCoverage(doc, `${base}/coverage.json`), [])
   return { sites, bySite: Object.fromEntries(entries), psrs, ...(coverage && { coverage }) }
+}
+
+let globalTerrainPending: Promise<GlobalTerrain> | undefined
+
+interface DisplayDemDoc { file: string; rows: number; cols: number; scaleM: number; radiusM: number; bytes: number; sha256: string }
+
+async function sha256Hex(buf: ArrayBuffer): Promise<string> {
+  const d = await crypto.subtle.digest('SHA-256', buf)
+  return Array.from(new Uint8Array(d), (n) => n.toString(16).padStart(2, '0')).join('')
+}
+
+/** Mean height of the first and last grid rows: the display mesh welds each pole to one value. */
+function poleMeans(values: Int16Array, rows: number, cols: number, scaleM: number): { northPoleM: number; southPoleM: number } {
+  let north = 0, south = 0
+  for (let c = 0; c < cols; c++) { north += values[c]; south += values[(rows - 1) * cols + c] }
+  return { northPoleM: north / cols * scaleM, southPoleM: south / cols * scaleM }
+}
+
+/**
+ * Whole-Moon display heights for the place-picker globe: one 2 MB grid (`global-dem/display-4ppd`,
+ * a 4 x 4 block mean of A/D's checked LOLA tiles, see preprocess/global_display_dem.py) instead of
+ * all 72 tiles (33 MB). Zoomed-in views and custom points use `loadDetailTerrain`.
+ */
+export function loadGlobalTerrain(base = `${import.meta.env.BASE_URL}data/global-dem`): Promise<GlobalTerrain> {
+  return globalTerrainPending ??= (async () => {
+    const doc = await getJson(`${base}/display-4ppd.json`) as DisplayDemDoc
+    const response = await fetch(`${base}/${doc.file}`)
+    if (!response.ok) throw new HttpError(`${base}/${doc.file}`, response.status)
+    const buf = await response.arrayBuffer()
+    if (buf.byteLength !== doc.bytes || buf.byteLength !== doc.rows * doc.cols * 2) throw new Error(`${doc.file}: unexpected size ${buf.byteLength}`)
+    if ((await sha256Hex(buf)) !== doc.sha256) throw new Error(`${doc.file}: sha256 mismatch`)
+    const values = new Int16Array(buf)
+    return { width: doc.cols, height: doc.rows, scaleM: doc.scaleM, referenceRadiusM: doc.radiusM, values, ...poleMeans(values, doc.rows, doc.cols, doc.scaleM) }
+  })().catch(error => { globalTerrainPending = undefined; throw error })
+}
+
+/**
+ * Full-resolution LOLA heights (~1.9 km/px) within `rangeM` of a point: only the global tiles
+ * that cover it are fetched (cached per tile). Pole values come from the display grid.
+ */
+export async function loadDetailTerrain(latDeg: number, lonDeg: number, rangeM: number): Promise<GlobalTerrain> {
+  const [dem, overview] = await Promise.all([loadGlobalDemAround(latDeg, lonDeg, rangeM), loadGlobalTerrain()])
+  const m = dem.manifest
+  return { width: m.cols, height: m.rows, scaleM: m.scaleM, referenceRadiusM: m.radiusM,
+    heightAt: (lat: number, lon: number) => dem.heightAt(lat, lon),
+    northPoleM: overview.northPoleM, southPoleM: overview.southPoleM }
 }
