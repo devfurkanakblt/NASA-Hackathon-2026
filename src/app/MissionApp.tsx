@@ -24,7 +24,7 @@ import { SiteMap } from './charts/SiteMap.tsx'
 import { RimlightMark } from './Brand.tsx'
 import { Comparison } from './Comparison.tsx'
 import { Landing } from './Landing.tsx'
-import { mapPointWhere, placeTitle, scenarioTitle } from './placeName.ts'
+import { mapPointWhere, placeLatLon, placeTitle, scenarioTitle } from './placeName.ts'
 import { errorMessage, fmtUtc } from './format.ts'
 import { cellId, isKnownSiteId, parseCellId, resolveSiteData, sitesNeeded } from './extendedSites.ts'
 import { computeFreePoint, placeForCoordinate } from './freePointLoader.ts'
@@ -48,7 +48,7 @@ import type { TourStep } from './Tour.tsx'
 import { MissionFooter } from './MissionFooter.tsx'
 import { PageNavigation } from './PageNavigation.tsx'
 import type { View } from './PageNavigation.tsx'
-import type { MoonFlight } from './MoonGlobe.tsx'
+import type { MoonFlight, MoonFocus } from './MoonGlobe.tsx'
 import { prepareSceneTerrain } from '../scene3d/terrainCache.ts'
 import './app.css'
 
@@ -104,6 +104,7 @@ export function MissionApp() {
   const [picked, setPicked] = useState<Scenario[]>([])
   const [pickMessage, setPickMessage] = useState<{ ok: boolean; text: string } | null>(null)
   const [flight, setFlight] = useState<(MoonFlight & { targetKey: string }) | null>(null)
+  const [globeFocus, setGlobeFocus] = useState<MoonFocus | undefined>(undefined)
   const [transitionId, setTransitionId] = useState(0)
   const transitionAction = useRef<(() => void) | null>(null)
   const [covered, setCovered] = useState(false)
@@ -579,6 +580,22 @@ export function MissionApp() {
     return { ok: true, text: choice.message }
   }
 
+  /**
+   * A listed location opens on the Simulation page's Moon, behind the same 1.2 s blackout as
+   * "Show in simulation": chosen as if clicked on the globe, with the view turned to it.
+   * A place already compared at that start is reused, not copied.
+   */
+  const showOnMoon = (siteId: string, at: { latDeg: number; lonDeg: number }, startUtc: string, durationDays?: number) => darken(() => {
+    if (durationDays) setSettings(previous => ({ ...previous, durationDays }))
+    const existing = scenarios.find(s => s.siteId === siteId && s.startUtc === startUtc)
+    const target = existing ?? { key: newKey(), siteId, startUtc }
+    const next = existing ? scenarios : [...scenarios, target]
+    setScenarios(next); setPicked(next); setActiveKey(target.key); setStep(0)
+    setFlight(null); setSimulationStage('pick'); setPickMessage(null)
+    setGlobeFocus(previous => ({ ...at, request: (previous?.request ?? 0) + 1 }))
+    if (view !== 'simulation') go('simulation')
+  })
+
   const missionControls = <><SceneMissionControls
     sites={loaded.sites} scenarios={scenarios} chosenKey={chosenKey}
     durationDays={settings.durationDays} endUtc={maxStartFor(chosenScenario?.siteId ?? loaded.sites.sites[0].id)}
@@ -602,6 +619,10 @@ export function MissionApp() {
         const next = { key: chosenScenario?.key ?? newKey(), siteId, startUtc }
         const updated = chosenScenario ? scenarios.map(s => s.key === next.key ? next : s) : [...scenarios, next]
         setScenarios(updated); setPicked(updated); setActiveKey(next.key); setPlaying(false); setStep(0)
+      }}
+      onShow={(siteId, startUtc, durationDays) => {
+        const at = placeLatLon(siteId, loaded.bySite) ?? shownBySite[siteId]?.site
+        if (at) showOnMoon(siteId, at, startUtc, durationDays)
       }} />
   </>
 
@@ -633,7 +654,7 @@ export function MissionApp() {
               {pickMessage && <p className={`small moon-picker__message ${pickMessage.ok ? 'muted' : 'bad'}`} role="status">{pickMessage.text}</p>}
               </div>
               <div className="moon-picker__globe"><Suspense fallback={<p role="status">Loading the Moon&hellip;</p>}>
-                <MoonGlobe active={simulationStage === 'pick' || !!flight} flight={flight ?? undefined} onComplete={() => { if (flight) { setActiveKey(flight.targetKey); setFlight(null) } }} sites={loaded.sites.sites} selected={(flight ? scenarios : picked).flatMap((s, i) => {
+                <MoonGlobe active={simulationStage === 'pick' || !!flight} flight={flight ?? undefined} focus={globeFocus} onComplete={() => { if (flight) { setActiveKey(flight.targetKey); setFlight(null) } }} sites={loaded.sites.sites} selected={(flight ? scenarios : picked).flatMap((s, i) => {
                   const site = shownBySite[s.siteId]?.site ?? loaded.sites.sites.find(site => site.id === s.siteId)
                   return site ? [{ key: s.key, site, letter: scenarioLabel(i), color: colors[i] }] : []
                 })} onSelect={(site: SiteEntry) => updateLocations(picked.some(s => s.siteId === site.id)
@@ -882,6 +903,7 @@ export function MissionApp() {
                         setScenarios([...scenarios, added])
                         setPicked([...scenarios, added])
                       }}
+                      onShow={(siteId, at) => showOnMoon(siteId, at, active.scenario.startUtc)}
                       year={activeCell ? null : ext.years[activeData.site.id] ?? null}
                       chosenDates={scenarios.filter((s) => s.siteId === active.scenario.siteId).map((s) => s.startUtc)}
                       onUseDate={(startUtc) => {

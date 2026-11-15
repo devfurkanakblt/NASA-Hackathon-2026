@@ -9,6 +9,7 @@ import type { Fit, ResearchMetrics, ResearchType } from '../sim/research.ts'
 import type { Loadable, Resolved } from './extendedSites.ts'
 import { fmtUtc } from './format.ts'
 import { placeTitle } from './placeName.ts'
+import { PlaceLink } from './PlaceLink.tsx'
 import { runResearchLocations } from '../sim/researchLocationsClient.ts'
 import type { RankedResearchLocation, ResearchLocationsInput, ResearchLocationsResult } from '../sim/researchLocations.ts'
 
@@ -23,7 +24,7 @@ const fmtRange = (w: { firstUtc: string; lastUtc: string }) =>
  * Suitable research at the chosen place, with per-type southern-hemisphere rankings
  * for the same dates and hardware. Catalogue fallbacks remain for unsuitable types.
  */
-export function ResearchView({ data, result, startUtc, settings, catalogue, resolveCatalogue, psrs, inScenarios, canAdd, onCompare, year, chosenDates, onUseDate }: {
+export function ResearchView({ data, result, startUtc, settings, catalogue, resolveCatalogue, psrs, inScenarios, canAdd, onCompare, onShow, year, chosenDates, onUseDate }: {
   data: SiteData
   result: ScenarioResult
   startUtc: string
@@ -37,6 +38,8 @@ export function ResearchView({ data, result, startUtc, settings, catalogue, reso
   inScenarios: string[]
   canAdd: boolean
   onCompare: (siteId: string) => void
+  /** Opens this location, at the same start, on the Simulation page's Moon. */
+  onShow: (siteId: string, at: { latDeg: number; lonDeg: number }) => void
   /** One-year series of this catalogue place (null for a map point, which already runs on it). */
   year: Loadable<EphemerisDoc> | null
   /** Start dates of the scenarios already at this place. */
@@ -132,7 +135,7 @@ export function ResearchView({ data, result, startUtc, settings, catalogue, reso
               <p>{type.basis} <a href={type.source.url} target="_blank" rel="noreferrer">{type.source.label}</a>. {type.rule}</p>
             </details>
             {fit !== 'no' ? <BestResearchPlaces options={globalResult?.rankings[type.id] ?? []} completed={!!globalResult}
-              catalogue={catalogue} inScenarios={inScenarios} canAdd={canAdd} onCompare={onCompare} /> : alternatives.length > 0 ? (
+              catalogue={catalogue} inScenarios={inScenarios} canAdd={canAdd} onCompare={onCompare} onShow={onShow} /> : alternatives.length > 0 ? (
               <div className="research__alts">
                 <span className="small">Better catalogue places for this:</span>
                 <ul>
@@ -141,8 +144,8 @@ export function ResearchView({ data, result, startUtc, settings, catalogue, reso
                     return (
                       <li key={a.metrics.siteId}>
                         <span>
-                          <strong>{placeTitle(a.metrics.siteId, catalogue)}</strong> · {FIT_LABEL[a.fit].toLowerCase()} · {a.value} · {fmtKm(a.distanceKm)} away
-
+                          <PlaceLink name={placeTitle(a.metrics.siteId, catalogue)} at={a.metrics} onShow={() => onShow(a.metrics.siteId, a.metrics)} />
+                          {FIT_LABEL[a.fit]} · {a.value} · {fmtKm(a.distanceKm)} away
                         </span>
                         <button type="button" disabled={added} onClick={() => onCompare(a.metrics.siteId)}
                           title={added ? 'Already in the comparison' : canAdd ? 'Add to the comparison' : 'Replace the chosen place with this one'}>
@@ -172,8 +175,9 @@ export function ResearchView({ data, result, startUtc, settings, catalogue, reso
   )
 }
 
-function BestResearchPlaces({ options, completed, catalogue, inScenarios, canAdd, onCompare }: {
-  options: RankedResearchLocation[]; completed: boolean; catalogue: Record<string, SiteData>; inScenarios: string[]; canAdd: boolean; onCompare: (siteId: string) => void
+function BestResearchPlaces({ options, completed, catalogue, inScenarios, canAdd, onCompare, onShow }: {
+  options: RankedResearchLocation[]; completed: boolean; catalogue: Record<string, SiteData>; inScenarios: string[]; canAdd: boolean
+  onCompare: (siteId: string) => void; onShow: (siteId: string, at: { latDeg: number; lonDeg: number }) => void
 }) {
   if (!completed) return <p className="small muted">Best locations will appear here when the surface search finishes.</p>
   if (!options.length) return <p className="small muted">No other tested location meets this research criterion. This does not rule out unsampled locations.</p>
@@ -182,11 +186,11 @@ function BestResearchPlaces({ options, completed, catalogue, inScenarios, canAdd
     <ol>
       {options.map(a => {
         const added = inScenarios.includes(a.metrics.siteId)
-        const name = catalogue[a.metrics.siteId] ? placeTitle(a.metrics.siteId, catalogue)
-          : `${Math.abs(a.metrics.latDeg).toFixed(3)}° S, ${Math.abs(a.metrics.lonDeg).toFixed(3)}° ${a.metrics.lonDeg < 0 ? 'W' : 'E'}`
+        const name = catalogue[a.metrics.siteId] ? placeTitle(a.metrics.siteId, catalogue) : 'Surface point'
         return <li key={a.metrics.siteId}>
           <div>
-            <strong>{name}</strong> · {FIT_LABEL[a.fit]} · {fmtKm(a.distanceKm)} away
+            <PlaceLink name={name} at={a.metrics} onShow={() => onShow(a.metrics.siteId, a.metrics)} />
+            <p>{FIT_LABEL[a.fit]} · {fmtKm(a.distanceKm)} away</p>
             <p>{a.value}</p>
             <p className="small">{a.comparison === 'better' ? 'Better than the selected point on this criterion.' : a.comparison === 'equal' ? 'Matches the selected point on this criterion.' : 'The selected point ranks higher on this criterion.'}</p>
             <p className="small muted">{a.precisionLabel}. {a.metrics.slopeDeg === null ? 'Local slope is unverified.' : `Local slope ${a.metrics.slopeDeg.toFixed(1)}°.`}</p>
