@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000">
+<title>Rimlight geometric logo master</title>
+<defs><clipPath id="disk"><circle cx="500" cy="500" r="310"/></clipPath><mask id="slit"><rect width="1000" height="1000" fill="white"/><path d="M150 850L850 150" stroke="black" stroke-width="24"/></mask></defs>
+<g mask="url(#slit)" clip-path="url(#disk)"><circle cx="500" cy="500" r="310" fill="#e8ecf3"/><circle cx="700" cy="300" r="175" fill="#ffd166"/></g>
+</svg>
