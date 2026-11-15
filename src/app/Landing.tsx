@@ -102,7 +102,6 @@ export function Landing({ onSimulation, onResults }: Props) {
           Terrain from the laser altimeter on NASA&rsquo;s Lunar Reconnaissance Orbiter (LOLA). Sun and Earth positions from NASA JPL Horizons. Landing regions from NASA&rsquo;s
           Lunar Surface Data Book. Everything is computed ahead of time, so the app runs in the browser without a server.
         </p>
-        <p className="muted">No hidden score. Just conditions.</p>
       </section>
     </div>
   )

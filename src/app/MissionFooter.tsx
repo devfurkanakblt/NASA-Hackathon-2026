@@ -56,13 +56,11 @@ export function MissionFooter({ onHome, onSimulation, onResults, onSources }: Pr
         <img className="mission-footer__image" src="/images/rimlight-footer-orbit-v1.webp" width="1536" height="1024" alt="" loading="lazy" decoding="async" />
         <div data-footer-reveal>
           <h2>Your next mission<br />starts on the rim.</h2>
-          <p>Find sunlight. Keep power. Stay connected.</p>
         </div>
         <button type="button" className="mission-footer__launch" onClick={onSimulation}>
           <span>Explore the Moon</span>
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><path d="M5 19 19 5M5 5h14v14" /></svg>
         </button>
-        <span className="mission-footer__caption">Lunar limb / Artist&rsquo;s impression</span>
       </div>
       <div className="mission-footer__details">
         <div className="mission-footer__about">
@@ -84,9 +82,7 @@ export function MissionFooter({ onHome, onSimulation, onResults, onSources }: Pr
       </div>
       <div className="mission-footer__signature" data-footer-reveal aria-hidden="true">RIMLIGHT<span>.</span></div>
       <div className="mission-footer__bottom">
-        <span>Research regions, not certified landing sites. Built on NASA data; not endorsed by NASA.</span>
-        <span>Sunlight. Power. A connection home.</span>
-      </div>
+        <span>Research regions, not certified landing sites. Built on NASA data; not endorsed by NASA.</span>      </div>
     </footer>
   )
 }
