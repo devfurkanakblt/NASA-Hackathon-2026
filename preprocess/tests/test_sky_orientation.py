@@ -4,8 +4,9 @@ import math
 import numpy as np
 import pytest
 
-from preprocess.sky_orientation import (SPHERE_TO_ITRS, _validate_inputs,
-    local_scene_basis, matrix_to_quaternion_xyzw, quaternion_xyzw_to_matrix, scene_rotation)
+from preprocess.sky_orientation import (SPHERE_TO_ITRS, _validate_inputs, interpolation_errors,
+    load_display_ephemeris, local_scene_basis, matrix_to_quaternion_xyzw, quaternion_xyzw_to_matrix, scene_rotation,
+    sha256, write_display_manifest)
 
 
 @pytest.mark.parametrize("lat,lon", [(0, 0), (-90, 0), (-89.4632, -137.49), (45, 90), (20, 170)])
@@ -72,3 +73,69 @@ def test_ephemeris_grid_and_site_id_are_validated_without_guessing():
     for patch in ({"siteId": "Other"}, {"startUtc": "2026-11-15T00:00:00"}, {"earth": {"distanceM": [4e8, math.nan]}}, {"count": True}):
         with pytest.raises(ValueError):
             _validate_inputs(site, {**eph, **patch})
+
+
+def test_hourly_slerp_is_compared_at_every_native_ten_minute_epoch():
+    angles = np.radians(np.arange(7) * 2.5)
+    q = [[0, math.sin(a/2), 0, math.cos(a/2)] for a in angles]
+    rotations = np.stack([quaternion_xyzw_to_matrix(x) for x in q], axis=2)
+    light = np.array([[math.cos(a/10), math.sin(a/10), 0] for a in angles]).T
+    report = interpolation_errors([q[0], q[-1]], [light[:, 0], light[:, -1]], rotations, light, 6)
+    assert report["referenceSamples"] == 7
+    assert report["intermediateSamples"] == 5
+    assert report["maxAttitudeInterpolationErrorDeg"] < 1e-12
+    assert report["maxSunVectorInterpolationErrorDeg"] < 1e-4
+    assert report["pass"]
+
+
+def test_interpolation_check_rejects_excess_mid_hour_error_and_is_site_basis_invariant():
+    angles = np.radians([0, 2.5, 5, 7.6, 10, 12.5, 15])
+    q = [[0, math.sin(a/2), 0, math.cos(a/2)] for a in angles]
+    rotations = np.stack([quaternion_xyzw_to_matrix(x) for x in q], axis=2)
+    light = np.repeat([[1.], [0.], [0.]], 7, axis=1)
+    report = interpolation_errors([q[0], q[-1]], [[1, 0, 0], [1, 0, 0]], rotations, light, 6)
+    assert report["maxAttitudeInterpolationErrorDeg"] == pytest.approx(0.1, abs=1e-12)
+    assert not report["pass"]
+    basis = local_scene_basis(-41.6385, -153.9852)
+    rotated = np.einsum("ij,jkn->ikn", basis, rotations)
+    nodes = [matrix_to_quaternion_xyzw(rotated[:, :, i]) for i in (0, 6)]
+    other = interpolation_errors(nodes, [basis @ [1, 0, 0]] * 2, rotated, basis @ light, 6)
+    assert other["maxAttitudeInterpolationErrorDeg"] == pytest.approx(report["maxAttitudeInterpolationErrorDeg"], abs=1e-12)
+
+
+def test_annual_source_reader_keeps_float32_metre_units_and_identifies_input_files(tmp_path):
+    import json
+    header = {"version": 1, "siteId": "Test", "year": {"file": "year.bin", "count": 2,
+              "startUtc": "2026-11-01T00:00:00Z", "stepS": 600, "source": "jpl-horizons"}}
+    (tmp_path / "extended.json").write_text(json.dumps(header))
+    values = np.array([[1, 2], [3, 4], [1.5e11, 1.5e11], [5, 6], [7, 8], [3.8e8, 3.9e8]], dtype="<f4")
+    values.tofile(tmp_path / "year.bin")
+    doc, provenance = load_display_ephemeris(tmp_path, "Test")
+    assert doc["earth"]["distanceM"] == values[5].astype(float).tolist()
+    assert doc["sun"]["azDeg"] == [1, 2]
+    assert provenance["file"] == "year.bin" and len(provenance["sha256"]) == 64
+    values[0, 0] = np.nan
+    values.tofile(tmp_path / "year.bin")
+    with pytest.raises(ValueError, match="finite"):
+        load_display_ephemeris(tmp_path, "Test")
+
+
+def test_manifest_drops_crosschecks_for_different_orientation_content(tmp_path):
+    import json
+    (tmp_path / "sites.json").write_text(json.dumps({"sites": [{"id": "Test"}]}))
+    folder = tmp_path / "Test"
+    folder.mkdir()
+    path = folder / "earth-orientation.json"
+    path.write_text(json.dumps({"siteId": "Test", "startUtc": "2026-11-01T00:00:00Z", "stepS": 3600, "count": 2,
+        "source": {"validation": {"interpolation": {"intermediateSamples": 5,
+            "maxAttitudeInterpolationErrorDeg": 0.001, "maxSunVectorInterpolationErrorDeg": 0.00001}}}}))
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text(json.dumps({"orientationValidation": {"queries": [{"siteId": "Test", "orientationSha256": "old"}]}}))
+    write_display_manifest(tmp_path, manifest)
+    result = json.loads(manifest.read_text())
+    assert "orientationValidation" not in result
+    assert result["orientationDisplay"]["testedIntermediateEpochs"] == 5
+    result["orientationValidation"] = {"queries": [{"siteId": "Test", "orientationSha256": sha256(path)}]}
+    manifest.write_text(json.dumps(result))
+    write_display_manifest(tmp_path, manifest)
+    assert "orientationValidation" in json.loads(manifest.read_text())

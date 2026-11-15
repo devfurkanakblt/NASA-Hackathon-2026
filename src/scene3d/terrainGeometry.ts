@@ -1,5 +1,7 @@
 import { OBSERVER_HEIGHT_M, azElToUnitVector } from './coords.ts'
 import type { HorizonProfile, TerrainGrid, Vec3 } from './types.ts'
+import { transitionHeightAt } from './lodSurface.ts'
+import type { LodTransition } from './lodSurface.ts'
 
 export interface TerrainMeshData {
   /** xyz per vertex in the scene frame (+X east, +Y up, −Z north), origin on the ground at the site. */
@@ -9,12 +11,14 @@ export interface TerrainMeshData {
   halfExtentM: number
   minY: number
   maxY: number
-  /** Original square grid at the start of positions; clipping may append vertices. */
+  /** Original square grid at the start of positions; clipping/LOD may append vertices. */
   gridSize?: number
   /** Ordered measured outer perimeter, independent of any clipped interior hole. */
   outerBoundaryIndices?: Uint32Array
-  /** Indices from here onward join the two measured LOD boundaries vertically. */
+  /** Legacy vertical join support; current nested meshes use lodTransition instead. */
   seamIndexStart?: number
+  /** Interpolated display annulus; never a source for scientific visibility or power. */
+  lodTransition?: LodTransition
 }
 
 /** Evenly spaced sample indices 0 … last, always including both ends. */
@@ -100,6 +104,8 @@ export function terrainBounds(mesh: TerrainMeshData) {
 
 /** Height of the actual grid triangles, not a bilinear surface or a flattened DEM. */
 export function terrainHeightAt(mesh: TerrainMeshData, x: number, z: number): number | undefined {
+  const transitionY = transitionHeightAt(mesh, x, z)
+  if (transitionY !== undefined) return transitionY
   const m = mesh.gridSize ?? Math.round(Math.sqrt(mesh.positions.length / 3))
   const p = mesh.positions
   const b = terrainBounds(mesh)
@@ -121,26 +127,35 @@ export function terrainHeightAt(mesh: TerrainMeshData, x: number, z: number): nu
 export const MOON_RADIUS_M = 1_737_400
 
 /**
- * Subtract the detailed footprint from each coarse triangle. No DEM heights are lowered or
- * invented. Vertical seam faces join the two measured boundaries; they have zero map area.
- * The original coarse grid stays at the beginning of positions for height queries and its
- * measured outer perimeter is retained for the reference-sphere boundary.
+ * Replace the abrupt fine/coarse boundary with a display-only interpolation annulus.
+ * Its inner edge is exactly the measured fine boundary and its outer edge is exactly the
+ * original coarse triangle surface. Between them, the fine/coarse height residual decays
+ * smoothly over about 2.5 km. This is an approximation, not new measured terrain.
+ * Both input arrays and the complete original coarse vertex grid remain unchanged.
  */
 export function nestFarMesh(far: TerrainMeshData, near: TerrainMeshData): TerrainMeshData {
-  const bounds = terrainBounds(near), outer = terrainBounds(far)
-  if (!(outer.minX < bounds.minX && outer.maxX > bounds.maxX && outer.minZ < bounds.minZ && outer.maxZ > bounds.maxZ)) {
+  const inner = terrainBounds(near), extent = terrainBounds(far)
+  const clearance = Math.min(inner.minX - extent.minX, extent.maxX - inner.maxX, inner.minZ - extent.minZ, extent.maxZ - inner.maxZ)
+  if (!(clearance > 0)) {
     throw new Error('Regional terrain must surround the detailed terrain footprint')
   }
+  const widthM = Math.min(2500, clearance * 0.5)
+  const samplingM = Math.min(156.25, widthM / 8)
+  const layers = Math.ceil(widthM / samplingM)
+  const bounds = { minX: Math.fround(inner.minX - widthM), maxX: Math.fround(inner.maxX + widthM),
+    minZ: Math.fround(inner.minZ - widthM), maxZ: Math.fround(inner.maxZ + widthM) }
   const positions = Array.from(far.positions), indices: number[] = []
   const vertices = new Map<string, number>()
   const add = (v: Vec3) => {
-    const f = v.map(Math.fround), key = f.join(',')
+    // Adjacent source triangles can round the same interpolated height differently.
+    // One vertex per horizontal coordinate keeps the clipped surface watertight.
+    const f = v.map(Math.fround), key = `${f[0]},${f[2]}`
     let index = vertices.get(key)
     if (index === undefined) { index = positions.length / 3; positions.push(...f); vertices.set(key, index) }
     return index
   }
-  for (let i = 0; i < far.positions.length; i += 3) vertices.set(`${far.positions[i]},${far.positions[i + 1]},${far.positions[i + 2]}`, i / 3)
-  const vertex = (index: number): Vec3 => [far.positions[index * 3], far.positions[index * 3 + 1], far.positions[index * 3 + 2]]
+  for (let i = 0; i < far.positions.length; i += 3) vertices.set(`${far.positions[i]},${far.positions[i + 2]}`, i / 3)
+  const vertex = (index: number): Vec3 => [positions[index * 3], positions[index * 3 + 1], positions[index * 3 + 2]]
   const clip = (poly: Vec3[], axis: 0 | 2, value: number, less: boolean): Vec3[] => {
     const result: Vec3[] = []
     for (let k = 0; k < poly.length; k++) {
@@ -163,41 +178,102 @@ export function nestFarMesh(far: TerrainMeshData, near: TerrainMeshData): Terrai
       if (Math.abs((b[0] - a[0]) * (c[2] - a[2]) - (b[2] - a[2]) * (c[0] - a[0])) > 1e-6) indices.push(add(a), add(b), add(c))
     }
   }
-  const planes: [0 | 2, number, boolean][] = [[0, bounds.minX, false], [0, bounds.maxX, true], [2, bounds.minZ, false], [2, bounds.maxZ, true]]
+  // Split at the four cut lines on both sides, not just while subtracting the hole.
+  // Thus neighbouring source triangles keep identical edge splits, including the corners.
   for (let i = 0; i < far.indices.length; i += 3) {
-    let polygon = [vertex(far.indices[i]), vertex(far.indices[i + 1]), vertex(far.indices[i + 2])]
-    for (const [axis, value, insideLess] of planes) {
-      emit(clip(polygon, axis, value, !insideLess))
-      polygon = clip(polygon, axis, value, insideLess)
-      if (polygon.length === 0) break
+    const triangle = [vertex(far.indices[i]), vertex(far.indices[i + 1]), vertex(far.indices[i + 2])]
+    const minX = Math.min(...triangle.map(v => v[0])), maxX = Math.max(...triangle.map(v => v[0]))
+    const minZ = Math.min(...triangle.map(v => v[2])), maxZ = Math.max(...triangle.map(v => v[2]))
+    const xs = [minX, ...[bounds.minX, bounds.maxX].filter(x => x > minX && x < maxX), maxX]
+    const zs = [minZ, ...[bounds.minZ, bounds.maxZ].filter(z => z > minZ && z < maxZ), maxZ]
+    if (xs.length === 2 && zs.length === 2) {
+      const midX = (minX + maxX) / 2, midZ = (minZ + maxZ) / 2
+      if (!(midX > bounds.minX && midX < bounds.maxX && midZ > bounds.minZ && midZ < bounds.maxZ)) {
+        indices.push(far.indices[i], far.indices[i + 1], far.indices[i + 2])
+      }
+      continue
+    }
+    for (let xi = 0; xi + 1 < xs.length; xi++) for (let zi = 0; zi + 1 < zs.length; zi++) {
+      const midX = (xs[xi] + xs[xi + 1]) / 2, midZ = (zs[zi] + zs[zi + 1]) / 2
+      if (midX > bounds.minX && midX < bounds.maxX && midZ > bounds.minZ && midZ < bounds.maxZ) continue
+      let polygon = clip(triangle, 0, xs[xi], false)
+      polygon = clip(polygon, 0, xs[xi + 1], true)
+      polygon = clip(polygon, 2, zs[zi], false)
+      polygon = clip(polygon, 2, zs[zi + 1], true)
+      emit(polygon)
     }
   }
-  const seamIndexStart = indices.length
-  // Include every fine edge vertex and every clipped coarse triangle intersection. This
-  // keeps both piecewise-linear boundary curves, even when the grid spacings do not divide.
-  const sides = [new Set<number>(), new Set<number>(), new Set<number>(), new Set<number>()]
-  const collect = (x: number, z: number) => {
-    if (Math.abs(z - bounds.maxZ) < 1e-5 && x >= bounds.minX && x <= bounds.maxX) sides[0].add(x)
-    if (Math.abs(x - bounds.maxX) < 1e-5 && z >= bounds.minZ && z <= bounds.maxZ) sides[1].add(-z)
-    if (Math.abs(z - bounds.minZ) < 1e-5 && x >= bounds.minX && x <= bounds.maxX) sides[2].add(-x)
-    if (Math.abs(x - bounds.minX) < 1e-5 && z >= bounds.minZ && z <= bounds.maxZ) sides[3].add(z)
-  }
-  for (const i of near.outerBoundaryIndices ?? gridBoundary(near.gridSize ?? Math.round(Math.sqrt(near.positions.length / 3)))) collect(near.positions[i * 3], near.positions[i * 3 + 2])
-  for (let i = 0; i < positions.length; i += 3) collect(positions[i], positions[i + 2])
-  for (let side = 0; side < 4; side++) {
-    const ts = [...sides[side]].sort((a, b) => a - b)
-    const point = (t: number): [number, number] => side === 0 ? [t, bounds.maxZ] : side === 1 ? [bounds.maxX, -t] : side === 2 ? [-t, bounds.minZ] : [bounds.minX, t]
-    for (let k = 0; k + 1 < ts.length; k++) {
-      const [ax, az] = point(ts[k]), [bx, bz] = point(ts[k + 1])
-      const a = add([ax, terrainHeightAt(near, ax, az)!, az]), b = add([ax, terrainHeightAt(far, ax, az)!, az])
-      const c = add([bx, terrainHeightAt(near, bx, bz)!, bz]), d = add([bx, terrainHeightAt(far, bx, bz)!, bz])
-      if (a !== b) indices.push(a, b, c)
-      if (c !== d) indices.push(c, b, d)
+
+  // Discard only lookup entries for unused original vertices inside the new annulus.
+  // Their immutable source coordinates still remain at the start of positions.
+  vertices.clear()
+  for (const i of indices) vertices.set(`${positions[i * 3]},${positions[i * 3 + 2]}`, i)
+  const transitionIndexStart = indices.length
+  type Sample = { t: number; index: number }
+  type Bounds = ReturnType<typeof terrainBounds>
+  const sidePoint = (b: Bounds, side: number, t: number): [number, number] => side === 0 ? [b.minX + (b.maxX - b.minX) * t, b.maxZ]
+    : side === 1 ? [b.maxX, b.maxZ - (b.maxZ - b.minZ) * t]
+      : side === 2 ? [b.maxX - (b.maxX - b.minX) * t, b.minZ] : [b.minX, b.minZ + (b.maxZ - b.minZ) * t]
+  const boundarySides = (b: Bounds, ids: Iterable<number>, at: (i: number) => Vec3): Sample[][] => {
+    const lists: Map<number, number>[] = Array.from({ length: 4 }, () => new Map())
+    for (const id of ids) {
+      const [x, , z] = at(id)
+      if (Math.abs(z - b.maxZ) < 1e-5 && x >= b.minX && x <= b.maxX) lists[0].set(x, id)
+      if (Math.abs(x - b.maxX) < 1e-5 && z >= b.minZ && z <= b.maxZ) lists[1].set(-z, id)
+      if (Math.abs(z - b.minZ) < 1e-5 && x >= b.minX && x <= b.maxX) lists[2].set(-x, id)
+      if (Math.abs(x - b.minX) < 1e-5 && z >= b.minZ && z <= b.maxZ) lists[3].set(z, id)
     }
+    return lists.map((list, side) => [...list.entries()].sort((a, b) => a[0] - b[0]).map(([, index]) => {
+      const [x, , z] = at(index)
+      const t = side === 0 ? (x - b.minX) / (b.maxX - b.minX) : side === 1 ? (b.maxZ - z) / (b.maxZ - b.minZ)
+        : side === 2 ? (b.maxX - x) / (b.maxX - b.minX) : (z - b.minZ) / (b.maxZ - b.minZ)
+      return { t, index }
+    }))
+  }
+  const activeCoarseVertices = new Set(indices)
+  const outerSides = boundarySides(bounds, activeCoarseVertices, vertex)
+  const fineBoundary = near.outerBoundaryIndices ?? gridBoundary(near.gridSize ?? Math.round(Math.sqrt(near.positions.length / 3)))
+  const fineSides = boundarySides(inner, fineBoundary, i => [near.positions[i * 3], near.positions[i * 3 + 1], near.positions[i * 3 + 2]])
+  let previous = fineSides.map(side => side.map(s => ({ t: s.t,
+    index: add([near.positions[s.index * 3], near.positions[s.index * 3 + 1], near.positions[s.index * 3 + 2]]) })))
+  const triangle = (a: number, b: number, c: number) => {
+    const av = vertex(a), bv = vertex(b), cv = vertex(c)
+    const signedArea = (bv[2] - av[2]) * (cv[0] - av[0]) - (bv[0] - av[0]) * (cv[2] - av[2])
+    if (signedArea > 1e-6) indices.push(a, b, c)
+    else if (signedArea < -1e-6) indices.push(a, c, b)
+  }
+  const zipper = (a: Sample[], b: Sample[]) => {
+    let i = 0, j = 0
+    while (i + 1 < a.length || j + 1 < b.length) {
+      const nextA = a[i + 1]?.t ?? Infinity, nextB = b[j + 1]?.t ?? Infinity
+      if (nextA <= nextB) { triangle(a[i].index, b[j].index, a[i + 1].index); i++ }
+      else { triangle(a[i].index, b[j].index, b[j + 1].index); j++ }
+    }
+  }
+  for (let layer = 1; layer <= layers; layer++) {
+    const w = layer / layers
+    const b = { minX: inner.minX + (bounds.minX - inner.minX) * w, maxX: inner.maxX + (bounds.maxX - inner.maxX) * w,
+      minZ: inner.minZ + (bounds.minZ - inner.minZ) * w, maxZ: inner.maxZ + (bounds.maxZ - inner.maxZ) * w }
+    const decay = 1 - w * w * (3 - 2 * w)
+    const current = layer === layers ? outerSides : Array.from({ length: 4 }, (_, side) => {
+      const length = side % 2 === 0 ? b.maxX - b.minX : b.maxZ - b.minZ
+      const segments = Math.ceil(length / samplingM)
+      return Array.from({ length: segments + 1 }, (_, k) => {
+        const t = k / segments, [x, z] = sidePoint(b, side, t), [ix, iz] = sidePoint(inner, side, t)
+        const coarse = terrainHeightAt(far, x, z)!
+        const residual = terrainHeightAt(near, ix, iz)! - terrainHeightAt(far, ix, iz)!
+        return { t, index: add([x, coarse + residual * decay, z]) }
+      })
+    })
+    for (let side = 0; side < 4; side++) zipper(previous[side], current[side])
+    previous = current
   }
   let minY = Infinity, maxY = -Infinity
   for (let i = 1; i < positions.length; i += 3) { minY = Math.min(minY, positions[i]); maxY = Math.max(maxY, positions[i]) }
-  return { ...far, positions: Float32Array.from(positions), indices: Uint32Array.from(indices), seamIndexStart, minY, maxY,
+  return { ...far, positions: Float32Array.from(positions), indices: Uint32Array.from(indices), seamIndexStart: undefined, minY, maxY,
+    lodTransition: { innerBounds: inner, outerBounds: bounds, indexStart: transitionIndexStart,
+      indexCount: indices.length - transitionIndexStart, widthM, samplingM,
+      method: 'coarse triangles plus smoothly decaying fine-boundary residual' },
     outerBoundaryIndices: far.outerBoundaryIndices ?? gridBoundary(far.gridSize ?? Math.round(Math.sqrt(far.positions.length / 3))) }
 }
 

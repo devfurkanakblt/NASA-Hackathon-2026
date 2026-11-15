@@ -5,6 +5,8 @@ Veri formatının tamamı: [`docs/data-contract.md`](data-contract.md). Gerçek 
 
 ## A:
 
+- C-> **A/D görev — extended veri sözleşmesi:** `extended.json` + `year.bin/cells.bin` tüketiminde desteklenen version/siteId/source/UTC/step/count, observer eye dizisi, 360° azimut kapsamı ve açı ölçeği açıkça doğrulanmalı. A metadata/üretici sözleşmesini netleştirsin, D parser kontrolleri ve bozuk dosya regresyonlarını eklesin. Yıllık kapsamı iki aylık ana seriyle eşit olmaya zorlama. Mevcut gerçek dosyalar bozuk denmedi; sentetik NaN/yanlış header fixture'larının kabul edilmesi doğrulama boşluğunu gösterdi.
+
 - C-> Yeni komut: `python -m preprocess.crosscheck_moontrek` → `docs/validation-moontrek.md`. Etkinlik sayfasında listelenen NASA Moon Trek'in LOLA 5 m verisinden (`LRO_LOLA_DEM_SPole875_5mp_v04`) aynı `terrain.build` ile ızgara üretip `terrain.json` ile karşılaştırıyor. Sonuç: eğimi 10°'nin altındaki arazide RMS fark 1.3–2.4 m, Shackleton duvarında (eğim > 25°) 16–18 m. `preprocess/README.md`'ye ve slayt 6'ya ekleyebilirsin; `public/data/` değişmedi.
 - C-> TypeScript motoru (`src/sim/`), `docs/reference/visibility.json`'daki yüzdeleri ve pencere indekslerini dört sitede birebir üretiyor (`tests/simRealData.test.ts`). Değerler şimdilik teste elle yazıldı; dosya `main`'e girince test doğrudan dosyadan okuyabilir.
 - C-> 3B genel görünüm `sites.json` → `surfaceElevationM` alanını kullanıyor (1737.4 km referans küreyi çizmek için). Bu alanın adı ya da anlamı değişirse haber ver.
@@ -19,6 +21,8 @@ Veri formatının tamamı: [`docs/data-contract.md`](data-contract.md). Gerçek 
 - B-> `docs/data-methods.md`'de C'nin 3B'de kullandığı iki NASA kaynağı yok: Moon Trek LOLA 30 m güney kutbu DEM'i (`LRO_LOLA_DEM_SPole75_30mp_v04`, bölgesel 3B arazi) ve NASA Blue Marble Next Generation, Kasım 2004 (Dünya dokusu). Proje sayfasına bu metin gidecekse ikisini ekler misin? (`submission.md` ve README'ye ekledim; bağlantılar orada.)
 
 ## B:
+
+- C-> **B/D görev — hücreye ait yıllık grafik:** harita noktası aktifken `activeData.season` hâlâ katalog merkezinden geliyor. D hücreye özel yıllık/aylık özeti üretip önbelleklemeli; B bunu grafiğe bağlamalı. Bu hazır olana kadar grafiği merkez özeti olarak açık etiketle veya hücre için gösterme. Repro Site01:r36c32: merkez47.4%Sun/40.03%Earth, hücrenin kendi yıllık örnekleri65.84%/50.90%. Konum değiştirme/paylaşım sonrası da test gerekli. C3B gösterimi hücrede kapalı tutulmalı; katalog yüzeyini yanlış noktada gösterme.
 
 - A-> `_sample` yerine artık gerçek veriyi kullanın: `public/data/sites.json` ve `Site01`, `Site04`, `Site04R`, `Site07` klasörleri (her birinde `ephemeris.json`, `horizon.json`, `terrain.json`).
 - A-> Site listesinde yeni bir id var: `Site04R`. Katalog noktası değil, türetilmiş bir değerlendirme noktası. `derivedFrom: "Site04"` ve `derivation` alanlarını taşır; arayüzde "Site04 yakınındaki sırt noktası (türetilmiş)" gibi etiketleyin.
@@ -72,6 +76,10 @@ Veri formatının tamamı: [`docs/data-contract.md`](data-contract.md). Gerçek 
 
 ## C:
 
+- C-> **Tamamlandı (e8b5f55 tabanı):** 39 m /1250 m arasındaki dik dikiş yerine 2.5 km /156.25 m görsel geçiş halkası; 9 noktada iç sınır farkı0, dış sınır max0.000226 m. Ufuk/enerji ve kaynak gridleri değişmedi. Yüzey ayrıntısı gerçek NASA5m DEM'den7normalharitası; 6x10km, Site04R kaynak sınırı nedeniyle9km. Yıl boyu kayıtlı Dünya (1Kas2026–1Kas2027) tamamlandı; saatlik SLERP394200araepoch ve45JPL kontrolünden geçti. Dosyalar/yeniden üretim/sınırlar `docs/c-3d-validation.md`.
+- C-> **Mobil C düzeni tamam:** kamera/işaret/ışık kontrolleri canvas üstünde ayrı şeride alındı; görüntünün üstünü kapatmıyor. Kısa kapalı kaynak özeti korunuyor. Parlaklık son kullanıcı ayarı exposure1.1 /dolgu0.75 /yön ışığı0.9 olarak tutuldu.
+- C-> **Diğer sahiplerde kalanlar:** B/D yıllık hücre özeti, A/D extended binary metadata+sonlu değer doğrulaması. İlgili başlıklarına aşağıdaki somut görevler yazıldı; kodlarına müdahale edilmedi.
+
 - C-> **Parlaklık küçük ayarı / inceleme (22b365f):** exposure 1.2→1.1; nötr dolgu 0.9→0.75, inceleme yön ışığı 1.1→0.9. Güneş yönü/şiddeti, geometri ve hesap kodu aynı. Diğer maddeler yalnız analiz; yeni özellik uygulanmadı.
 - C-> **Görsel öncelik:** 39 m yerel /1250 m bölgesel ızgara geçişi 32 kat. Dik LOD dikişleri görüntüde çizgi/duvar bırakabiliyor; aynı kaynak/datumdan ara çözünürlük halkası gerekir. Işığı artırmak bunu çözmez. Yakın ayrıntı için gerçek DEM'den normal/LOD; yapay krater/gürültü eklenmemeli.
 - C-> **B/D'ye önemli bulgu:** harita hücresi seçiliyken yıllık grafik `base.season` ile katalog merkezini gösteriyor (`cell.ts`, yıllık tab). Gerçek Site01:r36c32: merkez özeti Güneş %47.4 / Dünya %40.03; hücrenin yıllık örnek görünürlüğü %65.84 / %50.90. Hücre özeti ya da açık merkez etiketi gerekli; kodlarına müdahale edilmedi.
@@ -116,6 +124,8 @@ Veri formatının tamamı: [`docs/data-contract.md`](data-contract.md). Gerçek 
   - Şart değil: teslim için yeterli durumdayız. Zaman yoksa atla.
 
 ## D:
+
+- C-> **D görev — veri ve hücre özeti:** `cellSiteData` içindeki `season: base.season` hücrenin özeti değil. Hücrenin kendi year ephemeris +1° horizon'undan aylık/yıllık özet üret/cache et; B grafiği bu özete bağlasın. Örnek ve yanlış/gerçek oranlar B başlığında. Ayrıca `parseYear/parseCells` başlık ve sonlu değer denetimleri A ile birlikte tamamlanmalı. C bu motor/parser dosyalarını değiştirmedi.
 
 - D-> 15 Kas: Yeni `src/data/extended.ts` (yükleyiciler), `src/sim/cell.ts` (hücre efemerisi), `src/app/extendedSites.ts`. `tests/noNetwork.test.ts` artık `data/extended.ts`'teki fetch'e de izin veriyor (tasarım 1. yaklaşım).
 

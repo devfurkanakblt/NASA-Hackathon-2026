@@ -70,6 +70,33 @@ export interface TerrainDoc {
   n: number
   cellM: number
   zM: number[]
+  /** Runtime-only, validated C display detail; never changes the elevation grid. */
+  normalDetail?: TerrainNormalDetail
+}
+
+export interface TerrainNormalDoc {
+  version: 1
+  siteId: string
+  file: 'terrain-normal.png'
+  sizeM: number
+  n: number
+  frame: 'Three object normal (+east,+up,-north)'
+  sourceNativePixelM: number
+  outputPixelM: number
+  sha256: string
+  source: {
+    site: { latitudeDeg: number; longitudeDeg: number; surfaceElevationM: number; observerHeightM: number }
+    url: string
+    sha256: string
+    method: string
+    [key: string]: unknown
+  }
+}
+
+export interface TerrainNormalDetail {
+  manifest: TerrainNormalDoc
+  /** Local asset URL, including the content hash to avoid stale display maps. */
+  textureUrl: string
 }
 
 /** Optional registered-Earth visual extension, independent of the scientific ephemeris. */

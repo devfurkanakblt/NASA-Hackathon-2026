@@ -5,7 +5,7 @@ import { loadCells, loadYear } from '../data/extended.ts'
 import { loadAllData } from '../data/load.ts'
 import { MissionScene3D } from '../scene3d/index.ts'
 import type { BodyState, PanelState } from '../scene3d/index.ts'
-import { earthOrientationAt, earthSunDirectionAt } from '../scene3d/appearance.ts'
+import { earthOrientationAt, earthOrientationCoverageWarning, earthSunDirectionAt } from '../scene3d/appearance.ts'
 import { DEFAULT_SETTINGS, validateSettings } from '../sim/evaluate.ts'
 import type { MissionSettings } from '../sim/evaluate.ts'
 import { nextTransition } from '../sim/visibility.ts'
@@ -456,6 +456,7 @@ export function MissionApp() {
                         earthPath={tracks.earthPath}
                         earthOrientation={earthOrientationAt(activeData.earthOrientation, now.utc)}
                         earthSunDirection={earthSunDirectionAt(activeData.earthOrientation, now.utc)}
+                        earthDisplayWarning={earthOrientationCoverageWarning(activeData.earthOrientation, now.utc)}
                         panelPowerW={active.result.generationW[now.kk]}
                         diagnostics={diagnostics}
                         panel={panel}

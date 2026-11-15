@@ -5,6 +5,7 @@ import type { Object3D } from 'three'
 import { ACESFilmicToneMapping, SRGBColorSpace } from 'three'
 import type { QuaternionXyzw } from './appearance.ts'
 import { useEarthTexture } from './earthTexture.ts'
+import { useTerrainNormalTexture } from './terrainNormalTexture.ts'
 import sourceLinks from './sources.json'
 import {
   DEFAULT_PANEL,
@@ -48,6 +49,8 @@ export interface MissionScene3DProps {
   earthOrientation?: QuaternionXyzw
   /** Direction to the Sun evaluated at Earth, in the same local axes. */
   earthSunDirection?: Vec3
+  /** A date-specific display coverage warning; never affects engine visibility. */
+  earthDisplayWarning?: string
   /** Authoritative engine output, including optional partial-disc production. */
   panelPowerW?: number
   diagnostics?: boolean
@@ -113,6 +116,7 @@ export default function SceneCanvas({
   earthPath,
   earthOrientation,
   earthSunDirection,
+  earthDisplayWarning,
   panelPowerW,
   diagnostics = false,
   panel = DEFAULT_PANEL,
@@ -131,6 +135,8 @@ export default function SceneCanvas({
   const [canvasKey, setCanvasKey] = useState(0)
   const diagnosticOutput = useRef<HTMLOutputElement | null>(null)
   const { texture: earthMap, failed: earthMapFailed } = useEarthTexture()
+  const { texture: detailNormal, failed: detailNormalFailed } = useTerrainNormalTexture(terrain.normalDetail?.textureUrl,
+    terrain.normalDetail ? terrain.sizeM / terrain.normalDetail.manifest.sizeM : 1)
 
   const meshData = useMemo(() => buildTerrainMeshData(terrain, observerHeightM), [terrain, observerHeightM])
   const half = meshData.halfExtentM
@@ -171,6 +177,7 @@ export default function SceneCanvas({
 
   return (
     <div className="scene3d">
+      <div className="scene3d__viewport">
       <Canvas
         key={canvasKey}
         frameloop="demand"
@@ -206,7 +213,7 @@ export default function SceneCanvas({
           shadow-normalBias={0.5}
         />
 
-        <Terrain data={meshData} reliefTint={reliefLighting} />
+        <Terrain data={meshData} reliefTint={reliefLighting} detailNormal={detailNormal} />
         {farMesh && <Terrain data={farMesh} reliefTint={reliefLighting} />}
         {!lander && surfaceElevationM !== undefined && (
           <ReferenceSphere data={farMesh ?? meshData} siteElevationM={surfaceElevationM} outerRadiusM={half * (SKY_RADIUS - 5)} />
@@ -293,6 +300,7 @@ export default function SceneCanvas({
         </div>
       </div>
 
+      </div>
       <div className="scene3d__toolbar">
         <div className="scene3d__segmented" role="group" aria-label="Camera">
           <button type="button" aria-pressed={cameraMode === 'overview'} onClick={() => setCameraMode('overview')}>
@@ -352,10 +360,13 @@ export default function SceneCanvas({
             ? 'Lander not to scale; arrows point from it to the Sun and Earth. Around the detailed 10 km patch the region is drawn from a coarse LOLA grid. '
             : 'Lander not to scale; arrows point from it to the Sun and Earth. Beyond the terrain patch only the smooth reference sphere is drawn. '}
         Terrain scale 1:1. Sun/Earth directions and sizes follow the ephemeris. Mesh shadows are approximate; visibility and power use the full horizon profile.
-        {!earthOrientation ? ' Earth map hidden: registered orientation is unavailable.'
+        {!earthOrientation ? ` ${earthDisplayWarning ?? 'Earth map hidden: registered orientation is unavailable.'}`
           : earthMapFailed ? ' Earth map unavailable; an untextured illuminated sphere is shown.'
           : !earthMap ? ' Earth texture loading.' : ' Earth: NASA November 2004 composite, UTC-registered rotation; not live weather.'}
         {reliefLighting && ' Relief fill light is enabled for readability; switch it off to inspect Sun-only shading.'}
+        {terrain.normalDetail && (detailNormalFailed ? ' Measured surface detail unavailable; mesh shading is used.'
+          : detailNormal ? ` Surface shading: normals from NASA ${terrain.normalDetail.manifest.sourceNativePixelM} m DEM; geometry and visibility stay separate.`
+          : ' Measured surface detail loading.')}
         </p>
         <p className="scene3d__note">Sources: <a href={sourceLinks.moonTrek} target="_blank" rel="noreferrer">NASA Moon Trek / LOLA</a> · <a href={sourceLinks.blueMarble} target="_blank" rel="noreferrer">NASA Blue Marble</a></p>
       </details>

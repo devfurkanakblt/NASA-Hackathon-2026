@@ -12,6 +12,8 @@
  * simulation engine (terrain-horizon profile). The mesh is for visualisation only.
  */
 
+import type { TerrainNormalDetail } from '../data/contract.ts'
+
 /** `{siteId}/terrain.json` — down-sampled local elevation grid, local ENU, origin at the observer eye. */
 export interface TerrainGrid {
   /** Side length of the square patch, in metres. */
@@ -25,6 +27,7 @@ export interface TerrainGrid {
    * Row 0 is the southernmost row, column 0 the westernmost column.
    */
   zM: ArrayLike<number>
+  normalDetail?: TerrainNormalDetail
 }
 
 /** `{siteId}/horizon.json` — terrain horizon as seen from the observer eye. */

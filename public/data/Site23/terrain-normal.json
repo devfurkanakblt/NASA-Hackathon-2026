@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "siteId": "Site23",
+  "file": "terrain-normal.png",
+  "sizeM": 10000.0,
+  "n": 1024,
+  "frame": "Three object normal (+east,+up,-north)",
+  "sourceNativePixelM": 5,
+  "outputPixelM": 9.765625,
+  "sha256": "21d0e7b4ab275fdc162414dca7153a0090d136b8b57c2e9844e842858ed1613a",
+  "source": {
+    "url": "https://pgda.gsfc.nasa.gov/data/LOLA_5mpp/Site23/Site23_final_adj_5mpp_surf.tif",
+    "tileId": "Site23",
+    "sha256": "12d280a59cd7580415f6bada638d0abe025ce6727541fddf68d5dc371a6c94cf",
+    "crs": "PROJCS[\"unnamed\",GEOGCS[\"unnamed ellipse\",DATUM[\"unknown\",SPHEROID[\"unnamed\",1737400,0]],PRIMEM[\"Greenwich\",0],UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",\"9122\"]]],PROJECTION[\"Polar_Stereographic\"],PARAMETER[\"latitude_of_origin\",-90],PARAMETER[\"central_meridian\",0],PARAMETER[\"false_easting\",0],PARAMETER[\"false_northing\",0],UNIT[\"metre\",1],AXIS[\"Easting\",NORTH],AXIS[\"Northing\",NORTH]]",
+    "transform": [
+      5.0,
+      0.0,
+      -11000.0,
+      0.0,
+      -5.0,
+      132000.0
+    ],
+    "dimensions": [
+      4200,
+      4200
+    ],
+    "site": {
+      "latitudeDeg": -85.9948,
+      "longitudeDeg": -0.23578,
+      "surfaceElevationM": 4783.79,
+      "observerHeightM": 2.0
+    },
+    "method": "Bilinear native-DEM sampling, 2x2 area mean per output pixel; local ENU curvature; second-order finite gradients; normalised object normals",
+    "pngOrientation": "north at top; east at right; texture.flipY=true",
+    "encoding": "RGB8 linear UNORM: component=2*channel/255-1; no colour transfer",
+    "uv": "u=east/sizeM+0.5; v=north/sizeM+0.5",
+    "heightReference": "same 1737400 m sphere and observer-eye ENU origin as terrain.json",
+    "requestedSizeM": 10000,
+    "coverageStrategy": "Largest fully covered centred square among requested width x [1,.9,.8,.7,.6]; no native-data gap fill",
+    "maxEncodingAngularErrorDeg": 0.37248525736275784,
+    "limitations": [
+      "Display shading only; geometry and scientific horizon unchanged",
+      "Source pixel spacing is not absolute elevation accuracy",
+      "Output is a normal-data map, not measured albedo or a surface photograph",
+      "No noise, invented craters or procedural detail added"
+    ]
+  }
+}

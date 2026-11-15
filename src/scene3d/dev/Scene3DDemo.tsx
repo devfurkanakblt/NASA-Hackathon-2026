@@ -8,7 +8,7 @@ import { nextTransition } from '../../sim/visibility.ts'
 import type { VisibilityWindow } from '../../sim/visibility.ts'
 import { bodyStatus, earthAngularDiameterDeg, sunAngularDiameterDeg } from '../coords.ts'
 import { MissionScene3D } from '../index.ts'
-import { earthOrientationAt, earthSunDirectionAt } from '../appearance.ts'
+import { earthOrientationAt, earthOrientationCoverageWarning, earthSunDirectionAt } from '../appearance.ts'
 import type { BodyPath, BodyState, PanelState, TerrainGrid } from '../types.ts'
 import './demo.css'
 
@@ -275,6 +275,7 @@ export function Scene3DDemo() {
             earthPath={paths.earth}
             earthOrientation={earthOrientationAt(data.earthOrientation, new Date(Date.parse(result.alignedStartUtc) + now.tS * 1000).toISOString())}
             earthSunDirection={earthSunDirectionAt(data.earthOrientation, new Date(Date.parse(result.alignedStartUtc) + now.tS * 1000).toISOString())}
+            earthDisplayWarning={earthOrientationCoverageWarning(data.earthOrientation, new Date(Date.parse(result.alignedStartUtc) + now.tS * 1000).toISOString())}
             panelPowerW={result.generationW[k]}
             diagnostics={diagnostics}
             panel={panel}

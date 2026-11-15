@@ -1,4 +1,5 @@
 import type { LoadedData } from './contract.ts'
+import { validateTerrainNormal } from './terrainNormal.ts'
 import { validateEarthOrientation, validateEphemeris, validateHorizon, validateMap, validateSeason, validateSites, validateTerrain } from './validate.ts'
 
 class HttpError extends Error {
@@ -60,7 +61,14 @@ export async function loadAllData(baseUrl = `${import.meta.env.BASE_URL}data`): 
       site.category === 'contrast' ? Promise.resolve(undefined) :
         optionalVisual(`${root}/map.json`, (doc) => validateMap(doc, site.id, sites.coverage, `${root}/map.json`), visualWarnings),
     ])
-    return [site.id, { site, ephemeris, horizon, terrain, terrainFar, earthOrientation, visualWarnings, season, map }] as const
+    const normalManifest = terrain && site.category !== 'contrast'
+      ? await optionalVisual(`${root}/terrain-normal.json`, doc => validateTerrainNormal(doc, site, terrain.sizeM, `${root}/terrain-normal.json`), visualWarnings)
+      : undefined
+    const displayTerrain = terrain && normalManifest ? {
+      ...terrain,
+      normalDetail: { manifest: normalManifest, textureUrl: `${root}/${normalManifest.file}?v=${normalManifest.sha256}` },
+    } : terrain
+    return [site.id, { site, ephemeris, horizon, terrain: displayTerrain, terrainFar, earthOrientation, visualWarnings, season, map }] as const
   }))
   return { sites, bySite: Object.fromEntries(entries) }
 }

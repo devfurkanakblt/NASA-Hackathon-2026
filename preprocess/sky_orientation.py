@@ -31,6 +31,7 @@ TEXTURE_SHA256 = "388422e3bfc62517af2a9d538989a2f859fc193e6f6cde72c3d230ef29c2e6
 # surface normal is +X; at longitude +90E it is -Z; the north pole is +Y.
 SPHERE_TO_ITRS = np.array([[1., 0., 0.], [0., 0., -1.], [0., 1., 0.]])
 KERNEL_NAMES = ("de421.bsp", "moon_080317.tf", "pck00008.tpc", "moon_pa_de421_1900-2050.bpc")
+INTERPOLATION_TOLERANCE_DEG = 0.01
 
 
 def sha256(path: Path) -> str:
@@ -105,7 +106,80 @@ def _validate_inputs(site: dict, ephemeris: dict):
     return start, distances
 
 
-def build_orientation_doc(site: dict, ephemeris: dict, kernels: dict, cache_dir: Path) -> dict:
+def load_display_ephemeris(folder: Path, site_id: str, grid: str = "year") -> tuple[dict, dict]:
+    """Read A's published files without rewriting them; year.bin is six little-endian float32 blocks."""
+    if grid == "main":
+        path = folder / "ephemeris.json"
+        return json.loads(path.read_text(encoding="utf-8")), {"file": path.name, "sha256": sha256(path)}
+    header_path = folder / "extended.json"
+    header = json.loads(header_path.read_text(encoding="utf-8"))
+    if header.get("version") != 1 or header.get("siteId") != site_id:
+        raise ValueError("year display source header version/siteId mismatch")
+    settings = header["year"]
+    if Path(settings["file"]).name != settings["file"]:
+        raise ValueError("year display source must be a local filename")
+    count = settings["count"]
+    if not isinstance(count, int) or isinstance(count, bool) or count < 2:
+        raise ValueError("year display source count must be an integer >= 2")
+    path = folder / settings["file"]
+    data = np.fromfile(path, dtype="<f4")
+    if data.size != count * 6 or not np.isfinite(data).all():
+        raise ValueError("year display source must have six complete finite float32 blocks")
+    data = data.reshape(6, count)
+    for k in (0, 3):
+        if np.any((data[k] < 0) | (data[k] >= 360)) or np.any(np.abs(data[k + 1]) > 90) or np.any(data[k + 2] <= 0):
+            raise ValueError("year display source azimuth/elevation/distance units are invalid")
+    body = lambda k: {key: data[k + i].astype(float).tolist()
+                      for i, key in enumerate(("azDeg", "elDeg", "distanceM"))}
+    result = {"siteId": site_id, "source": settings["source"], "startUtc": settings["startUtc"],
+              "stepS": settings["stepS"], "count": count, "sun": body(0), "earth": body(3)}
+    return result, {"file": path.name, "sha256": sha256(path), "headerFile": header_path.name,
+                    "headerSha256": sha256(header_path), "encoding": "six little-endian float32 blocks: Sun az/el/distance, Earth az/el/distance; degrees/metres"}
+
+
+def interpolation_errors(quaternions, light_nodes, reference_rotations, reference_light, stride: int) -> dict:
+    """Exactly the browser's shortest-arc SLERP and normalised linear Sun-vector interpolation."""
+    q = np.asarray(quaternions, dtype=float)
+    light = np.asarray(light_nodes, dtype=float)
+    total = reference_rotations.shape[2]
+    positions = np.arange(total) / stride
+    i = np.floor(positions).astype(int)
+    j = np.minimum(i + 1, len(q) - 1)
+    f = positions - i
+    a, b = q[i], q[j].copy()
+    a /= np.linalg.norm(a, axis=1)[:, None]
+    b /= np.linalg.norm(b, axis=1)[:, None]
+    dot = np.sum(a * b, axis=1)
+    b[dot < 0] *= -1
+    dot = np.abs(dot)
+    theta = np.arccos(np.clip(dot, -1, 1))
+    linear = dot > 0.9995
+    denominator = np.where(linear, 1., np.sin(theta))
+    wa = np.where(linear, 1 - f, np.sin((1 - f) * theta) / denominator)
+    wb = np.where(linear, f, np.sin(f * theta) / denominator)
+    interpolated = a * wa[:, None] + b * wb[:, None]
+    interpolated /= np.linalg.norm(interpolated, axis=1)[:, None]
+    x, y, z, w = interpolated.T
+    predicted = np.stack([1-2*(y*y+z*z), 2*(x*y-z*w), 2*(x*z+y*w),
+                          2*(x*y+z*w), 1-2*(x*x+z*z), 2*(y*z-x*w),
+                          2*(x*z-y*w), 2*(y*z+x*w), 1-2*(x*x+y*y)], axis=1).reshape(total, 3, 3)
+    relative = predicted @ np.moveaxis(reference_rotations, 2, 0).transpose(0, 2, 1)
+    sine = np.linalg.norm(np.stack([relative[:, 2, 1]-relative[:, 1, 2], relative[:, 0, 2]-relative[:, 2, 0], relative[:, 1, 0]-relative[:, 0, 1]], axis=1), axis=1) / 2
+    cosine = (np.trace(relative, axis1=1, axis2=2) - 1) / 2
+    angle = np.degrees(np.arctan2(sine, cosine))
+    v = light[i] * (1-f)[:, None] + light[j] * f[:, None]
+    v /= np.linalg.norm(v, axis=1)[:, None]
+    ref_light = reference_light.T
+    light_error = np.degrees(np.arctan2(np.linalg.norm(np.cross(v, ref_light), axis=1), np.sum(v * ref_light, axis=1)))
+    maximum = float(angle.max())
+    light_maximum = float(light_error.max())
+    return {"referenceSamples": total, "intermediateSamples": int(np.count_nonzero(np.arange(total) % stride)),
+            "maxAttitudeInterpolationErrorDeg": maximum, "maxSunVectorInterpolationErrorDeg": light_maximum,
+            "toleranceDeg": INTERPOLATION_TOLERANCE_DEG,
+            "pass": maximum <= INTERPOLATION_TOLERANCE_DEG and light_maximum <= INTERPOLATION_TOLERANCE_DEG}
+
+
+def build_orientation_doc(site: dict, ephemeris: dict, kernels: dict, cache_dir: Path, display_step_s: int = 3600) -> dict:
     """Generate display rotations and Earth-to-Sun light direction on A's grid."""
     from skyfield import __version__ as skyfield_version
     from skyfield.framelib import itrs
@@ -113,10 +187,15 @@ def build_orientation_doc(site: dict, ephemeris: dict, kernels: dict, cache_dir:
 
     start, distances = _validate_inputs(site, ephemeris)
     count, step = ephemeris["count"], ephemeris["stepS"]
+    stride = display_step_s / step
+    if not stride.is_integer() or stride < 1 or display_step_s > 3600 or (count - 1) % int(stride):
+        raise ValueError("display cadence must be an aligned whole multiple of the source step, <= one hour, including its endpoint")
+    stride = int(stride)
+    nodes = np.arange(0, count, stride)
     times = [start + timedelta(seconds=i * step) for i in range(count)]
     t = kernels["ts"].from_datetimes(times)
-    # A's distance is rounded to kilometres, so the emission time uncertainty
-    # from that rounding is <= 500/c seconds (~0.000007 degrees Earth rotation).
+    # Use A's source distance without unit conversion or a separate orbit estimate.
+    # Main JSON is km-rounded; annual binary uses float32 metres.
     emission = t - distances / C_M_S / 86400
     moon_r = kernels["frame"].rotation_at(t)  # reception orientation of local sky
     earth_r = itrs.rotation_at(emission)      # visible terrestrial surface epoch
@@ -125,7 +204,7 @@ def build_orientation_doc(site: dict, ephemeris: dict, kernels: dict, cache_dir:
     quaternions = []
     previous = None
     max_roundtrip = 0.
-    for i in range(count):
+    for i in nodes:
         q = np.asarray(matrix_to_quaternion_xyzw(body_to_scene[:, :, i]))
         # The same attitude has two quaternion signs. Keep the series continuous
         # so interpolators cannot accidentally take the long arc through a day.
@@ -140,14 +219,18 @@ def build_orientation_doc(site: dict, ephemeris: dict, kernels: dict, cache_dir:
     earth_to_sun /= np.linalg.norm(earth_to_sun, axis=0)
     light_scene = mxv(basis, mxv(moon_r, earth_to_sun))
     light_scene /= np.linalg.norm(light_scene, axis=0)
+    light_nodes = np.round(light_scene[:, nodes].T, 10).tolist()
+    interpolation = interpolation_errors(quaternions, light_nodes, body_to_scene, light_scene, stride)
+    if not interpolation["pass"]:
+        raise ValueError(f"Display interpolation exceeds tolerance: {interpolation}")
 
     dut1 = np.asarray(emission.dut1)
     orthogonality = np.einsum("jin,jkn->ikn", body_to_scene, body_to_scene)
     max_orthogonality = float(np.max(np.abs(orthogonality - np.eye(3)[:, :, None])))
     return {
         "version": 1, "siteId": site["id"], "startUtc": ephemeris["startUtc"],
-        "stepS": step, "count": count, "quaternionXyzw": quaternions,
-        "sunDirectionAtEarth": np.round(light_scene.T, 10).tolist(),
+        "stepS": display_step_s, "count": len(nodes), "quaternionXyzw": quaternions,
+        "sunDirectionAtEarth": light_nodes,
         "source": {
             "site": {"latitudeDeg": site["latDeg"], "longitudeDeg": site["lonDeg"],
                      "surfaceElevationM": site["surfaceElevationM"], "observerHeightM": site["observerHeightM"]},
@@ -174,6 +257,8 @@ def build_orientation_doc(site: dict, ephemeris: dict, kernels: dict, cache_dir:
             ],
             "validation": {"maxRotationOrthogonalityError": max_orthogonality,
                            "maxQuaternionMatrixRoundtripError": max_roundtrip,
+                           "interpolation": {**interpolation, "referenceStepS": step, "displayStepS": display_step_s,
+                                             "method": "All native 10-minute source epochs compared with hourly shortest-arc quaternion SLERP and normalised linear Earth-to-Sun vectors"},
                            "externalOrientationCrosscheck": "not performed by this generator"},
             "references": ["https://rhodesmill.org/skyfield/coordinates.html#rotation-matrices",
                            "https://rhodesmill.org/skyfield/planetary.html#computing-a-raw-rotation-matrix"],
@@ -221,7 +306,7 @@ def _wrap_difference(a: float, b: float) -> float:
     return (a - b + 180) % 360 - 180
 
 
-def displayed_subobserver_and_pole(site: dict, ephemeris: dict, orientation: dict, index: int):
+def displayed_subobserver_and_pole(site: dict, ephemeris: dict, orientation: dict, index: int, orientation_index: float | None = None):
     """Recover Q14/Q17 from the display transform for an independent check.
 
     Horizons Q14 reports planetodetic latitude on its ellipsoid, while the
@@ -231,7 +316,21 @@ def displayed_subobserver_and_pole(site: dict, ephemeris: dict, orientation: dic
     """
     az, el = np.radians([ephemeris["earth"]["azDeg"][index], ephemeris["earth"]["elDeg"][index]])
     direction = np.array([math.cos(el) * math.sin(az), math.sin(el), -math.cos(el) * math.cos(az)])
-    r = quaternion_xyzw_to_matrix(orientation["quaternionXyzw"][index])
+    offset = index if orientation_index is None else orientation_index
+    i = math.floor(offset)
+    f = offset - i
+    a = np.asarray(orientation["quaternionXyzw"][i], dtype=float)
+    b = np.asarray(orientation["quaternionXyzw"][min(i + 1, orientation["count"] - 1)], dtype=float)
+    a, b = a / np.linalg.norm(a), b / np.linalg.norm(b)
+    dot = float(np.dot(a, b))
+    if dot < 0:
+        b, dot = -b, -dot
+    if dot > 0.9995:
+        q = a * (1 - f) + b * f
+    else:
+        theta = math.acos(max(-1., min(1., dot)))
+        q = (a * math.sin((1-f)*theta) + b * math.sin(f*theta)) / math.sin(theta)
+    r = quaternion_xyzw_to_matrix(q / np.linalg.norm(q))
     itrs_observer = SPHERE_TO_ITRS @ (r.T @ -direction)
     lon = math.degrees(math.atan2(itrs_observer[1], itrs_observer[0])) % 360
     lat = math.degrees(math.atan2(itrs_observer[2] * 6378.137**2,
@@ -246,8 +345,8 @@ def displayed_subobserver_and_pole(site: dict, ephemeris: dict, orientation: dic
     return lon, lat, pa
 
 
-def crosscheck_horizons(sites: list[dict], data_dir: Path, cache_dir: Path) -> dict:
-    """Sequential fresh Q14/Q17 queries at the first/middle/example/last epochs.
+def crosscheck_horizons(sites: list[dict], data_dir: Path, cache_dir: Path, grid: str = "year") -> dict:
+    """Sequential fresh Q14/Q17 queries at five epochs spread across coverage.
 
     Does not regenerate or alter A's series. The raw API result is cached
     separately with the existing polite client and its SHA-256 is reported.
@@ -255,14 +354,19 @@ def crosscheck_horizons(sites: list[dict], data_dir: Path, cache_dir: Path) -> d
     from . import ephemeris_horizons as H
 
     H.CACHE = cache_dir / "horizons-orientation"
+    H.UA = {"User-Agent": "Rimlight-EarthDisplay/0.2 (contact: https://github.com/devfurkanakblt/NASA-Hackathon-2026/issues)"}
     rows = []
     query_records = []
     for site in sites:
         folder = data_dir / site["id"]
-        eph = json.loads((folder / "ephemeris.json").read_text(encoding="utf-8"))
+        eph, _ = load_display_ephemeris(folder, site["id"], grid)
         orientation = json.loads((folder / "earth-orientation.json").read_text(encoding="utf-8"))
         count, step = eph["count"], eph["stepS"]
-        indices = sorted({0, min(round(14 * 86400 / step), count - 1), count - 1})
+        indices = np.linspace(0, count - 1, 5).round().astype(int).tolist()
+        stride = round(orientation["stepS"] / step)
+        # The three interior epochs exercise the browser's actual between-node SLERP.
+        indices[1:-1] = [min(i + stride // 2, count - 1) for i in indices[1:-1]]
+        node_indices = [i * step / orientation["stepS"] for i in indices]
         start = datetime.fromisoformat(eph["startUtc"].replace("Z", "+00:00"))
         epochs = [start + timedelta(seconds=i * step) for i in indices]
         params = H.build_params("earth", site["latDeg"], site["lonDeg"],
@@ -280,20 +384,22 @@ def crosscheck_horizons(sites: list[dict], data_dir: Path, cache_dir: Path) -> d
         table = [[s.strip() for s in line.split(",")] for line in rest.split("$$EOE")[0].strip().splitlines()]
         if len(table) != len(indices):
             raise RuntimeError("Horizons orientation query count differs from requested epochs")
-        for index, epoch, record in zip(indices, epochs, table):
-            ours = displayed_subobserver_and_pole(site, eph, orientation, index)
+        for index, node_index, epoch, record in zip(indices, node_indices, epochs, table):
+            ours = displayed_subobserver_and_pole(site, eph, orientation, index, node_index)
             theirs = [float(record[columns.index(key)]) for key in ("ObsSub-LON", "ObsSub-LAT", "NP.ang")]
             rows.append({"siteId": site["id"], "utc": epoch.isoformat().replace("+00:00", "Z"),
+                         "visualNodeFraction": node_index % 1,
                          "subobserverLonDifferenceDeg": _wrap_difference(ours[0], theirs[0]),
                          "subobserverGeodeticLatDifferenceDeg": ours[1] - theirs[1],
                          "northPolePositionAngleDifferenceDeg": _wrap_difference(ours[2], theirs[2])})
         query_records.append({"siteId": site["id"], "params": params,
+                              "orientationSha256": sha256(folder / "earth-orientation.json"),
                               "resultSha256": hashlib.sha256(raw.encode()).hexdigest(),
                               "targetOrientation": next((l.strip() for l in header.splitlines() if "Target pole/equ" in l), "unknown"),
                               "eop": next((l.strip() for l in header.splitlines() if "EOP file" in l), "unknown")})
     maxima = {key: max(abs(row[key]) for row in rows) for key in
               ("subobserverLonDifferenceDeg", "subobserverGeodeticLatDifferenceDeg", "northPolePositionAngleDifferenceDeg")}
-    return {"method": "Independent JPL Horizons API Q14 (subobserver east longitude/geodetic latitude) and Q17 (north-pole position angle), three epochs per site",
+    return {"method": "Independent JPL Horizons API Q14 (subobserver east longitude/geodetic latitude) and Q17 (north-pole position angle), annual endpoints and three between-node SLERP epochs per site",
             "source": H.API, "reference": "https://ssd.jpl.nasa.gov/horizons/manual.html#obsquan",
             "toleranceDeg": 0.01, "pass": all(value <= 0.01 for value in maxima.values()),
             "maxAbsoluteDifferenceDeg": maxima, "samples": rows, "queries": query_records,
@@ -302,11 +408,47 @@ def crosscheck_horizons(sites: list[dict], data_dir: Path, cache_dir: Path) -> d
                        "Geodetic latitude comparison accounts for the reference ellipsoid; rendered Earth remains spherical"]}
 
 
+def write_display_manifest(data_dir: Path, manifest_path: Path):
+    """Record C's display files and full-grid interpolation checks without editing A's sources."""
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.exists() else {"version": 1}
+    sites = json.loads((data_dir / "sites.json").read_text(encoding="utf-8"))["sites"]
+    files = []
+    for site in sites:
+        path = data_dir / site["id"] / "earth-orientation.json"
+        doc = json.loads(path.read_text(encoding="utf-8"))
+        start = datetime.fromisoformat(doc["startUtc"].replace("Z", "+00:00"))
+        end = start + timedelta(seconds=(doc["count"] - 1) * doc["stepS"])
+        files.append({"siteId": site["id"], "path": f"public/data/{site['id']}/earth-orientation.json",
+                      "sha256": sha256(path), "bytes": path.stat().st_size,
+                      "startUtc": doc["startUtc"], "endUtc": end.isoformat().replace("+00:00", "Z"),
+                      "stepS": doc["stepS"], "count": doc["count"],
+                      "input": doc["source"].get("input"),
+                      "interpolation": doc["source"]["validation"]["interpolation"]})
+    report = manifest.get("orientationValidation")
+    if report:
+        current = {f["siteId"]: f["sha256"] for f in files}
+        if any(q.get("orientationSha256") != current.get(q["siteId"]) for q in report["queries"]):
+            manifest.pop("orientationValidation")  # Never retain an old check after regenerating different attitudes.
+    manifest["orientationFiles"] = "public/data/{siteId}/earth-orientation.json; annual coverage from A's year.bin, verified hourly visual nodes with browser SLERP; centre positions and visibility retain their 10-minute scientific source"
+    manifest["orientationDisplay"] = {"files": files, "totalBytes": sum(f["bytes"] for f in files),
+        "interpolationMethod": "Shortest-arc quaternion SLERP; normalised linear Earth-to-Sun direction vectors",
+        "toleranceDeg": INTERPOLATION_TOLERANCE_DEG,
+        "testedIntermediateEpochs": sum(f["interpolation"]["intermediateSamples"] for f in files),
+        "maxAttitudeInterpolationErrorDeg": max(f["interpolation"]["maxAttitudeInterpolationErrorDeg"] for f in files),
+        "maxSunVectorInterpolationErrorDeg": max(f["interpolation"]["maxSunVectorInterpolationErrorDeg"] for f in files),
+        "limits": ["Interpolation error is relative to the native Skyfield model, not an absolute accuracy guarantee",
+                   "Independent sampled Horizons checks, including between-node display epochs, are recorded separately",
+                   "The archived 2004 Earth composite is not live weather"]}
+    manifest_path.write_text(json.dumps(manifest, indent=2, allow_nan=False) + "\n", encoding="utf-8")
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("site_ids", nargs="*")
     parser.add_argument("--cache-dir", type=Path, default=C.RAW_DIR)
     parser.add_argument("--data-dir", type=Path, default=C.OUT_DIR)
+    parser.add_argument("--grid", choices=("year", "main"), default="year", help="A-owned input time grid; annual by default")
+    parser.add_argument("--display-step-s", type=int, default=3600, help="Visual nodes; all intermediate source epochs are checked against 0.01 degrees")
     parser.add_argument("--texture-source", type=Path, help="Optional pinned NASA source JPEG to resample and document")
     parser.add_argument("--crosscheck", action="store_true", help="Query Horizons Q14/Q17 independently and add measured checks to docs/c-assets.json")
     args = parser.parse_args(argv)
@@ -326,13 +468,15 @@ def main(argv=None):
         if not re.fullmatch(r"[A-Za-z0-9_-]+", site["id"]):
             raise ValueError("Unsafe site ID")
         folder = args.data_dir / site["id"]
-        ephemeris = json.loads((folder / "ephemeris.json").read_text(encoding="utf-8"))
-        result = build_orientation_doc(site, ephemeris, kernels, args.cache_dir)
+        ephemeris, source_info = load_display_ephemeris(folder, site["id"], args.grid)
+        result = build_orientation_doc(site, ephemeris, kernels, args.cache_dir, args.display_step_s)
+        result["source"]["input"] = source_info
         (folder / "earth-orientation.json").write_text(json.dumps(result, separators=(",", ":"), allow_nan=False) + "\n", encoding="utf-8")
-        print(f"{site['id']}: {result['count']} registered attitudes; {result['source']['validation']}")
+        print(f"{site['id']}: {result['count']} registered attitudes; {result['source']['validation']}", flush=True)
+    write_display_manifest(args.data_dir, C.ROOT / "docs" / "c-assets.json")
     if args.crosscheck:
         selected_sites = [s for s in sites if not selected or s["id"] in selected]
-        report = crosscheck_horizons(selected_sites, args.data_dir, args.cache_dir)
+        report = crosscheck_horizons(selected_sites, args.data_dir, args.cache_dir, args.grid)
         manifest_path = C.ROOT / "docs" / "c-assets.json"
         manifest = json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.exists() else {"version": 1}
         manifest["orientationValidation"] = report

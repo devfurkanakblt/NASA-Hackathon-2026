@@ -53,6 +53,14 @@ function sampleOffset(doc: EarthOrientationDoc, utc: string): { i: number; j: nu
   return { i, j: Math.min(i + 1, doc.count - 1), f: t - i }
 }
 
+/** A caller can show why geography is deliberately hidden, without extrapolating its rotation. */
+export function earthOrientationCoverageWarning(doc: EarthOrientationDoc | undefined, utc: string): string | undefined {
+  if (!doc) return 'Registered Earth surface map unavailable: orientation data is missing for this site.'
+  if (sampleOffset(doc, utc)) return undefined
+  const end = new Date(Date.parse(doc.startUtc) + (doc.count - 1) * doc.stepS * 1000).toISOString()
+  return `Registered Earth surface map unavailable at this mission UTC (${utc}); orientation covers ${doc.startUtc} to ${end}.`
+}
+
 /** SLERP handles Earth's daily rotation and opposite-sign quaternion representations correctly. */
 export function earthOrientationAt(doc: EarthOrientationDoc | undefined, utc: string): QuaternionXyzw | undefined {
   if (!doc) return undefined
