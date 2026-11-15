@@ -70,6 +70,11 @@ def load_site_dems(site_id, far_range_m=C.FAR_RANGE_M):
         from .global_dem import window
         g = window(s["lat"], s["lon"], far_range_m + 10_000)
         return g, g, to_xy(g.crs, s["lon"], s["lat"])
+    if s.get("dem") == "regional80":
+        with rasterio.open(C.REGIONAL_DEM_PATH) as src:
+            xy = to_xy(src.crs, s["lon"], s["lat"])
+        g = Dem.open(C.REGIONAL_DEM_PATH, center_xy=xy, half_size_m=far_range_m + 2_000)
+        return g, g, xy
     near = Dem.open(C.local_dem_path(site_id))
     xy = to_xy(near.crs, s["lon"], s["lat"])
     far = Dem.open(C.REGIONAL_DEM_PATH, center_xy=xy, half_size_m=far_range_m + 2_000)
@@ -82,4 +87,6 @@ def surface_elevation(near, far, xy):
     if np.isnan(z):
         z = float(far.sample(np.array([xy[0]]), np.array([xy[1]]))[0])
         warnings.append("site height taken from 80 m regional DEM (outside 5 m tile)")
+    if not np.isfinite(z):
+        raise ValueError("No finite DEM height at observer; no package can be generated")
     return z, warnings

@@ -52,6 +52,9 @@ def horizon_params(site_id, far_range_m):
     if C.SITES[site_id].get("dem") == "ldem64":
         params["nearDem"] = "LDEM_64 (~474 m/px)"
         return params, GLOBAL_DEM_NOTE
+    if C.SITES[site_id].get("dem") == "regional80":
+        params["nearDem"] = "LDEM_80S_80MPP_ADJ (80 m/px)"
+        return params, "near field uses the regional 80 m DEM; ray sampling step is not terrain resolution"
     return params, None
 
 
@@ -90,6 +93,7 @@ def build_site(site_id, args, out=None):
     out = out or C.OUT_DIR / site_id
     near, far, xy = load_site_dems(site_id, far_range_m=args.far_range)
     z0, warnings = surface_elevation(near, far, xy)
+    z0 = round(z0, 2)  # same published observer used by all ephemeris and horizon products
     eye = z0 + C.OBSERVER_HEIGHT_M
     print(f"[{site_id}] surface {z0:.1f} m, eye {eye:.1f} m")
 
@@ -105,14 +109,22 @@ def build_site(site_id, args, out=None):
     if dem_note:
         hw.append(dem_note)
     doc = W.horizon_doc(site_id, elev, dist, params, hw)
+    doc["observer"] = {"latDeg": s["lat"], "lonDeg": s["lon"], "eyeM": eye}
     doc["refinedAzDeg"] = refined_az
     if affected:
         doc["coverageLimitedAzDeg"] = affected
     W.write(out / "horizon.json", doc)
     print(f"  horizon: min {elev.min():.3f}, max {elev.max():.3f} deg")
 
-    z, miss = T.build(s["lat"], s["lon"], eye, near, far, near.crs)
-    W.write(out / "terrain.json", W.terrain_doc(site_id, z, 10_000.0))
+    for size in (10_000.0, 4_000.0, 2_000.0, 1_000.0, 500.0):
+        z, miss = T.build(s["lat"], s["lon"], eye, near, far, near.crs, size_m=size)
+        if np.isfinite(z).all():
+            break
+    else:
+        raise ValueError(f"{site_id}: missing DEM around observer; no finite terrain display can be built")
+    if size != 10_000.0:
+        warnings.append(f"3D terrain display is limited to {size:g} m width by available DEM coverage; horizon coverage warnings still apply")
+    W.write(out / "terrain.json", W.terrain_doc(site_id, z, size))
     if miss:
         warnings.append(f"terrain grid: {miss} samples from 80 m DEM")
     print(f"  done in {time.time() - t0:.0f} s")

@@ -34,7 +34,7 @@ function makeHeader(siteId: string, count: number, withCells = false): Record<st
     extendedSchema: 2,
     siteId,
     year: {
-      file: 'year.bin', sha256: 'a'.repeat(64), startUtc: '2026-11-01T00:00:00Z', endUtc: end, stepS: 600, count, source: 'test',
+      file: 'year.bin', sha256: 'a'.repeat(64), startUtc: '2026-11-01T00:00:00Z', endUtc: end, stepS: 600, count, source: 'skyfield-de421',
       observer: { latDeg: -89, lonDeg: 10, eyeM: 2 }, fields: [...FIELDS],
     },
   }
@@ -51,6 +51,19 @@ const issues = (h: unknown, id = 'Site01') => validateExtendedHeader(h, id)
 describe('validateExtendedHeader', () => {
   const hdr = makeHeader('Site01', 3, true)
   it('accepts a well-formed header', () => expect(issues(hdr)).toEqual([]))
+  it('rejects unsupported versions and ephemeris sources', () => {
+    expect(issues({ ...hdr, version: 3 }).join(' ')).toMatch(/version/)
+    expect(issues({ ...hdr, year: { ...hdr.year, source: 'invented' } }).join(' ')).toMatch(/source/)
+  })
+  it('rejects non-UTC and impossible calendar timestamps', () => {
+    for (const startUtc of ['2026-11-01T03:00:00+03:00', '2027-02-30T00:00:00Z']) {
+      expect(issues({ ...hdr, year: { ...hdr.year, startUtc } }).join(' ')).toMatch(/startUtc/)
+    }
+  })
+  it('rejects an unsupported angle scale and a contradictory resolution', () => {
+    expect(issues({ ...hdr, cells: { ...hdr.cells, unitDeg: .1 } }).join(' ')).toMatch(/unitDeg/)
+    expect(issues({ ...hdr, cells: { ...hdr.cells, horizonResolutionDeg: .1 } }).join(' ')).toMatch(/horizonResolutionDeg/)
+  })
   it('exports the supported schema', () => expect(SUPPORTED_EXTENDED_SCHEMA).toBe(2))
   it('rejects non-objects', () => expect(issues(null)[0]).toMatch(/Site01\/extended\.json/))
   it('rejects a header from another site', () => expect(issues({ ...hdr, siteId: 'Site04' })).toContainEqual(expect.stringMatching(/siteId/)))
@@ -230,7 +243,7 @@ describe('loaders', () => {
     const y = await loadYear('X', 'd1')
     expect(y.sun.azDeg).toEqual([1, 2])
     expect(y.earth.distanceM).toEqual([11, 12])
-    expect(y.source).toBe('test')
+    expect(y.source).toBe('skyfield-de421')
     // cached: no new request
     const n = calls.length
     await loadYear('X', 'd1')

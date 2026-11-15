@@ -29,6 +29,29 @@ direction (`el > horizonAt(az)`).
 | Regional terrain in the 3D view | NASA Moon Trek, LOLA 30 m/px south-pole DEM (`LRO_LOLA_DEM_SPole75_30mp_v04`) | display only; not used for visibility |
 | Earth image in the 3D view | Archive composite (Blue Marble Next Generation, Nov 2004), NASA Earth Observatory; not live imagery or weather | display only |
 
+The original nine points are extended with 23 mission/research points. Coordinates and status
+are pinned in [`preprocess/mission_catalogue.py`](../preprocess/mission_catalogue.py):
+[NASA NSSDCA Apollo coordinates](https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_sites.html),
+[NASA NSSDCA lunar spacecraft table](https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_artifact_impacts.html),
+[IAU/USGS Sinus Viscositatis](https://planetarynames.wr.usgs.gov/Feature/16118), and
+[Wueller et al., Table A1](https://doi.org/10.1029/2025JE009434). The nine Artemis research
+points represent the [NASA October 2024 region list](https://www.nasa.gov/news-release/nasa-provides-update-on-artemis-iii-moon-landing-regions/),
+not approved touchdown points or a claim about current mission assignments. Peregrine's entry
+is its historical target region's feature centre, not a landed spacecraft. The two research points
+inside the Site20/Site23 full near-field coverage reuse the 5 m tiles; other mission points use
+explicitly labelled 80 m regional or ~474 m global DEMs. New ephemeris packages use
+Skyfield/DE421, checked independently against JPL Horizons; the original nine retain Horizons.
+The measured checks and DEM overlap distances are in [validation-missions.md](validation-missions.md).
+All 25 new packages (23 catalogue points and two coordinate examples) pass 14 independent JPL
+epochs per body: maximum sky angle error 0.00002442° and 32-direction horizon convergence
+below 0.01550°. File hashes are recorded in the machine-readable report.
+
+The catalogue's one-year series remains unchanged. A separate Connecting Ridge package covers
+1 Nov 2026–1 Nov 2029. Coordinate packages can be generated with an explicit terrain choice
+and UTC range (2000–2040, maximum 1830 days each); their manifest declares the actual range,
+observer and hashes. The current app form still snaps coordinates to map cells. The package
+loader and B/D integration boundary are documented in [data-contract.md](data-contract.md).
+
 ## Method
 
 1. **Terrain horizon.** From an observer 2 m above the DEM surface, 3600 rays (every 0.1°) follow

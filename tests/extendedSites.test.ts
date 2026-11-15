@@ -1,5 +1,5 @@
 /// <reference types="node" />
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { cellId, isKnownSiteId, needsYear, parseCellId, resolveSiteData, sitesNeeded, snapToCell, type ExtendedState } from '../src/app/extendedSites.ts'
@@ -22,7 +22,7 @@ const bySite: Record<string, SiteData> = Object.fromEntries(
       ephemeris: read(`${site.id}/ephemeris.json`),
       horizon: read(`${site.id}/horizon.json`),
       terrain: { sizeM: 0, n: 0, cellM: 0, zM: [] },
-      map: site.category === 'contrast' ? undefined : read<MapDoc>(`${site.id}/map.json`),
+      map: existsSync(`${DATA_DIR}${site.id}/map.json`) ? read<MapDoc>(`${site.id}/map.json`) : undefined,
     } as SiteData,
   ]),
 )

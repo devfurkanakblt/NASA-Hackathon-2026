@@ -43,9 +43,9 @@ def test_rejects_stop_before_start(tmp_path):
     assert r.returncode == 2 and "after" in r.stderr
 
 
-def test_rejects_range_outside_supported_year(tmp_path):
-    r = run(["--id", "X", *SITE01, "--stop", "2027-11-01T00:10:00Z"], tmp_path)
-    assert r.returncode == 2 and "2027-11-01T00:00:00Z" in r.stderr
+def test_rejects_range_outside_generator_coverage(tmp_path):
+    r = run(["--id", "X", *SITE01, "--stop", "2041-01-01T00:00:00Z"], tmp_path)
+    assert r.returncode == 2 and "2040-01-01T00:00:00Z" in r.stderr
 
 
 @pytest.mark.parametrize("bad", ["../X", "Site01", ""])
@@ -93,7 +93,7 @@ def _j(pkg, name):
 @needs_dem
 def test_package_files(tmp_out):
     names = sorted(p.name for p in tmp_out.iterdir())
-    assert names == ["ephemeris.json", "extended.json", "horizon.json", "site.json", "terrain.json", "year.bin"]
+    assert names == ["ephemeris.json", "extended.json", "horizon.json", "package.json", "site.json", "terrain.json", "year.bin"]
     h = _j(tmp_out, "horizon.json")
     assert h["azStepDeg"] == 0.1 and h["count"] == 3600 and h["params"]["maxRangeM"] == C.FAR_RANGE_M
     e = _j(tmp_out, "ephemeris.json")

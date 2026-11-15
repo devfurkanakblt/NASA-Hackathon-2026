@@ -5,7 +5,7 @@
  * - a map point 630 m from the Site01 catalogue point sees Earth far more often;
  * - the same site in April 2027 instead of November 2026 loses the Sun and its battery reserve.
  */
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { resolveSiteData } from '../src/app/extendedSites.ts'
@@ -30,7 +30,7 @@ const bySite: Record<string, SiteData> = Object.fromEntries(
       site,
       ephemeris: read(`${site.id}/ephemeris.json`),
       horizon: read(`${site.id}/horizon.json`),
-      map: site.category === 'contrast' ? undefined : read<MapDoc>(`${site.id}/map.json`),
+      map: existsSync(`${DATA_DIR}${site.id}/map.json`) ? read<MapDoc>(`${site.id}/map.json`) : undefined,
     } as SiteData,
   ]),
 )

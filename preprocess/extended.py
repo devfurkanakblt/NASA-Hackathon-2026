@@ -55,7 +55,7 @@ def write_year_array(site_id, y, out_dir, start_utc, end_utc, source, lat_deg, l
 
 
 # ---------------------------------------------------------------- cells
-MAP_SITES = [s for s in C.SITES if C.SITES[s].get("dem") != "ldem64"]
+MAP_SITES = [s for s in C.SITES if (C.OUT_DIR / s / "map.json").exists()]
 TEST_CELLS_61 = [(5, 5), (5, 55), (55, 5), (55, 55), (30, 10), (36, 32)]
 REFERENCE_CELLS = [("Site01", None), ("Site01", (36, 32)), ("Site04", (5, 55)), ("Site07", (55, 5)),
                    ("Site11", (2, 27))]

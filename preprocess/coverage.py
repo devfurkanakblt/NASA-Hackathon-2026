@@ -17,7 +17,9 @@ from .dem import LONLAT, to_xy
 from .regional_map import MAP_AZ_STEP_DEG
 from .writer import write
 
-FREE_POINTS = "not supported in the app; generate a package with python -m preprocess.custom_point"
+FREE_POINTS = ("App coordinate input snaps only to existing map cells. Generate a portable package with "
+               "python -m preprocess.custom_point: --terrain local5m (strict, default), regional (south of 80 S), "
+               "or global (~474 m; unresolved small hills). Package importer: src/data/scientificPackage.ts.")
 REGIONAL_LAT_MAX_DEG = -80.0
 GLOBAL_NAME = "LDEM_64"
 REGIONAL_NAME = "LDEM_80S_80MPP_ADJ"
@@ -38,7 +40,7 @@ def _sites():
 
 
 def _local_tiles():
-    return sorted({C.tile_of(s) for s, v in C.SITES.items() if v.get("dem") != "ldem64"})
+    return sorted({C.tile_of(s) for s, v in C.SITES.items() if v.get("dem") not in ("ldem64", "regional80")})
 
 
 @lru_cache(maxsize=None)
@@ -147,7 +149,7 @@ def build_coverage() -> dict:
         h = _load(s["id"], "horizon.json")
         catalogue.append({"siteId": s["id"], "latDeg": s["latDeg"], "lonDeg": s["lonDeg"],
                           "horizonResolutionDeg": h["azStepDeg"]})
-        if s.get("category") == "contrast":
+        if not (C.OUT_DIR / s["id"] / "map.json").exists():
             continue
         m, ext = _load(s["id"], "map.json"), _load(s["id"], "extended.json")
         if ext["year"]["startUtc"] != time["startUtc"] or ext["year"]["endUtc"] != time["endUtc"] or ext["year"]["stepS"] != time["stepS"]:

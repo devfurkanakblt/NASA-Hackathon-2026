@@ -269,6 +269,106 @@ const visible = (el: number, az: number, h: Horizon) => el > horizonAt(h, az);
 
 Optional partial Sun disk: angular radius ≈ `0.2666 * 1.495978707e11 / distanceM` degrees; visible fraction ≈ clamp((el − horizon + r) / (2r), 0, 1).
 
-## Sample data
+## Mission catalogue extension (A, 15 Nov 2026)
 
-`public/data/_sample/` holds synthetic files with exactly this shape (`source: "synthetic"`). Use them until real files land.
+`sites.json` additionally publishes 23 source-pinned points: Apollo 12/14–17, IM-1/IM-2,
+Blue Ghost 1, Chandrayaan-3, SLIM, Chang'e-3/4/5, the centre of Peregrine's historical
+target region, and nine published research candidates representing NASA's October 2024
+Artemis III candidate-region list. The original nine entries retain their data and identifiers.
+
+Optional entry fields (preserve them when copying a site):
+
+| Field | Meaning |
+|---|---|
+| `program`, `mission` | Mission grouping and name; not a current operational-status feed |
+| `coordinateStatus` | `landed`, `region-representative`, or `research-candidate` |
+| `regionSource` | Dated primary region-list URL, separate from the coordinate source |
+| `coordSource` | Primary URL or DOI and table/candidate identifier |
+
+The region representatives are point samples, not polygons or selected landing sites.
+Peregrine did not land; its record is the IAU feature centre of Sinus Viscositatis.
+Do not describe all entries as certified, historical landings, or 5 m terrain. `demNear`,
+`demFar`, `label`, and `warnings` describe the actual source/limitations. 0.1° is the azimuth
+sampling interval, not an absolute angular-accuracy claim. New points have no regional
+`map.json` unless explicitly provided. Test file existence; category alone is insufficient.
+The existing seven regional maps retain their period, grids and cell data.
+
+## Portable scientific package / generation boundary (A → B/D)
+
+The static browser app does not run Python or provide a generation service. A service/worker
+adapter owned by B/D can accept this request, or let a user import a generated folder:
+
+```json
+{
+  "version": 1,
+  "id": "MyPoint",
+  "latDeg": -89.4632,
+  "lonDeg": -137.49,
+  "startUtc": "2026-11-01T00:00:00Z",
+  "endUtc": "2029-11-01T00:00:00Z",
+  "terrain": "local5m",
+  "ephemerisSource": "skyfield"
+}
+```
+
+This maps directly to `python -m preprocess.custom_point --id ... --lat ... --lon ...
+--start ... --stop ... --terrain ... --source ...`. `id` starts with a letter and contains
+1–32 letters/digits/underscores/hyphens; catalogue ids are reserved. Latitude is [-90,90],
+longitude is normalised to (-180,180]. All inputs must be finite. Date endpoints must be
+UTC on the 600 s grid, inside 2000-01-01 … 2040-01-01, increasing, with at most 1830 days
+per package. The checked-in 2026–2029 Connecting Ridge example demonstrates a real
+three-year series. The generator's allowed dates do not extend existing catalogue data.
+
+`terrain` is an explicit accuracy choice:
+
+- `local5m` (default): the entire 7 km near range must fit one available 5 m tile, else reject.
+- `regional`: south of 80°S, 80 m regional DEM; missing far terrain remains warned about.
+- `global`: any lunar coordinate, global LDEM_64 (~474 m/px). Longitude interpolation is
+  periodic; polar edges use nearest real raster pixels. Small terrain hazards are unresolved.
+
+Rejected input exits with code 2 and an English reason. Build failures do not publish a custom
+package: generation uses a temporary folder, then renames the completed result. A future
+service must execute an argument array (never interpolate inputs into a shell), propagate
+failure/cancellation, and publish only the completed folder. There is no silent snap, time
+clamp, synthetic zero horizon, or implicit switch to coarser terrain.
+
+Each folder contains `site.json`, `horizon.json`, `terrain.json`, `ephemeris.json`,
+`year.bin`, `extended.json`, and `package.json`. The horizon includes an explicit
+`observer: {latDeg, lonDeg, eyeM}` matching the extended header; surface height is rounded
+before all calculations so the same observer is used. `ephemeris.json` starts at the requested
+start and covers up to 61 days. Despite its historical filename, `year.bin` covers the complete
+requested period. Its header has the actual start/end/count, never an assumed 52,561 samples.
+Terrain display is normally 10 km wide; if DEM coverage requires a smaller patch its `sizeM`
+and site warning say so. Scientific horizon coverage is independent of this visual footprint.
+
+`package.json` schema (`ScientificManifest` in `src/data/scientificPackage.ts`):
+
+```text
+version: 1, kind: "lunar-scientific-package", siteId
+observer: {latDeg, lonDeg, eyeM}
+coverage: {startUtc, endUtc, stepS, count}       # inclusive binary series
+ephemeris: {startUtc, stepS, count, source}      # short JSON series
+horizonResolutionDeg, warnings: string[]
+files: { <each of the six filenames>: {bytes, sha256} }
+```
+
+`public/data/packages.json` lists relative manifest paths, manifest hashes, coordinates and
+actual per-package coverage. It excludes unrelated local custom packages. No importer should
+replace an existing scenario or overwrite a catalogue point without an explicit UI action.
+
+Integration: collect the seven files as `Record<string, ArrayBuffer>` and call
+`await parseScientificPackage(files)`. It validates sizes and SHA-256 hashes, supported
+schemas, coordinate/observer agreement, full 360° horizon coverage, physical finite values,
+and matching main/binary series. It returns `{manifest, header, data}`; `data: SiteData` already
+contains the full-period ephemeris and provenance and can be passed to `evaluateScenario`.
+Use its own coverage for date controls and last-valid-start calculation. Existing `sites.json`
+coverage remains the main catalogue period; `coverage.json.time` remains its one-year
+extension. B owns upload/generation UI and job progress/cancel; D owns service/motor wiring.
+
+New packages and the three-year example are independently checked against Horizons at
+14 epochs per body spanning the full period, with 32-azimuth horizon convergence checks.
+See [validation-missions.md](validation-missions.md); hashes bind the measurements to files.
+
+## Sample fixtures
+
+`public/data/_sample/` holds synthetic JSON fixtures (`source: "synthetic"`). Published binary scientific packages accept only `jpl-horizons` or `skyfield-de421` sources.

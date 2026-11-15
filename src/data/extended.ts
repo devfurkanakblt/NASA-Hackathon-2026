@@ -45,6 +45,11 @@ const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object
 const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v)
 const isPosInt = (v: unknown): v is number => typeof v === 'number' && Number.isInteger(v) && v > 0
 const isSha = (v: unknown) => typeof v === 'string' && /^[0-9a-f]{64}$/.test(v)
+const utcTime = (v: unknown) => {
+  if (typeof v !== 'string' || !/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ$/.test(v)) return NaN
+  const ms = Date.parse(v)
+  return Number.isFinite(ms) && new Date(ms).toISOString().slice(0, 19) === v.slice(0, 19) ? ms : NaN
+}
 
 /**
  * Checks an `extended.json` against schema 2. Returns one English sentence per problem
@@ -56,18 +61,19 @@ export function validateExtendedHeader(h: unknown, siteId: string): string[] {
   const out: string[] = []
   const bad = (msg: string) => out.push(`${where}: ${msg}`)
   if (!isObj(h)) return [`${where}: header must be a JSON object`]
+  if (h.version !== 1) bad('version must be 1')
   if (h.extendedSchema !== SUPPORTED_EXTENDED_SCHEMA) bad(`extendedSchema must be ${SUPPORTED_EXTENDED_SCHEMA}, got ${JSON.stringify(h.extendedSchema)}`)
   if (h.siteId !== siteId) bad(`siteId must be "${siteId}", got ${JSON.stringify(h.siteId)}`)
   const y = h.year
   if (!isObj(y)) bad('year section is missing')
   else {
-    if (typeof y.file !== 'string' || !y.file) bad('year.file must be a non-empty string')
+    if (y.file !== 'year.bin') bad('year.file must be year.bin')
     if (!isSha(y.sha256)) bad('year.sha256 must be 64 lowercase hex characters')
     if (y.stepS !== 600) bad(`year.stepS must be 600, got ${JSON.stringify(y.stepS)}`)
     if (!isPosInt(y.count)) bad(`year.count must be a positive integer, got ${JSON.stringify(y.count)}`)
-    if (typeof y.source !== 'string' || !y.source) bad('year.source must be a non-empty string')
-    const start = typeof y.startUtc === 'string' ? Date.parse(y.startUtc) : NaN
-    const end = typeof y.endUtc === 'string' ? Date.parse(y.endUtc) : NaN
+    if (!['jpl-horizons', 'skyfield-de421'].includes(y.source as string)) bad('year.source must be jpl-horizons or skyfield-de421')
+    const start = utcTime(y.startUtc)
+    const end = utcTime(y.endUtc)
     if (!Number.isFinite(start)) bad(`year.startUtc is not a parsable UTC time: ${JSON.stringify(y.startUtc)}`)
     if (!Number.isFinite(end)) bad(`year.endUtc is not a parsable UTC time: ${JSON.stringify(y.endUtc)}`)
     if (Number.isFinite(start) && Number.isFinite(end) && isPosInt(y.count) && isNum(y.stepS) && end !== start + (y.count - 1) * y.stepS * 1000) {
@@ -75,6 +81,7 @@ export function validateExtendedHeader(h: unknown, siteId: string): string[] {
     }
     const o = y.observer
     if (!isObj(o) || !isNum(o.latDeg) || !isNum(o.lonDeg) || !isNum(o.eyeM)) bad('year.observer must have finite latDeg, lonDeg and eyeM')
+    else if (Math.abs(o.latDeg) > 90 || Math.abs(o.lonDeg) > 180) bad('year.observer coordinate is outside latitude/longitude bounds')
     if (!Array.isArray(y.fields) || y.fields.length !== YEAR_FIELDS.length || YEAR_FIELDS.some((f, i) => (y.fields as unknown[])[i] !== f)) {
       bad(`year.fields must be exactly [${YEAR_FIELDS.join(', ')}] in that order`)
     }
@@ -83,15 +90,15 @@ export function validateExtendedHeader(h: unknown, siteId: string): string[] {
   if (c !== undefined) {
     if (!isObj(c)) bad('cells section must be an object')
     else {
-      if (typeof c.file !== 'string' || !c.file) bad('cells.file must be a non-empty string')
+      if (c.file !== 'cells.bin') bad('cells.file must be cells.bin')
       if (!isSha(c.sha256)) bad('cells.sha256 must be 64 lowercase hex characters')
       if (c.azStartDeg !== 0) bad(`cells.azStartDeg must be 0, got ${JSON.stringify(c.azStartDeg)}`)
       if (!isNum(c.azStepDeg) || c.azStepDeg <= 0 || !isPosInt(c.count) || Math.abs(c.azStepDeg * c.count - 360) > 1e-9) {
         bad(`cells.azStepDeg * count must equal 360, got ${JSON.stringify(c.azStepDeg)} * ${JSON.stringify(c.count)}`)
       }
       if (c.coverageDeg !== 360) bad(`cells.coverageDeg must be 360, got ${JSON.stringify(c.coverageDeg)}`)
-      if (!isNum(c.unitDeg) || c.unitDeg <= 0) bad(`cells.unitDeg must be a positive number, got ${JSON.stringify(c.unitDeg)}`)
-      if (!isNum(c.horizonResolutionDeg) || c.horizonResolutionDeg <= 0) bad('cells.horizonResolutionDeg must be a positive number')
+      if (c.unitDeg !== .01) bad('cells.unitDeg must be 0.01')
+      if (c.horizonResolutionDeg !== c.azStepDeg) bad('cells.horizonResolutionDeg must equal azStepDeg')
       if (!isPosInt(c.n)) bad(`cells.n must be a positive integer, got ${JSON.stringify(c.n)}`)
       if (!Array.isArray(c.eyeM) || (isPosInt(c.n) && c.eyeM.length !== c.n)) bad(`cells.eyeM must be an array of length n (${JSON.stringify(c.n)})`)
       else if (!c.eyeM.every(isNum)) bad('cells.eyeM contains a non-finite value')

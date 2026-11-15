@@ -20,6 +20,11 @@ export interface SiteEntry {
   derivation?: string
   /** `contrast`: a point outside the south polar region, for educational comparison. */
   category?: string
+  mission?: string
+  program?: string
+  coordinateStatus?: 'landed' | 'region-representative' | 'research-candidate'
+  regionSource?: string
+  aliases?: string[]
 }
 
 export interface SitesDoc {

@@ -38,7 +38,7 @@ def month_starts(start=SEASON_START, stop=SEASON_STOP):
     t, t1, out = _dt(start), _dt(stop), []
     while t < t1:
         out.append(t)
-        t = t.replace(year=t.year + (t.month == 12), month=t.month % 12 + 1)
+        t = t.replace(day=1, year=t.year + (t.month == 12), month=t.month % 12 + 1)
     return out + [t1]
 
 
@@ -54,7 +54,7 @@ def query_year(site_id, source="horizons", start=SEASON_START, stop=SEASON_STOP,
     eye = load_eye(site_id) if eye is None else eye
     t0, t1 = _dt(start), _dt(stop)
     # Chunk edges come from the season's quarter starts, so the default call keeps its Horizons cache keys.
-    edges = [t0] + [m for m in month_starts()[::CHUNK_MONTHS] if t0 < m < t1] + [t1]
+    edges = [t0] + [m for m in month_starts(start, stop)[::CHUNK_MONTHS] if t0 < m < t1] + [t1]
     out = {}
     for body in ("sun", "earth"):
         rows = []

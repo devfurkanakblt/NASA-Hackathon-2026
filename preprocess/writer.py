@@ -34,7 +34,8 @@ def display_path(path):
 
 def write(path, obj):
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(obj, separators=(",", ":")), encoding="utf-8")
+    text = json.dumps(obj, separators=(",", ":"), allow_nan=False)
+    path.write_text(text, encoding="utf-8")
     print(f"wrote {display_path(path)} ({path.stat().st_size/1e3:.0f} kB)")
 
 
@@ -43,7 +44,7 @@ def ephemeris_doc(site_id, source, sun_rows, earth_rows, start_utc=C.START_UTC, 
     assert sun_rows[0][0] == start_utc, (sun_rows[0][0], start_utc)
 
     def block(rows):
-        return {"azDeg": _r((r[1] for r in rows), 4),
+        return {"azDeg": [v % 360 for v in _r((r[1] for r in rows), 4)],
                 "elDeg": _r((r[2] for r in rows), 4),
                 "distanceM": _r((r[3] for r in rows), -3)}
 
@@ -86,6 +87,15 @@ def site_entry(site_id, surface_elev_m, warnings=()):
         entry["label"] = "Contrast point outside the south polar region - educational comparison"
     if "category" in s:
         entry["category"] = s["category"]
+    if s.get("dem") == "regional80":
+        entry["demNear"] = entry["demFar"] = "LDEM_80S_80MPP_ADJ (80 m/px; no local 5 m tile)"
+    if "coordSource" in s:
+        entry["coordSource"] = s["coordSource"]
+    if "label" in s:
+        entry["label"] = s["label"]
+    for key in ("mission", "program", "coordinateStatus", "regionSource", "aliases"):
+        if key in s:
+            entry[key] = s[key]
     if "derivedFrom" in s:
         entry["coordSource"] = f"Derived from {s['derivedFrom']} ({C.COORD_SOURCE})"
         entry["derivedFrom"] = s["derivedFrom"]

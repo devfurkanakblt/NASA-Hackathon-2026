@@ -49,6 +49,14 @@ NASA data ──► Python preprocessing (offline) ──► public/data/*.json 
 
 ### Sites
 
+The catalogue contains **32 points**. The original nine are listed below. The 23 additions cover
+Apollo 12/14–17, IM-1/IM-2, Blue Ghost 1, Chandrayaan-3, SLIM, Chang'e-3/4/5, Peregrine's
+historical target-region centre, and one published research candidate for each of NASA's nine
+October 2024 Artemis III candidate regions. Research representatives are not approved landing
+sites; Peregrine did not land on the Moon. Coordinate status, primary sources and DEM resolution
+travel with each point. Details: [mission catalogue](preprocess/mission_catalogue.py),
+[independent validation and DEM coverage](docs/validation-missions.md).
+
 | Id | Name | Lat | Lon (east) | Note |
 |---|---|---|---|---|
 | Site01 | Connecting Ridge | −89.4632° | −137.49° | |
@@ -64,9 +72,16 @@ NASA data ──► Python preprocessing (offline) ──► public/data/*.json 
 Coordinates: NASA Lunar Surface Data Book (M2M-30044, 2025), Table A2.1-1; contrast points from
 LROC (Chang'e-6) and NASA NSSDC (Apollo 11). Missions of 1–30 days can start anywhere from
 1 Nov 2026 to 1 Nov 2027 UTC (10-minute steps; a site's one-year series loads when a mission runs past
-1 Jan 2027). Each polar site also has a regional map (`map.json`: Sun / Earth visibility
+1 Jan 2027; the entire mission must fit the available series). Each original polar site also has a regional map (`map.json`: Sun / Earth visibility
 and slope on a ±3 km grid) whose points can be simulated as missions, and a one-year monthly summary
 (`season.json`); see the [data contract](docs/data-contract.md).
+
+For longer studies the repository includes a **2026–2029 Connecting Ridge package**.
+`python -m preprocess.custom_point` generates other coordinates/periods with an explicit terrain
+choice: local 5 m (strict default), south-polar 80 m, or global ~474 m screening. Dates may be
+within 2000–2040, up to 1830 days per package. A hash-checking TypeScript importer and generation
+contract are ready for B/D; the current coordinate form still snaps to existing regional cells.
+See [preprocessing](preprocess/README.md) and [package contract](docs/data-contract.md).
 
 ### Model
 
@@ -74,6 +89,8 @@ and slope on a ±3 km grid) whose points can be simulated as missions, and a one
 azimuth: `el > horizonAt(az)`, with `horizonAt` a circular linear interpolation of a 3 600-direction
 (0.1°) horizon profile. The profile is computed from LOLA 5 m/px DEMs within 7 km and the 80 m/px
 south-pole DEM out to 250 km, with lunar curvature. The 3D scene never decides visibility.
+New mission points outside local tile coverage explicitly use the 80 m regional or ~474 m global
+DEM. Their 0.1° horizon sampling does not resolve small terrain hazards or certify landing safety.
 
 **Power.**
 

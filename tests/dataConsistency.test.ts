@@ -76,7 +76,7 @@ describe('terrain mesh vs horizon profile (public/data)', () => {
       const step = Math.round(1 / horizon.azStepDeg)
       for (let i = 0; i < horizon.elevDeg.length; i += step) {
         const distance = horizon.distanceM?.[i]
-        if (distance === undefined || distance < MIN_DISTANCE_M || distance > MAX_DISTANCE_M) continue
+        if (distance === undefined || distance < MIN_DISTANCE_M || distance > Math.min(MAX_DISTANCE_M, terrain.sizeM / 2)) continue
         const az = i * horizon.azStepDeg
         diffs.push(Math.abs(meshSkylineDeg(mesh, site.observerHeightM, az) - horizon.elevDeg[i]))
         mirrored.push(Math.abs(meshSkylineDeg(mesh, site.observerHeightM, az, true) - horizon.elevDeg[i]))
@@ -92,7 +92,7 @@ describe('terrain mesh vs horizon profile (public/data)', () => {
       // spread) the mirrored skyline is nearly identical, so the control is skipped there.
       const compared = horizon.elevDeg.filter((_, i) => {
         const d = horizon.distanceM?.[i]
-        return i % step === 0 && d !== undefined && d >= MIN_DISTANCE_M && d <= MAX_DISTANCE_M
+        return i % step === 0 && d !== undefined && d >= MIN_DISTANCE_M && d <= Math.min(MAX_DISTANCE_M, terrain.sizeM / 2)
       })
       if (Math.max(...compared) - Math.min(...compared) >= MIN_RELIEF_FOR_CONTROL_DEG) {
         expect(median(mirrored)).toBeGreaterThan(3 * median(diffs) + 0.2)
