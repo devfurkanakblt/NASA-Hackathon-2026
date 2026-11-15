@@ -2527,3 +2527,9 @@
 .research__type > details > summary { cursor: pointer; margin-block: 10px; }
 /* Prepared WebGL labels may override visibility; opacity also hides their parent composite. */
 .sim[hidden], .moon-picker[data-mode='watch'] { opacity: 0; }
+@media (max-width: 640px) {
+  /* A readable globe needs room when several selections or coordinate feedback wrap. */
+  .app--pick { height: auto; min-height: 100dvh; overflow: visible; }
+  .app--pick .moon-picker__globe { flex: none; min-height: 460px; }
+  .app--pick .moon-globe { height: 460px; min-height: 460px; }
+}

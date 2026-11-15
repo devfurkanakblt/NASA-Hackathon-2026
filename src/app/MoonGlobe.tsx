@@ -64,7 +64,9 @@ function KeepLabelsInFrame({ positions, refs }: { positions: Vector3[]; refs: { 
     // demand, so keep drawing briefly until they can be measured. Labels hidden behind
     // the rim measure 0 and are skipped; turning the globe draws new frames anyway.
     let unmeasured = false
-    const placed: LabelBox[] = []
+    const placed: LabelBox[] = [{ x: 76, y: 29, w: 128, h: 38 }]
+    // Leave room for the floating comparison controls, particularly in a narrow window.
+    const labelFrame = { w: size.width, h: Math.max(0, size.height - (mobile ? 90 : 45)) }
     positions.forEach((position, i) => {
       const { label, line } = refs.current[i] ?? {}
       if (!label?.offsetWidth) { unmeasured = true; return }
@@ -72,7 +74,7 @@ function KeepLabelsInFrame({ positions, refs }: { positions: Vector3[]; refs: { 
       const pin = mobile ? { x: offset.mobileX, y: offset.mobileY } : { x: offset.x, y: offset.y }
       projected.copy(position).project(camera)
       const anchor = { x: (projected.x + 1) / 2 * size.width, y: (1 - projected.y) / 2 * size.height }
-      const box = separateGlobeLabel(anchor, pin, { w: label.offsetWidth, h: label.offsetHeight }, { w: size.width, h: size.height }, placed)
+      const box = separateGlobeLabel(anchor, pin, { w: label.offsetWidth, h: label.offsetHeight }, labelFrame, placed)
       placed.push(box)
       const shift = { x: box.x - anchor.x - pin.x, y: box.y - anchor.y - pin.y }
       label.style.setProperty('--pin-shift-x', `${shift.x}px`)
@@ -181,7 +183,7 @@ export default function MoonGlobe({ sites, selected, onSelect, onPickPoint, flig
       </group>)}
       {flight && onComplete ? <FlightCamera flight={flight} onComplete={onComplete} /> : <OrbitControls makeDefault enablePan={false} minDistance={1.001} maxDistance={4} enableDamping dampingFactor={.12} />}
     </Canvas>
-    {!flight && <button type="button" style={{ position: 'absolute', left: 12, bottom: 50, zIndex: 25 }} onClick={() => setPoleRequest(n => n + 1)}>Focus south pole</button>}
+    {!flight && <button type="button" style={{ position: 'absolute', left: 12, top: 12, zIndex: 25 }} onClick={() => setPoleRequest(n => n + 1)}>Focus south pole</button>}
     {!flight && <span className="moon-globe__hint">Rotate the whole Moon · Click the surface to compare a point · Scroll to zoom</span>}
     <span className="moon-globe__credit" title="Archival LROC photographs show their original illumination, not the selected mission time. Display terrain uses the shared NASA LOLA global tiles at ~1.9 km per pixel, true height; the mesh refines on zoom without adding source detail. Scientific coverage and precision are reported with each result.">{terrain ? 'NASA LOLA terrain · ~1.9 km/px' : error ? 'Terrain unavailable · Locator only' : 'Loading checked NASA LOLA terrain…'} · {photograph.texture ? 'LROC archive imagery' : photograph.failed ? 'Global image unavailable' : 'Loading global image…'}</span>
   </div>

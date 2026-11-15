@@ -50,7 +50,7 @@ describe('places in the picker list', () => {
 })
 
 describe('selected globe labels', () => {
-  it.each([{ w: 1200, h: 600 }, { w: 520, h: 280 }])('keeps four clustered labels apart inside $w by $h', frame => {
+  it.each([{ w: 1200, h: 600 }, { w: 520, h: 190 }])('keeps four clustered labels apart inside $w by $h', frame => {
     const boxes: ReturnType<typeof separateGlobeLabel>[] = []
     for (let i = 0; i < 4; i++) {
       const box = separateGlobeLabel({ x: frame.w / 2, y: frame.h / 2 }, { x: 0, y: 0 }, { w: 145, h: 48 }, frame, boxes)

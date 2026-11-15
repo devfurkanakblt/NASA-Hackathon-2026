@@ -32,7 +32,7 @@ six-colour palette, package/free-point calculation infrastructure and Research v
   registered local 3D map, terrain overview, NASA imagery control, current Sun/Earth status
   and return to the globe. No production-page console errors were observed.
 - Inspected the south-polar close-up: per-fragment projection removes the old polar UV
-  streaks. The normal narrow browser view and a 1280 x 900 desktop view were inspected.
+  streaks. The normal narrow browser view and a 1280 x 900 desktop view were inspected. Narrow screens retain a 460 px globe, with labels clear of the focus and comparison controls; hidden prewarmed scene labels do not bleed into the picker.
 
 ## Accuracy boundary
 
