@@ -10,10 +10,10 @@ import { SceneMissionSummary } from '../scene3d/SceneMissionSummary.tsx'
 import type { BodyState, PanelState } from '../scene3d/index.ts'
 import type { TerrainGrid } from '../scene3d/types.ts'
 import { earthOrientationAt, earthOrientationCoverageWarning, earthSunDirectionAt } from '../scene3d/appearance.ts'
-import { DEFAULT_SETTINGS, validateSettings } from '../sim/evaluate.ts'
+import { DEFAULT_SETTINGS, missionStartRange, validateSettings } from '../sim/evaluate.ts'
 import type { MissionSettings } from '../sim/evaluate.ts'
-import { nextTransition } from '../sim/visibility.ts'
-import type { VisibilityWindow } from '../sim/visibility.ts'
+import { sampleUtc } from '../sim/evaluate.ts'
+import { countdown } from './countdown.ts'
 import { LineChart } from './charts/LineChart.tsx'
 import { SkyVisibilityChart } from './charts/SkyVisibilityChart.tsx'
 import { SeasonChart } from './charts/SeasonChart.tsx'
@@ -32,6 +32,11 @@ import { cellAt } from './mapGrid.ts'
 import { defaultScenarios, evaluateAll, isEvaluated, newKey, scenarioLabel, scenarioColor, targetScenarioKey } from './scenarios.ts'
 import type { Scenario } from './scenarios.ts'
 import { ResearchView } from './ResearchView.tsx'
+import { SearchPanel } from './SearchPanel.tsx'
+import { csvFileName, downloadText, scenarioCsv } from './download.ts'
+import { PackageImport } from './PackageImport.tsx'
+import { registerPackage } from '../data/packageService.ts'
+import type { ScientificPackage } from '../data/scientificPackage.ts'
 import { SettingsForm } from './SettingsForm.tsx'
 import { decodeShare, encodeShare } from './share.ts'
 import { Sources } from './Sources.tsx'
@@ -76,13 +81,6 @@ function cellOffset(map: Parameters<typeof cellAt>[0], row: number, col: number)
 }
 const fmtM = (m: number) => (Math.abs(m) < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(1)} km`)
 
-/** "in view, sets in 5 d 20 h" / "hidden for the rest of the mission". */
-function countdown(windows: VisibilityWindow[], visibleNow: boolean, tS: number): string {
-  const next = nextTransition(windows, tS)
-  const now = visibleNow ? 'in view' : 'hidden'
-  if (!next) return `${now} for the rest of the mission`
-  return `${now}, ${next.kind === 'set' ? 'sets' : 'rises'} in ${fmtDuration(next.atS - tS)}`
-}
 
 /**
  * The mission planner screen: scenarios (site + date) → mission hardware → comparison, with
@@ -469,13 +467,22 @@ export function MissionApp() {
       </span>
     </div>
   )
+  // After the mission: the longest series loaded for this place (its one-year file for a catalogue site).
+  const afterSeries = active && activeData
+    ? (() => {
+        const y = ext.years[activeData.site.id]
+        return y && y !== 'loading' && y !== 'error' && !parseCellId(activeData.site.id) ? y : activeData.ephemeris
+      })()
+    : null
+  const after = (body: 'sun' | 'earth') =>
+    active && activeData && afterSeries ? { ephemeris: afterSeries, horizon: activeData.horizon, body, missionEndUtc: sampleUtc(active.result, active.result.count - 1) } : undefined
   const status = active && now && (
     <p className="status">
       <span className={now.sun.visible ? 'ok' : 'bad'}>
-        <b>Sun</b> {countdown(active.result.sunWindows, now.sun.visible, now.tS)}
+        <b>Sun</b> {countdown(active.result.sunWindows, now.sun.visible, now.tS, after('sun'))}
       </span>
       <span className={now.earth.visible ? 'ok' : 'bad'}>
-        <b>Earth</b> {countdown(active.result.earthWindows, now.earth.visible, now.tS)}
+        <b>Earth</b> {countdown(active.result.earthWindows, now.earth.visible, now.tS, after('earth'))}
       </span>
     </p>
   )
@@ -500,6 +507,23 @@ export function MissionApp() {
     setScenarios(next)
     setActiveKey(current => next.some(place => place.key === current) ? current : next[0]?.key ?? null)
   }
+  /** A validated package: added to the site table (never over a catalogue site) and to the chosen places. */
+  const addPackage = (pkg: ScientificPackage): { ok: boolean; text: string } => {
+    let bySite: Record<string, SiteData>
+    try {
+      bySite = registerPackage(loaded.bySite, pkg)
+    } catch (e) {
+      return { ok: false, text: errorMessage(e) }
+    }
+    if (bySite !== loaded.bySite) setLoaded({ ...loaded, bySite })
+    const id = pkg.data.site.id
+    const range = missionStartRange(pkg.data.ephemeris, settings.durationDays)
+    if (!range) return { ok: false, text: `${id} covers less than a ${settings.durationDays}-day mission.` }
+    if (!picked.some((p) => p.siteId === id)) updateLocations([...picked, { key: newKey(), siteId: id, startUtc: range.firstStartUtc }])
+    const m = pkg.manifest
+    return { ok: true, text: `${pkg.data.site.name} added: data ${m.coverage.startUtc.slice(0, 10)} to ${m.coverage.endUtc.slice(0, 10)} (${m.horizonResolutionDeg}° horizon)${m.warnings.length ? `; ${m.warnings.length} coverage warning(s) shown with its results` : ''}.` }
+  }
+
   /** A typed or clicked coordinate: the best available place for it, added to the picked places. */
   const addCoordinate = (lat: number, lon: number): { ok: boolean; text: string } => {
     const choice = placeForCoordinate(lat, lon, loaded.bySite)
@@ -520,6 +544,7 @@ export function MissionApp() {
       patchSceneScenario({ siteId: choice.siteId })
       return choice.message
     }}
+    onCompareAt={startUtc => { if (chosenScenario) { const copy = { ...chosenScenario, key: newKey(), startUtc }; setScenarios([...scenarios, copy]); setActiveKey(copy.key); setPlaying(false); setStep(0) } }}
     onCopy={() => { if (chosenScenario) { const copy = { ...chosenScenario, key: newKey() }; setScenarios([...scenarios, copy]); setActiveKey(copy.key); setPlaying(false); setStep(0) } }} />
 
   // Choosing places is a single screen: the globe fills the viewport and the page does not scroll.
@@ -547,6 +572,7 @@ export function MissionApp() {
                 <summary><span className="moon-picker__coords-icon" aria-hidden="true">⌖</span><span>Enter your own coordinates</span><span className="moon-picker__coords-hint">any point on the Moon</span></summary>
                 <CoordinateForm action="Add point" onUse={addCoordinate} />
               </details>
+              <PackageImport bySite={loaded.bySite} onPackage={addPackage} />
               {pickMessage && <p className={`small moon-picker__message ${pickMessage.ok ? 'muted' : 'bad'}`} role="status">{pickMessage.text}</p>}
               </div>
               <div className="moon-picker__globe"><Suspense fallback={<p role="status">Loading the Moon&hellip;</p>}>
@@ -713,6 +739,16 @@ export function MissionApp() {
               )}
             </section>
 
+            {issues.length === 0 && (
+              <SearchPanel
+                place={active && activeData ? { siteId: active.scenario.siteId, startUtc: active.result.alignedStartUtc, data: activeData } : null}
+                settings={settings}
+                bySite={loaded.bySite}
+                titles={shownBySite}
+                onAdd={(siteId, startUtc) => { const copy = { key: newKey(), siteId, startUtc }; setScenarios((list) => [...list, copy]) }}
+              />
+            )}
+
             {active && now && activeData && tracks && (
               <section className="card explore">
                 <h2>Explore the results</h2>
@@ -764,8 +800,8 @@ export function MissionApp() {
                           every 27 days. During this mission it moved across {wobble.azSpanDeg.toFixed(1)}° of azimuth, between{' '}
                           {wobble.elMinDeg.toFixed(1)}° and {wobble.elMaxDeg.toFixed(1)}° of elevation.{' '}
                           {wobble.loop === 'crosses-horizon' && 'Here that loop crosses the level horizon, which is why Earth rises and sets at this place.'}
-                          {wobble.loop === 'always-up' && 'Here the whole loop stays above the level horizon, so Earth never sets.'}
-                          {wobble.loop === 'never-up' && 'Here the whole loop stays below the level horizon (far side), so Earth never rises.'}
+                          {wobble.loop === 'always-up' && 'Here the whole loop stayed above the level horizon, so Earth did not set during this mission.'}
+                          {wobble.loop === 'never-up' && 'Here the whole loop stayed below the level horizon (far side), so Earth did not rise during this mission.'}
                         </p>
                       )}
                       <h3>In view during the mission</h3>
@@ -867,7 +903,17 @@ export function MissionApp() {
                     </>
                   )}
 
-                  {tab === 'sources' && <Sources data={activeData} result={active.result} />}
+                  {tab === 'sources' && (
+                    <>
+                      <p className="export-row">
+                        <button type="button" onClick={() => downloadText(scenarioCsv(activeData, active.result, settings), csvFileName(active.result, settings))}>
+                          Download {active.letter} as CSV
+                        </button>
+                        <span className="small muted">Every 10-minute sample (UTC, Sun / Earth in view, panel W, demand W, battery Wh and %), with the place, settings, data sources and model limits at the top.</span>
+                      </p>
+                      <Sources data={activeData} result={active.result} />
+                    </>
+                  )}
                   </motion.div>
                 </div>
               </section>

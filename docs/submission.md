@@ -35,7 +35,7 @@ a ridge 1.9 km away gets continuous sunlight and keeps its reserve.
 a start date within the available 1 Nov 2026 – 1 Nov 2027 UTC coverage and a
 mission length (1–90 days), optionally changes the panel, battery and load assumptions, and
 compares up to three places or dates. For each one a result card answers the two questions in
-plain words, "Power?" and "Talk to Earth?", with a tick or a cross. Tabs then show why: the app shows a horizon panorama (terrain skyline with the Sun and Earth tracks), a 3D
+plain words, "Power?" and "See Earth?" (line of sight, not a promised radio link), with a tick or a cross. Tabs then show why: the app shows a horizon panorama (terrain skyline with the Sun and Earth tracks), a 3D
 view of the local terrain with the lander, timelines of Sun / Earth / both in view, panel output
 versus demand, and battery state of charge. Each scenario reports whether it keeps the battery
 reserve, the first reserve violation, unmet energy, the longest Earth outage against the accepted

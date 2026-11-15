@@ -67,7 +67,8 @@ Talking points:
 - Choosing the date matters too: three days later, Site04R and Site07 see Earth for the whole
   week, so the 6 h outage limit is met; on 15 Nov no site meets it.
 - Each result card answers two questions in plain words ("Enough power" / "Runs short of power",
-  "Always in contact" / "Long silences" / "No contact with Earth"), not a hidden-weight score.
+  "Earth in view all mission" / "Long gaps without Earth" / "No view of Earth"; Earth view is line of
+  sight during the selected mission, never a promised radio link), not a hidden-weight score.
 
 ## Story 2: a map point 630 m from the catalogue point (slide 5, optional)
 
