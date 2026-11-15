@@ -1,7 +1,9 @@
+/// <reference types="node" />
+import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { Euler, Quaternion, Vector3 } from 'three'
 import type { EarthOrientationDoc } from '../data/contract.ts'
-import { apparentSphereRadius, earthOrientationAt, earthSunDirectionAt, geographicUv, illuminatedFraction, rotationInAimFrame } from './appearance.ts'
+import { apparentSphereRadius, earthOrientationAt, earthOrientationCoverageWarning, earthSunDirectionAt, geographicUv, illuminatedFraction, rotationInAimFrame } from './appearance.ts'
 
 describe('astronomical appearance geometry', () => {
   it('preserves the limb angle of a sphere, not the radius of a flat marker', () => {
@@ -44,9 +46,28 @@ describe('Earth orientation time sampling', () => {
     expect(earthOrientationAt(doc, '2026-10-31T23:59:59Z')).toBeUndefined()
     expect(earthOrientationAt(doc, '2026-11-01T00:10:01Z')).toBeUndefined()
     expect(earthOrientationAt(undefined, doc.startUtc)).toBeUndefined()
+    expect(earthOrientationCoverageWarning(doc, '2026-11-01T00:10:01Z')).toContain('this mission UTC')
+    expect(earthOrientationCoverageWarning(doc, '2026-11-01T00:05:00Z')).toBeUndefined()
+    expect(earthOrientationCoverageWarning(undefined, doc.startUtc)).toContain('missing for this site')
   })
   it('accepts equivalent opposite signs at quaternion endpoints', () => {
     const equivalent = { ...doc, quaternionXyzw: [[0,0,0,1],[0,0,0,-1]] } as EarthOrientationDoc
     expect(Math.abs(earthOrientationAt(equivalent, '2026-11-01T00:05:00Z')![3])).toBeCloseTo(1,12)
   })
+})
+
+it('all nine published hourly Earth displays cover annual scenarios including intermediate epochs', () => {
+  const data = new URL('../../public/data/', import.meta.url)
+  const sites = JSON.parse(readFileSync(new URL('sites.json', data), 'utf8')).sites as { id: string }[]
+  for (const { id } of sites) {
+    const orientation = JSON.parse(readFileSync(new URL(`${id}/earth-orientation.json`, data), 'utf8')) as EarthOrientationDoc
+    expect(orientation.stepS).toBe(3600)
+    expect(orientation.count).toBe(8761)
+    for (const utc of ['2026-11-01T00:00:00Z', '2027-04-10T00:30:00Z', '2027-10-31T23:50:00Z', '2027-11-01T00:00:00Z']) {
+      expect(earthOrientationCoverageWarning(orientation, utc)).toBeUndefined()
+      expect(Math.hypot(...earthOrientationAt(orientation, utc)!)).toBeCloseTo(1, 10)
+      expect(Math.hypot(...earthSunDirectionAt(orientation, utc)!)).toBeCloseTo(1, 10)
+    }
+    expect(earthOrientationAt(orientation, '2027-11-01T00:00:01Z')).toBeUndefined()
+  }
 })

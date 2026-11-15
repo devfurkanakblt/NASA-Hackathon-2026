@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "file": "moon-lroc-wac.jpg",
+  "sha256": "e55d91e9e1a1e9573ec5daeb031e37a0e441a1cc1258986efb01afe3f2fb80bd",
+  "width": 4096,
+  "height": 2048,
+  "projection": "equirectangular longitude/latitude; west=-180 east=180 north=90 south=-90; row 0 north",
+  "sphereAxes": "+X longitude 0; +Y north pole; -Z longitude +90 east; Three sphere u=(longitude+180)/360",
+  "archiveShadows": true,
+  "source": {
+    "url": "https://wms.im-ldi.com/",
+    "query": {
+      "SERVICE": "WMS",
+      "VERSION": "1.1.1",
+      "REQUEST": "GetMap",
+      "LAYERS": "luna_wac_global",
+      "STYLES": "",
+      "SRS": "IAU2000:30100",
+      "BBOX": "-180,-90,180,90",
+      "WIDTH": "4096",
+      "HEIGHT": "2048",
+      "FORMAT": "image/tiff",
+      "TRANSPARENT": "TRUE"
+    },
+    "sha256": "12cbea017660620a88aa88eea3f16fced8b18255eb6fa4e9c2c0dcefb3c4b2a5",
+    "bytes": 8402615,
+    "crs": "GEOGCS[\"unknown\",DATUM[\"unknown\",SPHEROID[\"unknown\",1737400,0]],PRIMEM[\"Reference meridian\",0],UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",\"9122\"]],AXIS[\"Latitude\",NORTH],AXIS[\"Longitude\",EAST]]",
+    "transform": [
+      0.087890625,
+      0.0,
+      -180.0,
+      0.0,
+      -0.087890625,
+      90.0
+    ],
+    "validCoverageFraction": 1.0,
+    "nativePixelM": 100,
+    "equatorialOutputPixelM": 2665.138220872513
+  },
+  "capabilities": {
+    "url": "https://wms.im-ldi.com/",
+    "query": {
+      "SERVICE": "WMS",
+      "VERSION": "1.1.1",
+      "REQUEST": "GetCapabilities"
+    },
+    "sha256": "a29385e5f42259f13d8ae7660bd6ca3f5f5e7036905056ebc4ad4067e41ca47a",
+    "title": "LROC WAC Global 100m/px",
+    "abstractSha256": "80ad7b4b29ca5ae334a376b1f5835cd6fa23ccc21d5956db080a52f3ed0e5f62",
+    "metadataSummary": "WAC global mosaic combines observations from November 2009 to February 2011; polar and equatorial source products have different illumination and brightness."
+  },
+  "credit": "NASA/GSFC/Arizona State University, Lunar Reconnaissance Orbiter Camera (LROC) team",
+  "derivative": "Pillow 13.0.0; source gray byte band to RGB JPEG quality95 subsampling0 optimize; no contrast stretch, noise, fill or generated craters",
+  "limitations": [
+    "Archival WAC mosaic acquired November 2009-February 2011, not selected mission UTC or live illumination",
+    "Baked shadows and polar/equatorial brightness seams are present in the source mosaic",
+    "Source native pixel spacing is 100 m; this global locator derivative is about 2.67 km per pixel at the equator at width4096",
+    "The global locator uses a sphere, not a terrain mesh; close views use the separate measured local scene",
+    "A photograph is not a height map or calibrated albedo; it is not used for bump mapping or scientific calculations"
+  ]
+}

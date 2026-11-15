@@ -1,7 +1,7 @@
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { Html, OrbitControls } from '@react-three/drei'
 import { useEffect, useMemo, useRef } from 'react'
-import { useMoonTexture } from './useMoonTexture.ts'
+import { useMoonSurfaceTexture } from '../scene3d/moonSurfaceTexture.ts'
 import type { Mesh } from 'three'
 import { createMoonRoute, moonPosition, sampleMoonRoute } from './moonFlight.ts'
 import type { CSSProperties } from 'react'
@@ -39,13 +39,15 @@ export default function MoonGlobe({ sites, selected, onSelect, flight, onComplet
   active?: boolean; flight?: MoonFlight; onComplete?: () => void
 }) {
   const moon = useRef<Mesh>(null!)
-  const texture = useMoonTexture()
+  const { texture, failed } = useMoonSurfaceTexture()
   return <div className="moon-globe" aria-label={flight ? 'Travelling between selected lunar locations' : 'Interactive Moon location selector'}>
     <Canvas frameloop={active ? 'demand' : 'never'} camera={{ position: [0, -2.8, .65], up: [0, 0, -1], fov: 42, near: .0001, far: 30 }} dpr={[1, 1.75]}>
       <color attach="background" args={['#070a0f']} />
       <ambientLight intensity={1.3} />
       <directionalLight position={[3, -4, 5]} intensity={2.5} />
-      <mesh ref={moon}><sphereGeometry args={[1, 128, 96]} /><meshStandardMaterial map={texture} bumpMap={texture} bumpScale={.003} roughness={1} /></mesh>
+      <mesh ref={moon}><sphereGeometry args={[1, 128, 96]} />
+        {texture ? <meshBasicMaterial map={texture} toneMapped={false} /> : <meshStandardMaterial color="#898985" roughness={1} />}
+      </mesh>
       {(flight ? selected.map(p => p.site) : sites).map((site, i) => {
         const picks = selected.filter(p => p.site.id === site.id)
         const color = picks[0]?.color ?? '#ddd8cc'
@@ -66,6 +68,6 @@ export default function MoonGlobe({ sites, selected, onSelect, flight, onComplet
       {flight && onComplete ? <FlightCamera flight={flight} onComplete={onComplete} /> : <OrbitControls makeDefault enablePan={false} minDistance={1.015} maxDistance={4} enableDamping dampingFactor={.12} />}
     </Canvas>
     {!flight && <span className="moon-globe__hint">Drag to rotate · Scroll to zoom · Select a labelled location</span>}
-    <span className="moon-globe__credit">Illustrative globe · Catalogue coordinates</span>
+    <span className="moon-globe__credit">{texture ? 'NASA/LROC WAC archive · Catalogue coordinates' : failed ? 'Image unavailable · Untextured catalogue locator' : 'Loading NASA/LROC imagery · Untextured globe'}</span>
   </div>
 }

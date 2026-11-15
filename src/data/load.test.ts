@@ -50,6 +50,54 @@ function mockFiles(docs: Record<string, unknown>, failures: Record<string, numbe
 
 afterEach(() => vi.unstubAllGlobals())
 
+function imageryFixture(site: ReturnType<typeof fixture>['sites']['sites'][number], far = false) {
+  return { version: 1, siteId: site.id, file: far ? 'lunar-imagery-far.jpg' : 'lunar-imagery.jpg',
+    sizeM: 20, width: 1024, height: 1024, frame: 'local-east-north-metres-image-north-up',
+    archiveShadows: true, sha256: 'b'.repeat(64), source: {
+      url: 'https://trek.nasa.gov/moon/', name: 'NASA archival LROC mosaic', nativePixelM: 100,
+      acquisition: 'Archival composite', crs: 'local ENU', transform: [0, 1, 0, 0, 0, -1],
+      resampling: 'bilinear', limitations: ['Archive shadows do not represent selected mission time.'],
+      site: { latitudeDeg: site.latDeg, longitudeDeg: site.lonDeg, surfaceElevationM: site.surfaceElevationM, observerHeightM: site.observerHeightM },
+    } }
+}
+
+describe('registered archival lunar photography', () => {
+  it('attaches local and regional images independently without changing elevations or scientific data', async () => {
+    const f = fixture()
+    f.docs['/data/Site01/lunar-imagery.json'] = imageryFixture(f.sites.sites[0])
+    f.docs['/data/Site01/terrain-far.json'] = structuredClone(f.terrain)
+    f.docs['/data/Site01/lunar-imagery-far.json'] = imageryFixture(f.sites.sites[0], true)
+    mockFiles(f.docs)
+    const data = (await loadAllData('/data')).bySite.Site01
+    expect(data.terrain?.imagery?.textureUrl).toBe('/data/Site01/lunar-imagery.jpg?v=' + 'b'.repeat(64))
+    expect(data.terrainFar?.imagery?.textureUrl).toContain('lunar-imagery-far.jpg?v=')
+    expect(data.terrain?.zM).toEqual(f.terrain.zM)
+    expect(data.ephemeris).toEqual(f.ephemeris)
+    expect(data.visualWarnings).toEqual([])
+  })
+
+  it.each(['observer', 'footprint', 'path', 'frame', 'shadows', 'hash', 'dimensions', 'provenance', 'missingPixels'])('omits invalid imagery %s while preserving the terrain and science', async kind => {
+    const f = fixture()
+    const image = imageryFixture(f.sites.sites[0])
+    if (kind === 'observer') image.source.site.longitudeDeg++
+    if (kind === 'footprint') image.sizeM++
+    if (kind === 'path') image.file = '../other.jpg'
+    if (kind === 'frame') image.frame = 'global image stretched over local site'
+    if (kind === 'shadows') image.archiveShadows = false
+    if (kind === 'hash') image.sha256 = ''
+    if (kind === 'dimensions') image.width = 100000
+    if (kind === 'provenance') image.source.nativePixelM = NaN
+    if (kind === 'missingPixels') Object.assign(image.source, { photographicCoverageFraction: 0.99 })
+    f.docs['/data/Site01/lunar-imagery.json'] = image
+    mockFiles(f.docs)
+    const data = (await loadAllData('/data')).bySite.Site01
+    expect(data.terrain?.imagery).toBeUndefined()
+    expect(data.terrain?.zM).toEqual(f.terrain.zM)
+    expect(data.horizon).toEqual(f.horizon)
+    expect(data.visualWarnings?.join(' ')).toMatch(/invalid lunar imagery/)
+  })
+})
+
 function summaryFiles(id = 'Site01') {
   const summary = (samples: number) => ({ samples, sunPct: 50, earthPct: 40, bothPct: 20,
     sunDiskFractionMean: 0.5, longestNoSunS: 0, longestNoEarthS: 0,
@@ -113,7 +161,7 @@ describe('map and independent annual season merge regressions', () => {
     expect(data.map).toBeUndefined()
     expect(data.season).toEqual(season)
     expect(fetch.mock.calls.map(([url]) => String(url))).not.toContain('/data/Apollo11/map.json')
-    expect(fetch).toHaveBeenCalledTimes(7)
+    expect(fetch).toHaveBeenCalledTimes(8)
   })
 
   it.each(['map', 'season'])('warns on an optional %s network failure without losing science', async (kind) => {
@@ -177,7 +225,7 @@ describe('catalogue-driven loading and optional visuals', () => {
     expect(data.earthOrientation).toEqual(f.orientation)
     expect(data.terrainFar).toBeUndefined() // expected optional 404, without a warning
     expect(data.visualWarnings).toEqual([])
-    expect(fetch).toHaveBeenCalledTimes(8)
+    expect(fetch).toHaveBeenCalledTimes(10)
   })
 
   it('keeps science usable when only the local visual terrain is HTTP 404', async () => {
@@ -220,6 +268,39 @@ describe('catalogue-driven loading and optional visuals', () => {
     expect(data.ephemeris).toEqual(f.ephemeris)
   })
 
+  it('accepts an independently sampled hourly visual grid covering the scientific period', async () => {
+    const f = fixture()
+    f.orientation.stepS = 3600
+    f.orientation.count = 2
+    f.orientation.quaternionXyzw = f.orientation.quaternionXyzw.slice(0, 2)
+    f.orientation.sunDirectionAtEarth = f.orientation.sunDirectionAtEarth.slice(0, 2)
+    mockFiles(f.docs)
+    const data = (await loadAllData('/data')).bySite.Site01
+    expect(data.earthOrientation).toEqual(f.orientation)
+    expect(data.ephemeris.stepS).toBe(600)
+    expect(data.visualWarnings).toEqual([])
+  })
+
+  it.each(['tooSparse', 'notMultiple', 'startsLate', 'endsEarly', 'unaligned'])('omits an unusable visual coverage grid: %s', async (kind) => {
+    const f = fixture()
+    if (kind === 'tooSparse') f.orientation.stepS = 7200
+    if (kind === 'notMultiple') f.orientation.stepS = 900
+    if (kind === 'startsLate') f.orientation.startUtc = '2026-11-01T00:10:00Z'
+    if (kind === 'endsEarly') {
+      f.orientation.count = 2
+      f.orientation.quaternionXyzw.pop()
+      f.orientation.sunDirectionAtEarth.pop()
+    }
+    if (kind === 'unaligned') {
+      f.orientation.startUtc = '2026-10-31T23:55:00Z'
+      f.orientation.stepS = 3600
+    }
+    mockFiles(f.docs)
+    const data = (await loadAllData('/data')).bySite.Site01
+    expect(data.earthOrientation).toBeUndefined()
+    expect(data.visualWarnings?.join(' ')).toMatch(/invalid time grid/)
+  })
+
   it.each(['badQuaternion', 'wrongGrid', 'badSunVector', 'wrongTextureFrame'])('omits invalid Earth orientation: %s', async (kind) => {
     const f = fixture()
     if (kind === 'badQuaternion') f.orientation.quaternionXyzw[0] = [0, 0, 0, 2]
@@ -254,8 +335,8 @@ describe('required scientific data is rejected clearly', () => {
     const loaded = await loadAllData('data')
     expect(Object.keys(loaded.bySite)).toEqual(['Site01'])
     const urls = fetch.mock.calls.map(([url]) => String(url))
-    expect(urls).toHaveLength(8)
-    expect(new Set(urls).size).toBe(8)
+    expect(urls).toHaveLength(10)
+    expect(new Set(urls).size).toBe(10)
     expect(urls.every(url => url.startsWith('data/'))).toBe(true)
   })
 
@@ -330,4 +411,53 @@ it('loads the published scientific datasets without changing their values (local
     expect(loaded.bySite[id].season).toEqual(JSON.parse(readFileSync(`${directory}${id}/season.json`, 'utf8')))
     if (existsSync(`${directory}${id}/map.json`)) expect(loaded.bySite[id].map).toEqual(JSON.parse(readFileSync(`${directory}${id}/map.json`, 'utf8')))
   }
+})
+
+
+describe('measured surface display extension', () => {
+  const detail = (f: ReturnType<typeof fixture>) => ({
+    version: 1, siteId: f.id, file: 'terrain-normal.png', sizeM: f.terrain.sizeM, n: 16,
+    frame: 'Three object normal (+east,+up,-north)', sourceNativePixelM: 1,
+    outputPixelM: f.terrain.sizeM / 16, sha256: 'a'.repeat(64),
+    source: { url: 'NASA source', sha256: 'b'.repeat(64), method: 'Measured DEM gradients',
+      site: { latitudeDeg: f.sites.sites[0].latDeg, longitudeDeg: f.sites.sites[0].lonDeg,
+        surfaceElevationM: f.sites.sites[0].surfaceElevationM, observerHeightM: 2 } },
+  })
+  it('attaches registered local normals without changing elevations or scientific data', async () => {
+    const f = fixture()
+    // Fixture is a 20 m patch, so the synthetic plane's 1 m source is not oversampled.
+    f.docs['/data/Site01/terrain-normal.json'] = detail(f)
+    mockFiles(f.docs)
+    const data = (await loadAllData('/data')).bySite.Site01
+    expect(data.terrain?.zM).toEqual(f.terrain.zM)
+    expect(data.terrain?.normalDetail?.textureUrl).toBe('/data/Site01/terrain-normal.png?v=' + 'a'.repeat(64))
+    expect(data.ephemeris).toEqual(f.ephemeris)
+  })
+  it('keeps a smaller, centred native footprint separate from the mesh footprint', async () => {
+    const f = fixture()
+    const manifest = detail(f)
+    manifest.sizeM = 10
+    manifest.sourceNativePixelM = 0.5
+    manifest.outputPixelM = 10 / 16
+    f.docs['/data/Site01/terrain-normal.json'] = manifest
+    mockFiles(f.docs)
+    const data = (await loadAllData('/data')).bySite.Site01
+    expect(data.terrain?.sizeM).toBe(20)
+    expect(data.terrain?.normalDetail?.manifest.sizeM).toBe(10)
+    expect(data.terrain?.zM).toEqual(f.terrain.zM)
+  })
+  it.each(['coordinate', 'path', 'frame', 'spacing'])('omits unsafe or stale measured normals: %s', async kind => {
+    const f = fixture()
+    const manifest = detail(f)
+    if (kind === 'coordinate') manifest.source.site.longitudeDeg += 1
+    if (kind === 'path') manifest.file = '../other.png'
+    if (kind === 'frame') manifest.frame = 'unregistered'
+    if (kind === 'spacing') manifest.outputPixelM = 0
+    f.docs['/data/Site01/terrain-normal.json'] = manifest
+    mockFiles(f.docs)
+    const data = (await loadAllData('/data')).bySite.Site01
+    expect(data.terrain?.normalDetail).toBeUndefined()
+    expect(data.visualWarnings?.join(' ')).toMatch(/invalid terrain normal/)
+    expect(data.horizon).toEqual(f.horizon)
+  })
 })

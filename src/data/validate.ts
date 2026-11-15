@@ -238,7 +238,15 @@ export function validateEarthOrientation(value: unknown, expectedSite: string, e
   const start = utc(doc.startUtc, source, 'startUtc')
   const step = integer(doc.stepS, source, 'stepS', 1)
   const count = integer(doc.count, source, 'count', 2)
-  if (start !== Date.parse(ephemeris.startUtc) || step !== ephemeris.stepS || count !== ephemeris.count) fail(source, 'time grid', 'the scientific ephemeris time grid')
+  const scienceStart = Date.parse(ephemeris.startUtc)
+  const scienceEnd = scienceStart + (ephemeris.count - 1) * ephemeris.stepS * 1000
+  const end = start + (count - 1) * step * 1000
+  // Visual attitudes may span the annual grid at an explicitly verified hourly cadence.
+  // Positions/visibility keep their independent, finer scientific ephemeris grid.
+  if (start > scienceStart || end < scienceEnd || step < ephemeris.stepS || step > 3600 ||
+      step % ephemeris.stepS !== 0 || (scienceStart - start) % (ephemeris.stepS * 1000) !== 0) {
+    fail(source, 'time grid', 'an aligned visual grid covering the scientific period, in whole source-step multiples up to one hour')
+  }
   if (!Array.isArray(doc.quaternionXyzw) || doc.quaternionXyzw.length !== count) fail(source, 'quaternionXyzw', `${count} unit quaternions`)
   doc.quaternionXyzw.forEach((entry, i) => {
     const q = numbers(entry, 4, source, `quaternionXyzw[${i}]`, -1.000001, 1.000001)
