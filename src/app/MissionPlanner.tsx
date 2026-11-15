@@ -5,10 +5,12 @@ import type { MissionSettings } from '../sim/evaluate.ts'
 import { validateSettings } from '../sim/evaluate.ts'
 import { runSearch } from '../sim/searchClient.ts'
 import { METRICS, type SearchCandidate, type SearchMetric, type SearchResult } from '../sim/search.ts'
-import { fmtLatLon, fmtUtc } from './format.ts'
+import { fmtUtc } from './format.ts'
 import { parseFreePointId } from '../sim/freePoint.ts'
 import { REGION_LABEL, type SearchRegion } from '../sim/hemisphere.ts'
 import { plannerDiagnostics } from './plannerDiagnostics.ts'
+import { placeLatLon } from './placeName.ts'
+import { PlaceLink } from './PlaceLink.tsx'
 import './missionPlanner.css'
 
 interface Props {
@@ -17,12 +19,14 @@ interface Props {
   startUtc: string
   settings: MissionSettings
   onUse: (siteId: string, startUtc: string, durationDays: number) => void
+  /** Opens this location and mission on the Simulation page's Moon. */
+  onShow: (siteId: string, startUtc: string, durationDays: number) => void
 }
 
-/** "Point 75.000°S, 30.000°E" for a free surface point, else null. */
-const pointName = (id: string) => { const p = parseFreePointId(id); return p ? `Point ${fmtLatLon(p.latDeg, p.lonDeg)}` : null }
+/** "Surface point" for a free point (its coordinates are shown beside it), else null. */
+const pointName = (id: string) => (parseFreePointId(id) ? 'Surface point' : null)
 
-export function MissionPlanner({ catalogue, selected, startUtc, settings, onUse }: Props) {
+export function MissionPlanner({ catalogue, selected, startUtc, settings, onUse, onShow }: Props) {
   const [mode, setMode] = useState<'hemisphere' | 'mission'>('hemisphere')
   const [metric, setMetric] = useState<SearchMetric>('minSoc')
   const [spacing, setSpacing] = useState(15)
@@ -97,7 +101,9 @@ export function MissionPlanner({ catalogue, selected, startUtc, settings, onUse 
       <h3>{result.best ? 'Recommended among tested options' : result.status === 'complete' ? 'No tested option meets every limit' : 'Search incomplete'}</h3>
       <p className="muted small">{result.tested} calculations · {result.spatialCoverage.places} {result.spatialCoverage.places === 1 ? 'location' : 'locations'} · {(result.elapsedMs / 1000).toFixed(1)} s</p>
       {result.feasible.slice(0, 5).map((c, i) => <div className="planner__option" key={`${c.siteId}:${c.startUtc}`}>
-        <div><strong>{i + 1}. {catalogue[c.siteId]?.site.name ?? (pointName(c.siteId) ?? selected?.site.name ?? c.siteId)}</strong>
+        <div><PlaceLink rank={i + 1} name={catalogue[c.siteId]?.site.name ?? (pointName(c.siteId) ?? selected?.site.name ?? c.siteId)}
+            at={placeLatLon(c.siteId, catalogue) ?? (selected?.site.id === c.siteId ? selected.site : null)}
+            onShow={() => onShow(c.siteId, c.startUtc, c.durationDays ?? settings.durationDays)} />
           <p>{fmtUtc(c.startUtc)} · {c.durationDays ?? settings.durationDays} days</p>
           <p className="small muted">Lowest battery {(c.metrics!.minSocFraction * 100).toFixed(1)}% · longest Earth outage {(c.metrics!.longestEarthOutageS / 3600).toFixed(1)} h · Sun &amp; Earth {(c.metrics!.bothVisibleFraction * 100).toFixed(1)}%</p>
           <p className="small muted">{c.precisionLabel}</p>

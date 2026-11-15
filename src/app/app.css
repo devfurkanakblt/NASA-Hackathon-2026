@@ -2662,6 +2662,23 @@
 .place-info__window ul { margin: 4px 0 0; padding-left: 16px; }
 @media (max-width: 700px) { .place-info__window { width: 210px; } }
 
+/* A listed location: name, coordinates and a cue that it opens on the Moon in the simulation. */
+.app button.place-link {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px;
+  max-width: 100%; margin: -4px -8px; padding: 4px 8px; text-align: left;
+  background: transparent; border: 1px solid transparent; border-radius: 6px; color: var(--text); cursor: pointer;
+  transition: background-color 160ms ease, border-color 160ms ease;
+}
+.app .research__alts li .place-link span { flex: none; }
+.place-link__coords { color: var(--earth); font-size: 13px; font-variant-numeric: tabular-nums; }
+.place-link__go { color: var(--muted); font-size: 12px; text-decoration: underline; text-underline-offset: 3px; }
+.app button.place-link:focus-visible { outline: 2px solid var(--earth); outline-offset: 2px; }
+@media (hover: hover) and (pointer: fine) {
+  .app button.place-link:hover { background: rgba(157, 183, 255, 0.08); border-color: rgba(157, 183, 255, 0.35); }
+  .app button.place-link:hover .place-link__go { color: var(--earth); }
+}
+.research__alts ul .place-link { margin-bottom: 2px; }
+
 /* Place list under the globe (C): every catalogue place as a toggle. */
 .place-list { display: grid; gap: 10px; margin-top: 4px; }
 .place-list fieldset { border: 1px solid var(--line); border-radius: 8px; margin: 0; padding: 8px 10px 10px; min-width: 0; }
