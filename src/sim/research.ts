@@ -52,6 +52,8 @@ export interface ResearchType {
   assess: (m: ResearchMetrics) => { fit: Fit; value: string }
   /** Higher is better; used to rank alternatives that fit. */
   score: (m: ResearchMetrics) => number
+  /** True when the fit changes with the start date (Sun / Earth windows), so other dates are worth listing. */
+  dependsOnDate: boolean
 }
 
 export const MOON_RADIUS_KM = 1737.4
@@ -81,6 +83,7 @@ export const RESEARCH_TYPES: ResearchType[] = [
       : { fit: m.psrEdgeKm <= WALK_KM ? 'strong' : m.psrEdgeKm <= ROVER_KM ? 'possible' : 'no',
           value: `${m.psrEdgeKm < 0.05 ? 'at the' : `${m.psrEdgeKm.toFixed(1)} km to the`} edge of a PSR${m.psrName ? ` (${m.psrName})` : ''}` },
     score: (m) => (m.psrEdgeKm === null ? -Infinity : -m.psrEdgeKm),
+    dependsOnDate: false,
   },
   {
     id: 'stay',
@@ -91,6 +94,7 @@ export const RESEARCH_TYPES: ResearchType[] = [
     assess: (m) => ({ fit: m.longestSunS >= STAY_S ? 'strong' : m.longestSunS >= STAY_S / 2 ? 'possible' : 'no',
       value: `longest sunlit stretch ${days(m.longestSunS)}, Sun in view ${pct(m.sunFraction)} of the time` }),
     score: (m) => m.longestSunS + m.sunFraction,
+    dependsOnDate: true,
   },
   {
     id: 'comms',
@@ -101,6 +105,7 @@ export const RESEARCH_TYPES: ResearchType[] = [
     assess: (m) => ({ fit: m.longestEarthS >= STAY_S ? 'strong' : m.earthFraction >= 0.5 ? 'possible' : 'no',
       value: `longest Earth contact ${days(m.longestEarthS)}, Earth in view ${pct(m.earthFraction)} of the time` }),
     score: (m) => m.longestEarthS + m.earthFraction,
+    dependsOnDate: true,
   },
   {
     id: 'crew',
@@ -111,6 +116,7 @@ export const RESEARCH_TYPES: ResearchType[] = [
     assess: (m) => ({ fit: m.longestBothS >= STAY_S ? 'strong' : m.longestBothS >= STAY_S / 2 ? 'possible' : 'no',
       value: `longest Sun + Earth stretch ${days(m.longestBothS)}, both in view ${pct(m.bothFraction)} of the time` }),
     score: (m) => m.longestBothS + m.bothFraction,
+    dependsOnDate: true,
   },
   {
     id: 'radio',
@@ -122,6 +128,7 @@ export const RESEARCH_TYPES: ResearchType[] = [
       ? { fit: m.earthYearPct === 0 ? 'strong' : 'no', value: m.earthYearPct === 0 ? 'Earth never in view all year: shielded from Earth' : `Earth in view ${Math.round(m.earthYearPct)} % of the year` }
       : { fit: m.earthFraction === 0 ? 'possible' : 'no', value: m.earthFraction === 0 ? 'Earth hidden for the whole mission' : `Earth in view ${pct(m.earthFraction)} of the mission` },
     score: (m) => (m.earthYearPct === 0 ? 2 + m.sunFraction : m.earthFraction === 0 ? 1 + m.sunFraction : -m.earthFraction),
+    dependsOnDate: false,
   },
 ]
 

@@ -700,6 +700,15 @@ export function MissionApp() {
                           setPicked([...scenarios, added])
                         } else setActiveSite(siteId)
                       }}
+                      year={activeCell ? null : ext.years[activeData.site.id] ?? null}
+                      chosenDates={scenarios.filter((s) => s.siteId === active.scenario.siteId).map((s) => s.startUtc)}
+                      onUseDate={(startUtc) => {
+                        if (scenarios.length < 3) {
+                          const added = { key: newKey(), siteId: active.scenario.siteId, startUtc }
+                          setScenarios([...scenarios, added])
+                          setPicked([...scenarios, added])
+                        } else patchSceneScenario({ startUtc })
+                      }}
                     />
                   )}
 

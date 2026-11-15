@@ -2217,3 +2217,5 @@
 .research__alts ul { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 6px; }
 .research__alts li { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; justify-content: space-between; font-size: 13px; }
 .research__alts li span { flex: 1 1 260px; }
+.research__dates { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line); }
+.research__current { margin: 6px 0 0; }
