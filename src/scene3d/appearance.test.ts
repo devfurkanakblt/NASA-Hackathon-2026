@@ -56,11 +56,11 @@ describe('Earth orientation time sampling', () => {
   })
 })
 
-it('all nine published hourly Earth displays cover annual scenarios including intermediate epochs', () => {
+it('all eight published hourly Earth displays cover annual scenarios including intermediate epochs', () => {
   const data = new URL('../../public/data/', import.meta.url)
   const sites = JSON.parse(readFileSync(new URL('sites.json', data), 'utf8')).sites as { id: string; program?: string }[]
   const originals = sites.filter(s => !s.program)
-  expect(originals).toHaveLength(9)
+  expect(originals).toHaveLength(8)
   for (const { id } of originals) {
     const orientation = JSON.parse(readFileSync(new URL(`${id}/earth-orientation.json`, data), 'utf8')) as EarthOrientationDoc
     expect(orientation.stepS).toBe(3600)

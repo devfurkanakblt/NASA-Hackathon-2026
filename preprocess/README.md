@@ -68,8 +68,9 @@ python -m preprocess.validate_missions
 
 The nine Artemis entries are representative research candidates from Wueller et al., Table A1
 (doi:10.1029/2025JE009434), associated with NASA's dated October 2024 Artemis III region list.
-They are neither region centroids nor approved touchdown coordinates. Peregrine's entry is the
-IAU centre of its historical target region; it is not an actual landing location. Source URLs,
+They are neither region centroids nor approved touchdown coordinates. The catalogue is limited to
+the southern hemisphere: northern landing sites (Apollo 11/15/17, Blue Ghost 1, Chang'e-3/5,
+Peregrine) are not included. Source URLs,
 coordinate status, warnings and explicit DEM choices accompany each record. The two Artemis
 points covered by the existing Site20/Site23 5 m tiles reuse those tiles. Other points use explicitly
 labelled regional 80 m or global ~474 m data. Nearest-site distances and full near-field coverage

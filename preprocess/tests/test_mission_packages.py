@@ -50,7 +50,11 @@ def test_all_nine_artemis_regions_are_source_pinned_research_candidates():
     assert all(v["coordinateStatus"] == "research-candidate" and "Table A1" in v["coordSource"] for v in entries)
     assert MISSION_SITES["ArtemisMalapert"]["tile"] == "Site23"
     assert MISSION_SITES["ArtemisMouton"]["tile"] == "Site20"
-    assert MISSION_SITES["PeregrineTarget"]["coordinateStatus"] == "region-representative"
+
+
+def test_catalogue_is_southern_hemisphere_only():
+    from preprocess.config import SITES
+    assert all(v["lat"] <= 0 for v in SITES.values())
 
 
 def test_failed_custom_build_publishes_nothing(tmp_path, monkeypatch):
