@@ -15,13 +15,14 @@ export default defineConfig({
       output: {
         codeSplitting: {
           groups: [
-            { name: 'react', test: /node_modules[\/](react|react-dom|scheduler)[\/]/ },
-            { name: 'motion', test: /node_modules[\/](motion|motion-dom|motion-utils|framer-motion)[\/]/ },
-            { name: 'gsap', test: /node_modules[\/]gsap[\/]/ },
+            // [\\/] matches both path separators (Windows and POSIX).
+            { name: 'react', test: /node_modules[\\/](react|react-dom|scheduler)[\\/]/ },
+            { name: 'motion', test: /node_modules[\\/](motion|motion-dom|motion-utils|framer-motion)[\\/]/ },
+            { name: 'gsap', test: /node_modules[\\/]gsap[\\/]/ },
             // three.js alone is ~740 kB: its core and its renderer/extras load as two chunks.
-            { name: 'three-core', test: /node_modules[\/]three[\/]build[\/]three\.core/, priority: 3 },
-            { name: 'three', test: /node_modules[\/]three[\/]/, priority: 2 },
-            { name: 'r3f', test: /node_modules[\/](@react-three|its-fine|zustand|suspend-react|react-use-measure|use-sync-external-store)[\/]/ },
+            { name: 'three-core', test: /node_modules[\\/]three[\\/]build[\\/]three\.core/, priority: 3 },
+            { name: 'three', test: /node_modules[\\/]three[\\/]/, priority: 2 },
+            { name: 'r3f', test: /node_modules[\\/](@react-three|its-fine|zustand|suspend-react|react-use-measure|use-sync-external-store)[\\/]/ },
           ],
         },
       },
