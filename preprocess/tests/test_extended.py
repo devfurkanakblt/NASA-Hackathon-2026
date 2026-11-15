@@ -114,3 +114,57 @@ def test_cells_header_schema_2(sid):
 @pytest.mark.parametrize("sid", list(C.SITES))
 def test_year_bin_all_finite(sid):
     assert np.isfinite(np.fromfile(C.OUT_DIR / sid / "year.bin", "<f4")).all()
+
+
+# ---------------------------------------------------------------- rejection paths (tmp dir only)
+@pytest.fixture
+def tmp_out(tmp_path, monkeypatch):
+    from preprocess import extended
+    monkeypatch.setattr(C, "OUT_DIR", tmp_path)
+    monkeypatch.setattr(extended, "load_sites", lambda: [{"id": "SiteX", "latDeg": 0, "lonDeg": 0}])
+    (tmp_path / "SiteX").mkdir()
+    return tmp_path
+
+
+@pytest.mark.parametrize("bad", [np.nan, np.inf, -np.inf])
+def test_write_year_rejects_non_finite(tmp_out, monkeypatch, bad):
+    from preprocess import extended
+    y = np.zeros((6, 4), "<f4")
+    y[2, 1] = bad
+    monkeypatch.setattr(extended, "year_array", lambda sid: y)
+    with pytest.raises(ValueError, match="SiteX"):
+        extended.write_year("SiteX")
+    assert not (tmp_out / "SiteX" / "year.bin").exists()
+
+
+def test_write_year_failure_keeps_existing_file(tmp_out, monkeypatch):
+    from preprocess import extended
+    p = tmp_out / "SiteX" / "year.bin"
+    p.write_bytes(b"old")
+    monkeypatch.setattr(extended, "year_array", lambda sid: np.full((6, 2), np.nan, "<f4"))
+    with pytest.raises(ValueError, match="SiteX"):
+        extended.write_year("SiteX")
+    assert p.read_bytes() == b"old"
+
+
+def _fake_npz(hz):
+    return lambda sid: {"horizons": hz, "eye": np.zeros(hz.shape[0])}
+
+
+@pytest.mark.parametrize("bad", [np.nan, np.inf, 400.0, -400.0])
+def test_cells_reject_bad_float_horizons(tmp_out, monkeypatch, bad):
+    from preprocess import extended
+    hz = np.zeros((3, 720))
+    hz[1, 10] = bad
+    monkeypatch.setattr(extended, "_npz", _fake_npz(hz))
+    with pytest.raises(ValueError, match="SiteX"):
+        extended.write_cells("SiteX")
+    assert not (tmp_out / "SiteX" / "cells.bin").exists()
+
+
+def test_cells_reject_sentinel(tmp_out, monkeypatch):
+    from preprocess import extended
+    monkeypatch.setattr(extended, "cells_int16", lambda sid: np.full((3, 360), -32768, "<i2"))
+    with pytest.raises(ValueError, match="SiteX"):
+        extended.write_cells("SiteX")
+    assert not (tmp_out / "SiteX" / "cells.bin").exists()

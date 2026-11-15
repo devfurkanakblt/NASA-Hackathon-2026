@@ -32,7 +32,8 @@ def year_array(site_id):
 
 def write_year(site_id):
     y = year_array(site_id)
-    assert np.isfinite(y).all(), f"{site_id}: year series has non-finite values, year.bin not written"
+    if not np.isfinite(y).all():
+        raise ValueError(f"{site_id}: year series has non-finite values, year.bin not written")
     path = C.OUT_DIR / site_id / "year.bin"
     path.parent.mkdir(parents=True, exist_ok=True)
     y.tofile(path)
@@ -62,7 +63,14 @@ def cells_int16(site_id):
     """(N, 360) int16 horizons in 0.01 deg: every second 0.5 deg value (decimation, not averaging)."""
     hz = _npz(site_id)["horizons"]
     assert hz.shape[1] == 720, hz.shape
-    return np.round(hz[:, ::2].astype(np.float64) * 100).astype("<i2")
+    v = np.round(hz[:, ::2].astype(np.float64) * 100)
+    lim = np.iinfo("<i2")
+    if not np.isfinite(v).all():
+        raise ValueError(f"{site_id}: cell horizons contain non-finite values, cells.bin not written")
+    if v.min() < lim.min + 1 or v.max() > lim.max:
+        raise ValueError(f"{site_id}: cell horizons outside int16 range at 0.01 deg "
+                         f"({v.min() / 100:.2f}..{v.max() / 100:.2f} deg), cells.bin not written")
+    return v.astype("<i2")
 
 
 def eye_m(site_id):
@@ -71,7 +79,8 @@ def eye_m(site_id):
 
 def write_cells(site_id):
     c = cells_int16(site_id)
-    assert (c != -32768).all(), f"{site_id}: cells contain the -32768 sentinel, cells.bin not written"
+    if (c == -32768).any():
+        raise ValueError(f"{site_id}: cells contain the -32768 sentinel, cells.bin not written")
     path = C.OUT_DIR / site_id / "cells.bin"
     c.tofile(path)
     print(f"wrote {path.relative_to(C.ROOT)} ({path.stat().st_size / 1e6:.2f} MB)")
