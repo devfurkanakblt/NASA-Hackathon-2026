@@ -5,7 +5,7 @@ import { fmtHours, fmtKWh, fmtPct, fmtUtc } from './format.ts'
 import { earthVerdict, powerVerdict } from './plain.ts'
 import type { Verdict } from './plain.ts'
 import { mapPointWhere, placeTitle } from './placeName.ts'
-import { isEvaluated } from './scenarios.ts'
+import { elevationStats, isEvaluated } from './scenarios.ts'
 import type { ScenarioOutcome } from './scenarios.ts'
 
 interface Props {
@@ -18,6 +18,9 @@ interface Props {
 function Check({ ok, yes, no }: { ok: boolean; yes: string; no: string }) {
   return <span className={`pill ${ok ? 'pill--ok' : 'pill--bad'}`}>{ok ? `✓ ${yes}` : `✗ ${no}`}</span>
 }
+
+/** Degrees above the local horizontal, one decimal. */
+const fmtDeg = (v: number | undefined) => (v === undefined ? '—' : `${v.toFixed(1)}°`)
 
 /** "15 Nov 2026" (UTC). */
 const fmtDay = (iso: string) => new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
@@ -79,6 +82,9 @@ export function Comparison({ outcomes, settings, bySite, colors }: Props) {
         </>
       ),
     },
+    { label: 'Sun elevation · highest', cell: (o) => fmtDeg(elevationStats(o, 'sun')?.maxDeg) },
+    { label: 'Sun elevation · average', cell: (o) => fmtDeg(elevationStats(o, 'sun')?.meanDeg) },
+    { label: 'Earth elevation · highest', cell: (o) => fmtDeg(elevationStats(o, 'earth')?.maxDeg) },
     { label: 'Sun in view', cell: (o) => fmtPct(o.result.summary.sunVisibleFraction) },
     { label: 'Earth in view', cell: (o) => fmtPct(o.result.summary.earthVisibleFraction) },
     { label: 'Both in view', cell: (o) => fmtPct(o.result.summary.bothVisibleFraction) },
@@ -111,6 +117,9 @@ export function Comparison({ outcomes, settings, bySite, colors }: Props) {
                   <Meter label="Sunlight" fraction={o.result.summary.sunVisibleFraction} kind="sun" />
                   <Meter label="Earth in view" fraction={o.result.summary.earthVisibleFraction} kind="earth" />
                 </div>
+                <p className="result__elevation small">
+                  <b>Sun elevation</b> highest {fmtDeg(elevationStats(o, 'sun')?.maxDeg)}, average {fmtDeg(elevationStats(o, 'sun')?.meanDeg)}
+                </p>
               </>
             ) : (
               <p className={o.loading ? 'muted small' : 'bad small'} role={o.loading ? 'status' : 'alert'}>

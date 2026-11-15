@@ -124,3 +124,14 @@ export function comparisonSentences(outcomes: ScenarioOutcome[], settings: Missi
   else sentences.push(`Only ${list(within)} ${within.length === 1 ? 'meets' : 'meet'} the accepted Earth outage of ${limit}.`)
   return sentences
 }
+
+/** Highest and average elevation (degrees above the local horizontal) of a body over the mission. */
+export function elevationStats(o: EvaluatedOutcome, body: 'sun' | 'earth'): { maxDeg: number; meanDeg: number } | null {
+  const el = o.data?.ephemeris[body].elDeg
+  if (!el) return null
+  const { startIndex, count } = o.result
+  let max = -Infinity
+  let sum = 0
+  for (let i = startIndex; i < startIndex + count; i++) { max = Math.max(max, el[i]); sum += el[i] }
+  return Number.isFinite(max) ? { maxDeg: max, meanDeg: sum / count } : null
+}

@@ -2,7 +2,7 @@
 /**
  * Acceptance check from the plan (§5 "Performans"): the browser never talks to the JPL API.
  * Network code lives in two loaders only: `loadAllData()` in src/data/load.ts, which runs once
- * at start-up, and the per-site one-year / map-point loaders in src/data/extended.ts (fetched
+ * at start-up (plus `loadSiteVisuals()` there, the 3D display files of a site when it is shown), and the per-site one-year / map-point loaders in src/data/extended.ts (fetched
  * on demand after the first render; design 2026-11-15-year-and-custom-point, approach 1), and the
  * scientific package loader in src/data/packageService.ts (same-origin `data/packages…` files, only
  * when the user opens a package), and the global DEM tiles in src/data/globalDem.ts (same-origin
@@ -41,7 +41,7 @@ describe('network use in the app', () => {
     for (const path of callers) {
       const text = files.find((f) => f.path === path)!.text
       // The call sits in a mount-only effect: useEffect(..., []).
-      expect(text).toMatch(/useEffect\(\(\) => \{[\s\S]*?loadAllData\(\)[\s\S]*?\}, \[\]\)/)
+      expect(text).toMatch(/useEffect\(\(\) => \{[\s\S]*?loadAllData\([^)]*\)[\s\S]*?\}, \[\]\)/)
     }
     expect(callers.length).toBeGreaterThan(0)
   })

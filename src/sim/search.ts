@@ -54,9 +54,11 @@ export interface CandidateMetrics {
 }
 
 /** `refined`: a map cell revalidated with the 0.1° catalogue horizon (refined.json). */
-export type Precision = 'catalogue' | 'cell' | 'refined'
+export type Precision = 'catalogue' | 'cell' | 'refined' | 'global'
 
 export interface SearchCandidate {
+  /** Set by joint date / duration planning; whole Earth days. */
+  durationDays?: number
   siteId: string
   /** Mission start actually used (on the data's 10-minute grid). */
   startUtc: string
@@ -77,6 +79,8 @@ export interface SearchCandidate {
 export type SearchStatus = 'complete' | 'cancelled' | 'partial'
 
 export interface SearchResult {
+  /** Date/duration planning first tests the minimum mission at every sampled start. */
+  durationScreening?: { minimumDays: number; startsTested: number; coveredStarts: number; earthHiddenAtEveryCoveredStart: boolean }
   kind: 'dates' | 'places' | 'nearby'
   status: SearchStatus
   /** Requested time range (dates) or the fixed start (places). */
@@ -192,12 +196,13 @@ const yieldNow = () => new Promise<void>((resolve) => setTimeout(resolve, 0))
 
 const CATALOGUE_PRECISION = 'Catalogue site: 0.1° terrain horizon'
 const CELL_PRECISION = CELL_LABEL
-const LABELS: Record<Precision, string> = { catalogue: CATALOGUE_PRECISION, cell: CELL_PRECISION, refined: REFINED_CELL_LABEL }
+const LABELS: Record<Precision, string> = { catalogue: CATALOGUE_PRECISION, cell: CELL_PRECISION, refined: REFINED_CELL_LABEL, global: 'Global terrain screening estimate' }
 
 /** Precision of the data actually used, from its provenance when it has one. */
 export function precisionOf(data: SiteData, fallback: Precision): { precision: Precision; label: string } {
   const p: Provenance | undefined = data.provenance
   if (!p) return { precision: fallback, label: LABELS[fallback] }
+  if (p.horizonSource === 'global-dem') return { precision: 'global', label: `Global screening estimate: ${p.horizonResolutionDeg}° horizon sampling; coarse global terrain` }
   if (p.horizonSource === 'refined-cell') return { precision: 'refined', label: REFINED_CELL_LABEL }
   if (p.horizonSource === 'map-cell') return { precision: 'cell', label: CELL_PRECISION }
   const kind = data.site.category === 'custom' ? `Scientific package ${data.site.id}` : 'Catalogue site'
