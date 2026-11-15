@@ -4,7 +4,7 @@
  * scenario's id into the `SiteData` the unchanged engine runs on.
  */
 import type { EphemerisDoc, SiteData } from '../data/contract.ts'
-import type { CellHorizons, ExtendedHeader } from '../data/extended.ts'
+import type { CellHorizons, ExtendedHeader, RefinedDoc } from '../data/extended.ts'
 import { cellSiteData } from '../sim/cell.ts'
 import { parseFreePointId } from '../sim/freePoint.ts'
 import { arcM } from './mapGrid.ts'
@@ -36,6 +36,8 @@ export interface ExtendedState {
   cells: Record<string, Loadable<CellHorizons>>
   /** `extended.json` per site; a map point also needs it for the data hash. */
   headers?: Record<string, ExtendedHeader>
+  /** `refined.json` per site (0.1° horizons of a few finalist cells); `null` when the site has none. */
+  refined?: Record<string, RefinedDoc | null>
   /** Free coordinates (`pt:lat:lon`), computed in the browser from the global DEM. */
   points?: Record<string, Loadable<SiteData>>
 }
@@ -82,7 +84,8 @@ export function resolveSiteData(id: string, startUtc: string, coverageEndUtc: st
     if (year === 'error' || cells === 'error') return { error: 'Map point data not available.' }
     const header = ext.headers?.[cell.siteId]
     if (!isLoaded(year) || !isLoaded(cells) || !header) return { loading: 'Loading map point…' }
-    return { data: cellSiteData(base, year, cells, header, cell.row, cell.col) }
+    // A cell that A revalidated uses its 0.1° horizon (stale or mismatched entries are ignored inside).
+    return { data: cellSiteData(base, year, cells, header, cell.row, cell.col, ext.refined?.[cell.siteId] ?? null) }
   }
   const base = bySite[id]
   if (!base) return { error: `No data for site ${id}.` }

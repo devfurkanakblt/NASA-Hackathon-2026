@@ -13,7 +13,7 @@ import type { CellHorizons, ExtendedHeader, RefinedDoc } from '../data/extended.
 import { missionStartRange } from '../sim/evaluate.ts'
 import type { MissionSettings } from '../sim/evaluate.ts'
 import { parseFreePointId } from '../sim/freePoint.ts'
-import type { SearchMetric } from '../sim/search.ts'
+import type { ResearchGoal, SearchMetric } from '../sim/search.ts'
 import type { SearchRequest } from '../sim/searchRequest.ts'
 import { hasFullSeries, parseCellId } from './extendedSites.ts'
 
@@ -40,16 +40,17 @@ export async function longestData(data: SiteData, loaders: Loaders): Promise<Sit
   }
 }
 
-export async function datesRequest(data: SiteData, settings: MissionSettings, sortBy: SearchMetric, loaders: Loaders): Promise<SearchRequest | { error: string }> {
+export async function datesRequest(data: SiteData, settings: MissionSettings, sortBy: SearchMetric, loaders: Loaders, goal: ResearchGoal | null = null): Promise<SearchRequest | { error: string }> {
   const full = await longestData(data, loaders)
   const range = missionStartRange(full.ephemeris, settings.durationDays)
   if (!range) return { error: `The data for this place is shorter than a ${settings.durationDays}-day mission.` }
-  return { kind: 'dates', data: engineOnly(full), settings, fromUtc: range.firstStartUtc, toUtc: range.lastStartUtc, sortBy }
+  return { kind: 'dates', data: engineOnly(full), settings, fromUtc: range.firstStartUtc, toUtc: range.lastStartUtc, sortBy, goal }
 }
 
 export interface PlacesOptions {
   /** Also test every ±3 km map point around this catalogue site. */
   mapOf?: string | null
+  goal?: ResearchGoal | null
   onProgress?: (done: number, total: number) => void
 }
 
@@ -77,6 +78,7 @@ export async function placesRequest(startUtc: string, settings: MissionSettings,
   const n = cellSources[0]?.cells.n ?? 0
   return {
     kind: 'places',
+    goal: opts.goal ?? null,
     catalogue,
     cellSources,
     settings,

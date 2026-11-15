@@ -61,7 +61,7 @@ export function Sources({ data, result }: { data: SiteData; result: ScenarioResu
           <li>LOLA global DEM LDEM_64 (PDS) — terrain of the two comparison points away from the pole</li>
           <li>LROC (ASU/NASA) and NASA NSSDC — coordinates of the Chang'e-6 and Apollo comparison points</li>
           <li>NASA Moon Trek, LOLA 30 m/px south-pole DEM — regional terrain in the 3D view (display only)</li>
-          <li>NASA Earth Observatory, Blue Marble: Next Generation (Nov 2004) — Earth's surface in the 3D view (display only)</li>
+          <li>NASA Earth Observatory, Blue Marble: Next Generation (Nov 2004) — archive composite for the Earth in the 3D view (display only; not live imagery or weather)</li>
           <li>Solar constant {result?.model.solarConstantWm2 ?? 1361} W/m² (NASA GSFC)</li>
         </ul>
         <p className="muted small">

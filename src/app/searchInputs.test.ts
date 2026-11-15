@@ -63,3 +63,25 @@ describe('search panel inputs', () => {
     expect(refined?.precision ?? 'refined').toBe('refined')
   }, 60000)
 })
+
+describe('research goal as the first filter (C → D)', () => {
+  const psrs = (JSON.parse(readFileSync(DIR + 'psr-south.json', 'utf8')) as { psrs?: unknown[] }).psrs as never
+  it('water ice: places away from a mapped PSR fail with a research reason; passing ones carry the goal fit', async () => {
+    const req = await placesRequest('2026-11-15T00:00:00Z', DEFAULT_SETTINGS, 'earthOutage', bySite, loaders, { goal: { type: 'ice', psrs } })
+    const r = await runSearchRequest(req, { maxRejected: 100 })
+    expect(r.failureCounts.research ?? 0).toBeGreaterThan(0)
+    const failed = r.rejected.filter((c) => c.failures[0]?.code === 'research')
+    expect(failed.some((c) => c.siteId === 'CE6' || c.siteId.startsWith('Apollo'))).toBe(true)
+    expect(failed.every((c) => /^Water-ice sampling/.test(c.failures[0].message))).toBe(true)
+    for (const c of r.feasible) expect(c.goalFit?.fit === 'strong' || c.goalFit?.fit === 'possible').toBe(true)
+    expect(r.notes.join(' ')).toMatch(/Research goal “Water-ice sampling.*checked first/)
+  })
+  it('long stay: a date search keeps only starts with the long sunlit stay, re-checked per date', async () => {
+    const req = await datesRequest(bySite.Site07, DEFAULT_SETTINGS, 'minSoc', loaders, { type: 'stay', psrs })
+    if ('error' in req) throw new Error(req.error)
+    const r = await runSearchRequest(req)
+    expect(r.failureCounts.research ?? 0).toBeGreaterThan(0) // the dark season fails the goal
+    expect(r.feasible.length).toBeGreaterThan(0)
+    expect(r.feasible.every((c) => c.goalFit && c.goalFit.fit !== 'no')).toBe(true)
+  })
+})

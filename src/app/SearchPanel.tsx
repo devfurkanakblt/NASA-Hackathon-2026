@@ -5,6 +5,8 @@ import type { MissionSettings } from '../sim/evaluate.ts'
 import { FAILURE_TEXT, METRICS, latestSearch, metricValue } from '../sim/search.ts'
 import type { FailureCode, SearchCandidate, SearchMetric, SearchResult } from '../sim/search.ts'
 import { runSearch } from '../sim/searchClient.ts'
+import { RESEARCH_TYPES } from '../sim/research.ts'
+import type { Psr, ResearchType } from '../sim/research.ts'
 import { parseCellId } from './extendedSites.ts'
 import { errorMessage, fmtDuration, fmtPct, fmtUtc } from './format.ts'
 import { placeTitle } from './placeName.ts'
@@ -22,6 +24,8 @@ interface Props {
   titles: Record<string, SiteData>
   /** Adds a copy scenario at this place and start; existing scenarios are kept. */
   onAdd: (siteId: string, startUtc: string) => void
+  /** South-pole PSR list, for the water-ice research goal. */
+  psrs: Psr[]
 }
 
 const LOADERS: Loaders = { year: (id) => loadYear(id), header: (id) => loadHeader(id), cells: (id) => loadCells(id), refined: (id) => loadRefined(id) }
@@ -48,10 +52,11 @@ function reasons(c: SearchCandidate, settings: MissionSettings): string[] {
  * progress, cancel, plain reasons and the engine's limits. Results are copies added to the
  * comparison; a change of place, date, settings or metric invalidates an old answer.
  */
-export function SearchPanel({ place, settings, bySite, titles, onAdd }: Props) {
+export function SearchPanel({ place, settings, bySite, titles, onAdd, psrs }: Props) {
   const [mode, setMode] = useState<Mode>('dates')
   const [metric, setMetric] = useState<SearchMetric>('minSoc')
   const [withMap, setWithMap] = useState(false)
+  const [goalId, setGoalId] = useState<ResearchType['id'] | ''>('')
   const [running, setRunning] = useState<{ done: number; planned: number; phase: string } | null>(null)
   const [done, setDone] = useState<Done | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -62,8 +67,8 @@ export function SearchPanel({ place, settings, bySite, titles, onAdd }: Props) {
   const baseSite = place ? (parseCellId(place.siteId)?.siteId ?? place.siteId) : null
   const mapOf = baseSite && bySite[baseSite]?.map ? baseSite : null
   const key = useMemo(
-    () => (place ? JSON.stringify([mode, place.siteId, mode === 'places' ? place.startUtc : '', settings, metric, mode === 'places' && withMap ? mapOf : null]) : ''),
-    [mode, place, settings, metric, withMap, mapOf],
+    () => (place ? JSON.stringify([mode, place.siteId, mode === 'places' ? place.startUtc : '', settings, metric, mode === 'places' && withMap ? mapOf : null, goalId]) : ''),
+    [mode, place, settings, metric, withMap, mapOf, goalId],
   )
   const current = done && done.key === key ? done.result : null
   const stale = done && done.key !== key
@@ -81,12 +86,14 @@ export function SearchPanel({ place, settings, bySite, titles, onAdd }: Props) {
     setAdded([])
     const myKey = key
     setRunning({ done: 0, planned: 0, phase: 'Loading data…' })
+    const goal = goalId ? { type: goalId, psrs } : null
     try {
       const request =
         mode === 'dates'
-          ? await datesRequest(place.data, settings, metric, LOADERS)
+          ? await datesRequest(place.data, settings, metric, LOADERS, goal)
           : await placesRequest(place.startUtc, settings, metric, bySite, LOADERS, {
               mapOf: withMap ? mapOf : null,
+              goal,
               onProgress: (d, t) => setRunning({ done: d, planned: t, phase: 'Loading data…' }),
             })
       if ('error' in request) throw new Error(request.error)
@@ -133,6 +140,13 @@ export function SearchPanel({ place, settings, bySite, titles, onAdd }: Props) {
           : <>Start fixed: <b>{fmtUtc(place.startUtc)}</b>. Every catalogue site is tested{withMap && mapOf ? `, plus the map points around ${mapOf}` : ''}.</>}
       </p>
       <div className="search-panel__controls">
+        <label>
+          <span>Research goal (checked first)</span>
+          <select value={goalId} onChange={(e) => setGoalId(e.target.value as ResearchType['id'] | '')}>
+            <option value="">None: energy and Earth view only</option>
+            {RESEARCH_TYPES.map((t) => <option key={t.id} value={t.id}>{t.title}</option>)}
+          </select>
+        </label>
         <label>
           <span>Rank passing options by</span>
           <select value={metric} onChange={(e) => setMetric(e.target.value as SearchMetric)}>
@@ -204,6 +218,7 @@ export function SearchPanel({ place, settings, bySite, titles, onAdd }: Props) {
                         {isAdded ? 'Added' : 'Add to comparison'}
                       </button>
                     </div>
+                    {c.goalFit && <p className="small"><b>Research goal:</b> {c.goalFit.fit === 'strong' ? 'fits well' : 'fits partly'} ({c.goalFit.value})</p>}
                     <ul className="search-panel__reasons">
                       {reasons(c, settings).map((r) => <li key={r}>{r}</li>)}
                     </ul>
