@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { HowItWorks } from './HowItWorks.tsx'
+import { LunarDescent } from './hero/LunarDescent.tsx'
 import type { HorizonDoc } from '../data/contract.ts'
 
 interface Props {
@@ -28,14 +29,7 @@ export function Landing({ onSimulation, onResults }: Props) {
         { duration: reduced.matches ? 160 : 560, delay, easing, fill: 'backwards' },
       ))
     }
-    root.querySelectorAll('.landing__hero h1, .landing__lead, .landing__actions').forEach((element, index) => enter(element, index * 70))
-    const image = root.querySelector('.landing__hero-image')
-    if (image && !reduced.matches) {
-      animations.push(image.animate(
-        [{ transform: 'scale(1.045)' }, { transform: 'scale(1)' }],
-        { duration: 1600, easing },
-      ))
-    }
+    // The hero (copy and imagery) is animated by LunarDescent: Motion for the copy, GSAP for scroll.
     const observer = typeof IntersectionObserver === 'undefined' ? null : new IntersectionObserver((entries) => {
       for (const entry of entries) {
         if (!entry.isIntersecting) continue
@@ -60,22 +54,7 @@ export function Landing({ onSimulation, onResults }: Props) {
 
   return (
     <div className="landing" ref={landingRef}>
-      <section className="landing__hero">
-        <img className="landing__hero-image" src="/images/rimlight-lunar-hero-v1.webp" alt="" width="1672" height="941" fetchPriority="high" />
-        <h1>Find the light before you land.</h1>
-        <p className="landing__lead">
-          Near the Moon&rsquo;s south pole the Sun and Earth skim the horizon. A hill or a crater rim decides whether a lander has power and whether it can talk to Earth.
-          Rimlight shows it, place by place, with NASA terrain and ephemeris data.
-        </p>
-        <div className="landing__actions">
-          <button type="button" className="primary" onClick={onSimulation}>
-            Start the simulation
-          </button>
-          <button type="button" onClick={onResults}>
-            See the results
-          </button>
-        </div>
-      </section>
+      <LunarDescent onSimulation={onSimulation} onResults={onResults} />
 
 
       <section className="landing__section landing__why">
