@@ -14,6 +14,7 @@ interface Props {
   /** Runs the full mission at a cell ("Simulate this point"). */
   onSimulate?: (siteId: string, row: number, col: number) => void
   /** Message while the active scenario loads its files; the button waits. */
+  scenarioLabel?: string
   busy?: string
 }
 
@@ -30,7 +31,7 @@ const NO_DATA: [number, number, number] = [58, 62, 72]
  * Sun / Earth / both in view or by slope. North up, east right. Values are period summaries;
  * "Simulate this point" runs the full mission at a cell (1° horizon, cells.bin).
  */
-export function SiteMap({ map, sites, selected, onSimulate, busy }: Props) {
+export function SiteMap({ map, sites, selected, onSimulate, busy, scenarioLabel }: Props) {
   const [ref, width] = useWidth<HTMLDivElement>(MAX_SIZE)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const [layer, setLayer] = useState<MapLayer>('sunPct')
@@ -182,7 +183,7 @@ export function SiteMap({ map, sites, selected, onSimulate, busy }: Props) {
               onClick={() => onSimulate(map.siteId, picked.row, picked.col)}
               title="Run the full mission at this cell in the active scenario"
             >
-              {busy ?? (isSimulated ? 'This spot is in the comparison' : 'Test this spot as a landing place')}
+              {busy ?? (isSimulated ? `Applied to location ${scenarioLabel ?? ''}` : `Use this spot for location ${scenarioLabel ?? ''}`)}
             </button>
           )}
           <p className="small muted" title={`Testing a spot runs the full mission there with a coarser (1°) skyline.`}>{periodLabel} · spots every {spacingM} m</p>

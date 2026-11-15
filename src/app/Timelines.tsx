@@ -23,7 +23,7 @@ function Strip({ windows, durationS, kind }: { windows: VisibilityWindow[]; dura
   )
 }
 
-/** Sun / Earth / both in view over the mission, one block per scenario, on a shared time axis. */
+/** Sun / Earth in view over the mission, one block per scenario, on a shared time axis. */
 export function Timelines({ outcomes, colors, k }: Props) {
   if (outcomes.length === 0) return null
   const durationS = outcomes[0].result.durationS
@@ -42,7 +42,6 @@ export function Timelines({ outcomes, colors, k }: Props) {
             [
               ['Sun', 'sun', o.result.sunWindows],
               ['Earth', 'earth', o.result.earthWindows],
-              ['Both', 'both', o.result.bothWindows],
             ] as const
           ).map(([label, kind, windows]) => (
             <div className="timelines__row" key={kind}>

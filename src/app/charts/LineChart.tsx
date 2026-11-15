@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useId, useMemo } from 'react'
 import { ticks, useWidth } from './useWidth.ts'
 
 export interface Series {
@@ -6,6 +6,8 @@ export interface Series {
   color: string
   values: ArrayLike<number>
   dashed?: boolean
+  /** Draw values below this boundary dashed, and values above it solid. */
+  dashedBelow?: number
 }
 
 export interface Marker {
@@ -36,6 +38,7 @@ const PAD = { left: 52, right: 12, top: 12, bottom: 28 }
 /** Simple time-series chart over mission hours (T+), in inline SVG. */
 export function LineChart({ series, stepH, yMin, yMax, yUnit, refLines = [], markers = [], k, height = 220, ariaLabel }: Props) {
   const [ref, width] = useWidth<HTMLDivElement>()
+  const clipId = useId()
   const n = Math.max(0, ...series.map((s) => s.values.length))
   const hours = Math.max(stepH, (n - 1) * stepH)
   const plotW = width - PAD.left - PAD.right
@@ -87,9 +90,20 @@ export function LineChart({ series, stepH, yMin, yMax, yUnit, refLines = [], mar
             </text>
           </g>
         ))}
-        {series.map((s, i) => (
-          <path key={s.label} d={paths[i]} className="chart__line" stroke={s.color} strokeDasharray={s.dashed ? '5 4' : undefined} />
-        ))}
+        {series.map((s, i) => {
+          if (s.dashedBelow === undefined) return (
+            <path key={s.label} d={paths[i]} className="chart__line" stroke={s.color} strokeDasharray={s.dashed ? '5 4' : undefined} />
+          )
+          const boundary = Math.max(PAD.top, Math.min(PAD.top + plotH, y(s.dashedBelow)))
+          return <g key={s.label}>
+            <defs>
+              <clipPath id={`${clipId}-${i}-above`}><rect x={PAD.left} y={PAD.top} width={Math.max(0, plotW)} height={boundary - PAD.top} /></clipPath>
+              <clipPath id={`${clipId}-${i}-below`}><rect x={PAD.left} y={boundary} width={Math.max(0, plotW)} height={PAD.top + plotH - boundary} /></clipPath>
+            </defs>
+            <path d={paths[i]} className="chart__line" stroke={s.color} clipPath={`url(#${clipId}-${i}-above)`} />
+            <path d={paths[i]} className="chart__line" stroke={s.color} strokeDasharray="5 4" clipPath={`url(#${clipId}-${i}-below)`} />
+          </g>
+        })}
         {markers.map((m) => (
           <g key={m.label} className="chart__marker">
             <circle cx={x(m.index)} cy={y(m.value)} r={4.5} stroke={m.color} />
