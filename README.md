@@ -80,7 +80,7 @@ so it crosses the horizon and Earth rises and sets. The "Skyline" tab explains t
 numbers for the current mission. Details: [Data & Methods](docs/data-methods.md#libration).
 
 Coordinates: NASA Lunar Surface Data Book (M2M-30044, 2025), Table A2.1-1; contrast points from
-LROC (Chang'e-6) and NASA NSSDC (Apollo). Missions of 1–30 days can start anywhere from
+LROC (Chang'e-6) and NASA NSSDC (Apollo). Missions of 1–90 days can start anywhere from
 1 Nov 2026 to 1 Nov 2027 UTC (10-minute steps; a site's one-year series loads when a mission runs past
 1 Jan 2027; the entire mission must fit the available series). Each original polar site also has a regional map (`map.json`: Sun / Earth visibility
 and slope on a ±3 km grid) whose points can be simulated as missions, and a one-year monthly summary

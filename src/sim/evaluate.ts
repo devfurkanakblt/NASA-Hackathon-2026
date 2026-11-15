@@ -6,7 +6,7 @@ import type { VisibilityWindow } from './visibility.ts'
 
 /** Mission and hardware settings shared by every scenario being compared. */
 export interface MissionSettings extends PanelSettings {
-  /** 1–30 days. */
+  /** 1–90 days. */
   durationDays: number
   batteryCapacityWh: number
   /** State of charge at the start, 0–1. */
@@ -53,7 +53,7 @@ export const DEFAULT_SETTINGS: MissionSettings = {
 
 export const MAX_SCENARIOS = 3
 export const MIN_DURATION_DAYS = 1
-export const MAX_DURATION_DAYS = 30
+export const MAX_DURATION_DAYS = 90
 
 /** Thrown when settings are outside their physical or planned range. */
 export class SettingsError extends RangeError {
