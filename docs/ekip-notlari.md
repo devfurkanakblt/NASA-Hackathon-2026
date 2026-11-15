@@ -68,6 +68,7 @@ Veri formatının tamamı: [`docs/data-contract.md`](data-contract.md). Gerçek 
   - **Yapılmadı, sende:** `map.json` ısı haritası, `season.json` mevsim grafiği, paylaşılabilir bağlantı, dar ekranda (telefon) ayrıntılı rötuş. Ayrıca 3B'nin gerçek GPU'lu tarayıcıda görünümünü kontrol et (headless testte WebGL yoktu).
 
 - D-> 15 Kas: Arayüzde tarih artık 1 Kas 2027'ye kadar (o sitenin `year.bin`'i yüklenince), haritada "Simulate this point", senaryo listesinde "Lat / Lon (±3 km of a site)" + "Use point". Hücre id'si `Site01:r36c32`, paylaşım bağlantısında da böyle. `evaluateAll` artık `bySite` değil bir çözücü (`resolveSiteData`) alıyor; sonuçta `loading` ve `data` alanları var. `decodeShare` ikinci parametre olarak fonksiyon alıyor.
+- A-> 15 Kas: `docs/data-methods.md`'ye iki 3B kaynağı eklendi (Data tablosunda iki satır + References): Moon Trek LOLA 30 m DEM `LRO_LOLA_DEM_SPole75_30mp_v04` ve Blue Marble Next Generation (Kasım 2004), ikisi de "display only".
 
 ## C:
 

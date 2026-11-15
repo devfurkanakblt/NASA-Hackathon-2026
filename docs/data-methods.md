@@ -24,6 +24,8 @@ direction (`el > horizonAt(az)`).
 | Sun and Earth positions | JPL Horizons, observer on the Moon (`coord@301`, MEAN_ME frame), airless, 10-min steps | az/el/distance per sample |
 | Independent ephemeris | Skyfield + DE421, `MOON_ME_DE421` frame | cross-check, 18.6-year runs |
 | External reference | PGDA *Lunar Polar Illumination* (Mazarico et al.), 85S 60 m maps, 2016-08 | comparison only |
+| Regional terrain in the 3D view | NASA Moon Trek, LOLA 30 m/px south-pole DEM (`LRO_LOLA_DEM_SPole75_30mp_v04`) | display only; not used for visibility |
+| Earth texture in the 3D view | NASA Earth Observatory, *Blue Marble: Next Generation* (November 2004) | display only |
 
 ## Method
 
@@ -109,6 +111,8 @@ with the catalogue point and the Site04R ridge point).
 - NASA PGDA, Lunar Polar Illumination products. https://pgda.gsfc.nasa.gov/products/69
 - NASA (2025). Moon to Mars Lunar Surface Data Book, M2M-30044 Baseline. NASA/TP-20250002845.
 - JPL Horizons System. https://ssd.jpl.nasa.gov/horizons/
+- NASA Moon Trek (LOLA 5 m south-pole mosaic for the terrain cross-check; LOLA 30 m south-pole DEM for the 3D view). https://trek.nasa.gov/moon/
+- NASA Earth Observatory, Blue Marble: Next Generation (November 2004). https://science.nasa.gov/earth/earth-observatory/blue-marble-next-generation/base-topography-bathymetry/
 - Rhodes, B. Skyfield. https://rhodesmill.org/skyfield/ ; JPL DE421 planetary ephemeris (Folkner et al. 2008).
 - Software: NumPy, SciPy, rasterio/GDAL, pyproj/PROJ, Requests.
 
