@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "file": "moon-south-context.jpg",
+  "sha256": "934776ba77ce643ec161e924d56a981bdf0acac56fd5ea4d706f754bfbb6b26a",
+  "width": 4096,
+  "height": 4096,
+  "bounds": [
+    -1061203.8336547602,
+    -1061203.83365476,
+    1061203.8336547602,
+    1061203.8336547602
+  ],
+  "source": {
+    "url": "https://wms.im-ldi.com/",
+    "layer": "luna_wac_global",
+    "query": {
+      "SERVICE": "WMS",
+      "VERSION": "1.1.1",
+      "REQUEST": "GetMap",
+      "LAYERS": "luna_wac_global",
+      "STYLES": "",
+      "SRS": "IAU2000:30120",
+      "BBOX": "-1061203.833654760150,-1061203.833654759917,1061203.833654760150,1061203.833654760150",
+      "WIDTH": "4096",
+      "HEIGHT": "4096",
+      "FORMAT": "image/tiff",
+      "TRANSPARENT": "TRUE"
+    },
+    "querySha256": "7ae0fc56ec9f0d7cb7df38cd88bb8ab8a11580ffb3f2e9252cec05e52151d04e",
+    "nativePixelM": 100,
+    "productPage": "https://data.lroc.im-ldi.com/lroc/view_rdr/WAC_GLOBAL",
+    "rawSha256": "e3f6564d90f697d7fe98a939f420afc9c7152aecb44a23877e8ca42ac5dc8243",
+    "rawBytes": 16874475,
+    "crs": "PROJCS[\"unknown\",GEOGCS[\"unknown\",DATUM[\"unknown\",SPHEROID[\"unknown\",1737400,0]],PRIMEM[\"Reference meridian\",0],UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",\"9122\"]]],PROJECTION[\"Polar_Stereographic\"],PARAMETER[\"latitude_of_origin\",-90],PARAMETER[\"central_meridian\",0],PARAMETER[\"false_easting\",0],PARAMETER[\"false_northing\",0],UNIT[\"metre\",1],AXIS[\"Easting\",NORTH],AXIS[\"Northing\",NORTH]]",
+    "transform": [
+      518.1659344017384,
+      0.0,
+      -1061203.8336547602,
+      0.0,
+      -518.1659344017382,
+      1061203.8336547602
+    ],
+    "dimensions": [
+      4096,
+      4096
+    ],
+    "bounds": [
+      -1061203.8336547602,
+      -1061203.83365476,
+      1061203.8336547602,
+      1061203.8336547602
+    ],
+    "deliveredProjectedPixelSize": [
+      518.1659344017384,
+      518.1659344017382
+    ],
+    "deliveredProjectedUnits": "metres"
+  },
+  "archiveShadows": true,
+  "frame": "Moon south stereographic R1737400 north at image top",
+  "limitations": [
+    "Archival WAC photographic lighting; not selected UTC",
+    "Context photograph, not fine DEM geometry"
+  ]
+}
