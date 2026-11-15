@@ -19,17 +19,23 @@ direction (`el > horizonAt(az)`).
 | Data | Source | Use |
 |---|---|---|
 | Site coordinates | NASA *Lunar Surface Data Book*, M2M-30044 Baseline (Mar 2025), Table A2.1-1 | Site01, 04, 07, 11, 20, 23 |
-| Contrast-point coordinates | LROC *First Look: Chang'e 6* (CE6); NASA NSSDC Apollo landing site coordinates (Apollo11) | CE6, Apollo11 |
+| Contrast-point coordinates | LROC *First Look: Chang'e 6* (CE6); NASA NSSDC Apollo landing site coordinates (Apollo 12/14/16) | CE6, Apollo12 |
 | Topography near the site | LOLA 5 m/px site DEMs (Barker et al. 2021), PGDA | horizon up to 7 km, slope, 3D view |
 | Regional topography | LOLA `LDEM_80S_80MPP_ADJ`, 80 m/px (Barker et al. 2023), PGDA | horizon 7–250 km |
-| Topography at the contrast points | LOLA global `LDEM_64` (64 px/deg, ~474 m/px), PDS `LRO-L-LOLA-4-GDR-V1.0` | CE6, Apollo11 horizon and 3D view |
+| Topography at the contrast points | LOLA global `LDEM_64` (64 px/deg, ~474 m/px), PDS `LRO-L-LOLA-4-GDR-V1.0` | CE6, Apollo12 horizon and 3D view |
 | Sun and Earth positions | JPL Horizons, observer on the Moon (`coord@301`, MEAN_ME frame), airless, 10-min steps | az/el/distance per sample |
 | Independent ephemeris | Skyfield + DE421, `MOON_ME_DE421` frame | cross-check, 18.6-year runs |
 | External reference | PGDA *Lunar Polar Illumination* (Mazarico et al.), 85S 60 m maps, 2016-08 | comparison only |
 | Regional terrain in the 3D view | NASA Moon Trek, LOLA 30 m/px south-pole DEM (`LRO_LOLA_DEM_SPole75_30mp_v04`) | display only; not used for visibility |
 | Earth image in the 3D view | Archive composite (Blue Marble Next Generation, Nov 2004), NASA Earth Observatory; not live imagery or weather | display only |
 
-The original nine points are extended with 23 mission/research points. Coordinates and status
+The catalogue has 25 points, all in the southern hemisphere: the eight original points (seven polar
+sites and CE6) plus 17 mission/research points. Northern landing sites (Apollo 11/15/17, Blue
+Ghost 1, Chang'e-3/5, Peregrine) were packaged and validated earlier but are left out of the
+published catalogue on purpose: the question is a south-pole question, and the globe shows the
+southern hemisphere only. Apollo 12 (3.0° S) replaces Apollo 11 as the near-side equatorial contrast
+point; the validation tables below that list nine sites were run while Apollo 11 was still included.
+Coordinates and status
 are pinned in [`preprocess/mission_catalogue.py`](../preprocess/mission_catalogue.py):
 [NASA NSSDCA Apollo coordinates](https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_sites.html),
 [NASA NSSDCA lunar spacecraft table](https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_artifact_impacts.html),
@@ -80,6 +86,33 @@ loader and B/D integration boundary are documented in [data-contract.md](data-co
 5. **Derived point Site04R.** The Site04 catalogue coordinate lies on the ~32° inner wall of
    Shackleton. Site04R is the highest 5 m pixel with slope ≤ 10° within 2 km (rule in
    `preprocess/ridge.py`), 1.9 km away. It is labelled as derived, not as a catalogue site.
+
+### Libration
+
+Seen from the Moon, Earth would hang still if the Moon's spin matched its orbit exactly. It does not:
+the orbit is elliptical (the spin is steady but the orbital speed is not, ~±7.9° in longitude) and the
+spin axis is tilted to the orbit (~±6.7° in latitude). The Moon therefore appears to rock, and from
+the surface Earth traces a small loop in the sky about once every 27.3 days, plus a smaller daily
+parallax term.
+
+No separate libration model is needed: JPL Horizons (`coord@301`, `MOON_ME`) and Skyfield/DE421
+(`MOON_ME_DE421`) give Earth's direction for an observer fixed on the rotating Moon, so the physical
+and optical libration is already in every `ephemeris.json` / `year.bin` sample. Measured from
+`year.bin` (1 Nov 2026 – 1 Nov 2027, terrain ignored):
+
+| Site | Earth azimuth span per 27.3 d | Earth elevation span per 27.3 d | Elevation range over the year |
+|---|---|---|---|
+| Site01 Connecting Ridge | 10.7–15.3° | 13.1–13.7° | −7.5° … +6.2° |
+| Site04 Shackleton Rim | 10.8–15.4° | 13.1–13.7° | −7.3° … +6.4° |
+| Site23 Malapert Massif | 10.8–15.4° | 13.1–13.7° | −3.1° … +10.6° |
+| Apollo12 (near side) | 29.7–32.6° | 12.3–16.2° | +57.3° … +74.4° |
+| CE6 (far side) | 6.8–14.4° | 15.5–18.6° | −51.7° … −32.9° |
+
+At the pole the loop straddles the level horizon, so libration alone makes Earth rise and set about
+once a month, and the terrain then decides how much of the upper half is actually in view. At
+Apollo 12 the loop stays high (Earth always up); at CE6 it stays below (Earth never up). The
+"Skyline" tab shows the azimuth span and elevation range for the current mission
+(`src/app/libration.ts`).
 
 ## Validation (summary)
 

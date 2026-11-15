@@ -6,6 +6,7 @@
 import type { EphemerisDoc, SiteData } from '../data/contract.ts'
 import type { CellHorizons, ExtendedHeader } from '../data/extended.ts'
 import { cellSiteData } from '../sim/cell.ts'
+import { parseFreePointId } from '../sim/freePoint.ts'
 import { arcM } from './mapGrid.ts'
 
 export function cellId(siteId: string, row: number, col: number): string {
@@ -21,6 +22,7 @@ export function parseCellId(id: string): { siteId: string; row: number; col: num
 
 /** A catalogue site id, or a cell id inside the regional map of a catalogue site. */
 export function isKnownSiteId(id: string, bySite: Record<string, SiteData>): boolean {
+  if (parseFreePointId(id)) return true
   const cell = parseCellId(id)
   if (!cell) return id in bySite
   const map = bySite[cell.siteId]?.map
@@ -34,6 +36,8 @@ export interface ExtendedState {
   cells: Record<string, Loadable<CellHorizons>>
   /** `extended.json` per site; a map point also needs it for the data hash. */
   headers?: Record<string, ExtendedHeader>
+  /** Free coordinates (`pt:lat:lon`), computed in the browser from the global DEM. */
+  points?: Record<string, Loadable<SiteData>>
 }
 
 export type Resolved = { data: SiteData } | { loading: string } | { error: string }
@@ -46,6 +50,7 @@ const DAY_MS = 86400 * 1000
  * would end after the two-month coverage.
  */
 export function needsYear(id: string, startUtc: string, coverageEndUtc: string, durationDays = 1): boolean {
+  if (parseFreePointId(id)) return false
   if (parseCellId(id)) return true
   return Date.parse(startUtc) + durationDays * DAY_MS > Date.parse(coverageEndUtc)
 }
@@ -62,6 +67,12 @@ const isLoaded = <T>(v: Loadable<T> | undefined): v is T => v !== undefined && v
 
 /** Data the engine should use for a scenario's site id: year series when loaded, a cell when its files are loaded. */
 export function resolveSiteData(id: string, startUtc: string, coverageEndUtc: string, bySite: Record<string, SiteData>, ext: ExtendedState, durationDays = 1): Resolved {
+  if (parseFreePointId(id)) {
+    const p = ext.points?.[id]
+    if (p === 'error') return { error: 'This coordinate could not be computed (global terrain or one-year data not available).' }
+    if (!isLoaded(p)) return { loading: 'Computing your point from the global terrain…' }
+    return { data: p }
+  }
   const cell = parseCellId(id)
   if (cell) {
     if (!isKnownSiteId(id, bySite)) return { error: `No regional map point ${id}.` }
@@ -86,17 +97,22 @@ export function resolveSiteData(id: string, startUtc: string, coverageEndUtc: st
 }
 
 /** Base site ids whose `year.bin` / `cells.bin` the scenarios need. */
-export function sitesNeeded(scenarios: { siteId: string; startUtc: string }[], coverageEndUtc: string, durationDays = 1, bySite?: Record<string, SiteData>): { years: string[]; cells: string[] } {
+export function sitesNeeded(scenarios: { siteId: string; startUtc: string }[], coverageEndUtc: string, durationDays = 1, bySite?: Record<string, SiteData>): { years: string[]; cells: string[]; points: string[] } {
   const years = new Set<string>()
   const cells = new Set<string>()
+  const points = new Set<string>()
   for (const { siteId, startUtc } of scenarios) {
+    if (parseFreePointId(siteId)) {
+      points.add(siteId)
+      continue
+    }
     const cell = parseCellId(siteId)
     const base = cell ? cell.siteId : siteId
     if (!cell && hasFullSeries(bySite?.[siteId])) continue
     if (needsYear(siteId, startUtc, coverageEndUtc, durationDays)) years.add(base)
     if (cell) cells.add(base)
   }
-  return { years: [...years], cells: [...cells] }
+  return { years: [...years], cells: [...cells], points: [...points] }
 }
 
 export const OUTSIDE_MAPS = 'Outside the ±3 km maps around the polar sites.'

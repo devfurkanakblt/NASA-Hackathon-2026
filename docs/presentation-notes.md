@@ -12,7 +12,7 @@ efficiency, 200 W base load + 100 W while Earth is in view, 6 h accepted Earth o
 
 | # | Title | On the slide | Visual |
 |---|---|---|---|
-| 1 | Problem & promise | At the south pole the Sun and Earth skim the horizon: a few hundred metres of terrain decide power and contact. We show it and let planners test it. | Polar map with the 9 sites (7 south-pole sites + 2 contrast points: Chang'e-6, Apollo 11) |
+| 1 | Problem & promise | At the south pole the Sun and Earth skim the horizon: a few hundred metres of terrain decide power and contact. We show it and let planners test it. | Southern-hemisphere globe: 7 south-pole sites, Artemis III candidate regions, landed missions; contrast points Chang'e-6 (far side) and Apollo 12 (near side) |
 | 2 | User flow | Three pages: **Home** (what the tool is for, no numbers) → **Simulation** (pick up to 3 places — a catalogue site, a map point or a lat / lon within 3 km of a site — and any start date from 1 Nov 2026 to 1 Nov 2027; watch the 3D terrain, Sun and Earth move) → **Results** (cards answer "Power?" and "Talk to Earth?", optional lander settings, "See why" tabs). Built-in "How it works" tour. No server, instant updates. | Screenshot of each page (Home hero, Simulation 3D, Results cards) |
 | 3 | Terrain evidence | Horizon panorama: real skyline vs. flat horizon, Sun/Earth tracks; Site04 Earth hidden behind the crater wall all week. | Panorama screenshot (+ 3D view if ready) |
 | 4 | Energy evidence | Same site, change the hardware or date → battery result changes (Site04: +72 h start → unmet 1.1 → 15.5 kWh). | "Battery" tab screenshot |
@@ -38,7 +38,7 @@ Site04R is the highest gentle (≤ 10° slope) 5 m pixel within 2 km of it: a re
 | Site20 Leibnitz Beta Plateau | 51 % | 31 % | 3 % |
 | Site23 Malapert Massif | 47 % | 42 % | 21 % |
 | CE6 Chang'e-6, far side (contrast) | 52 % | 0 % | 0 % |
-| Apollo11, near-side equator (contrast) | 48 % | 100 % | 48 % |
+| Apollo12, near-side equator (contrast) | 52 % | 100 % | 52 % |
 
 The two contrast points show what is special about the pole: away from it the Sun is up about half
 the time (two-week day, two-week night) and Earth is either always up (near side) or never (far side).
@@ -122,6 +122,18 @@ landing-site decision. "Through the year" tab shows the monthly picture.
 - **Map points:** the Sun / Earth direction re-projected into a cell's frame matches Python within
   0.001°; two-month shares with the 1° cell horizon stay within 0.15 points of `map.json` at all 7
   map sites (`docs/validation.md` §7).
+
+## Likely questions
+
+- **"Where is Apollo 11?"** Left out on purpose. The tool answers a south-pole question (Sun and
+  Earth skimming the horizon), the globe shows only the southern hemisphere, and Artemis III and
+  current landers aim there. Apollo 12 (3.0° S) is the near-side contrast point and shows the same
+  thing Apollo 11 would: Earth always up, two-week day and night.
+- **"Does it handle libration?"** Yes, through the ephemeris: JPL Horizons / DE421 give Earth's
+  direction for an observer fixed on the rotating Moon, so the wobble is in every sample. At the
+  polar sites Earth's monthly loop spans ~11–15° of azimuth and ~13–14° of elevation and crosses
+  the horizon: that is why Earth rises and sets there. The "Skyline" tab says this in plain words
+  with the numbers for the current mission (`docs/data-methods.md`, Libration).
 
 ## Model limits (say them out loud)
 

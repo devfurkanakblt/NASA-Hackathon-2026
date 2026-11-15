@@ -4,6 +4,7 @@
  */
 import type { SiteData } from '../data/contract.ts'
 import { parseCellId } from './extendedSites.ts'
+import { parseFreePointId } from '../sim/freePoint.ts'
 
 const COMPASS = ['north', 'north-east', 'east', 'south-east', 'south', 'south-west', 'west', 'north-west']
 
@@ -25,6 +26,11 @@ export function mapPointWhere(id: string, bySite: Record<string, SiteData>): str
 
 /** Title for cards and lists: the site name, or "Map point near Connecting Ridge". */
 export function placeTitle(id: string, bySite: Record<string, SiteData>): string {
+  const free = parseFreePointId(id)
+  if (free) {
+    const f = (v: number, pos: string, neg: string) => `${Math.abs(v).toFixed(3)}°${v >= 0 ? pos : neg}`
+    return `Your point ${f(free.latDeg, 'N', 'S')}, ${f(free.lonDeg, 'E', 'W')}`
+  }
   const cell = parseCellId(id)
   if (cell) {
     const base = bySite[cell.siteId]?.site.name

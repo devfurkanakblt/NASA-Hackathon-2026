@@ -22,6 +22,7 @@ python -m pytest preprocess/tests      # unit tests
 python -m preprocess.make_sample       # synthetic sample in public/data/_sample
 python -m preprocess.custom_point --id P001 --lat -89.45 --lon -137.2 [--start ... --stop ...] [--source skyfield]
                                        # -> custom/P001/ data package for a free coordinate (see below)
+python -m preprocess.global_tiles      # -> global-dem/ LDEM_64 tiles (4x4 mean, ~33 MB) for free points in the browser
 ```
 
 ## Custom point packages
@@ -30,7 +31,9 @@ python -m preprocess.custom_point --id P001 --lat -89.45 --lon -137.2 [--start .
 `public/data/custom/<id>/`: `horizon.json` (0.1°), `terrain.json`, `ephemeris.json` (main two-month
 period), `year.bin` + `extended.json` (schema 2) and `site.json` (`sites.json` entry format,
 `category: "custom"`) and a hash-bound `package.json` manifest. `sites.json` is not changed;
-`src/data/scientificPackage.ts` accepts package bytes for B/D integration. The current form still snaps to existing map cells.
+`src/data/scientificPackage.ts` accepts package bytes for B/D integration (`src/data/packageService.ts`). The app's coordinate form no
+longer needs a package for a quick look: outside the polar maps it computes the exact point in the browser from
+`global-dem/` (global screening estimate). A package remains the way to get catalogue-quality terrain.
 
 - **Default accepted area (`--terrain local5m`):** the whole 7 km near range must lie inside one LOLA 5 m tile. On the ~16 km
   Site01/04/07/11/20 tiles that is roughly a 2 km box around the tile centre. Points outside it are
