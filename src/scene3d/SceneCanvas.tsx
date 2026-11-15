@@ -6,6 +6,7 @@ import { ACESFilmicToneMapping, SRGBColorSpace } from 'three'
 import type { QuaternionXyzw } from './appearance.ts'
 import { useEarthTexture } from './earthTexture.ts'
 import { useTerrainNormalTexture } from './terrainNormalTexture.ts'
+import { useLunarImageryTexture } from './lunarImageryTexture.ts'
 import sourceLinks from './sources.json'
 import {
   DEFAULT_PANEL,
@@ -123,7 +124,7 @@ export default function SceneCanvas({
   geometricHorizonDeg = 0,
   observerHeightM = OBSERVER_HEIGHT_M,
   surfaceElevationM,
-  defaultCameraMode = 'overview',
+  defaultCameraMode = 'map',
   defaultShowTerrainEffect = false,
 }: MissionScene3DProps) {
   const [cameraMode, setCameraMode] = useState<CameraMode>(defaultCameraMode)
@@ -132,11 +133,22 @@ export default function SceneCanvas({
   const [contextLost, setContextLost] = useState(false)
   const [showAnnotations, setShowAnnotations] = useState(true)
   const [reliefLighting, setReliefLighting] = useState(true)
+  const [showImagery, setShowImagery] = useState(true)
   const [canvasKey, setCanvasKey] = useState(0)
   const diagnosticOutput = useRef<HTMLOutputElement | null>(null)
+  const scaleLine = useRef<HTMLSpanElement | null>(null)
+  const scaleLabel = useRef<HTMLOutputElement | null>(null)
+  const mapScale = useMemo(() => ({ line: scaleLine, label: scaleLabel }), [])
   const { texture: earthMap, failed: earthMapFailed } = useEarthTexture()
   const { texture: detailNormal, failed: detailNormalFailed } = useTerrainNormalTexture(terrain.normalDetail?.textureUrl,
     terrain.normalDetail ? terrain.sizeM / terrain.normalDetail.manifest.sizeM : 1)
+  const localImagery = terrain.imagery ?? farTerrain?.imagery
+  const { texture: localPhoto, failed: localPhotoFailed } = useLunarImageryTexture(localImagery?.textureUrl,
+    terrain.sizeM, localImagery?.manifest.sizeM ?? terrain.sizeM)
+  const { texture: regionalPhoto, failed: regionalPhotoFailed } = useLunarImageryTexture(farTerrain?.imagery?.textureUrl,
+    farTerrain?.sizeM ?? terrain.sizeM, farTerrain?.imagery?.manifest.sizeM ?? farTerrain?.sizeM ?? terrain.sizeM)
+  const hasImagery = Boolean(localImagery || farTerrain?.imagery)
+  const imageryActive = showImagery && Boolean(localPhoto || regionalPhoto)
 
   const meshData = useMemo(() => buildTerrainMeshData(terrain, observerHeightM), [terrain, observerHeightM])
   const half = meshData.halfExtentM
@@ -152,6 +164,7 @@ export default function SceneCanvas({
   const skyRadius = half * SKY_RADIUS
   const trackRadius = half * (SKY_RADIUS + 4)
   const lander = cameraMode === 'lander'
+  const mapView = cameraMode === 'map'
 
   const sunStatus = bodyStatus(sun, geometricHorizonDeg)
   const earthStatus = bodyStatus(earth, geometricHorizonDeg)
@@ -213,17 +226,17 @@ export default function SceneCanvas({
           shadow-normalBias={0.5}
         />
 
-        <Terrain data={meshData} reliefTint={reliefLighting} detailNormal={detailNormal} />
-        {farMesh && <Terrain data={farMesh} reliefTint={reliefLighting} />}
-        {!lander && surfaceElevationM !== undefined && (
+        <Terrain data={meshData} reliefTint={reliefLighting} detailNormal={detailNormal} imageryTexture={showImagery ? localPhoto : null} />
+        {farMesh && <Terrain data={farMesh} reliefTint={reliefLighting} imageryTexture={showImagery ? regionalPhoto : null} />}
+        {cameraMode === 'overview' && surfaceElevationM !== undefined && (
           <ReferenceSphere data={farMesh ?? meshData} siteElevationM={surfaceElevationM} outerRadiusM={half * (SKY_RADIUS - 5)} />
         )}
         {cameraMode === 'overview' && <Lander panelNormal={normal} panelLit={lit} panelAreaM2={panel.areaM2} northLabelAnchor={northLabel.anchor} />}
 
         <group position={[0, observerHeightM, 0]}>
-          {cameraMode === 'overview' ? (
+          {!lander ? (
             <>
-              {showTerrainEffect && <HorizonLines profile={horizon} radius={overviewRadius} geometricHorizonDeg={geometricHorizonDeg} />}
+              {!mapView && showTerrainEffect && <HorizonLines profile={horizon} radius={overviewRadius} geometricHorizonDeg={geometricHorizonDeg} />}
               {showAnnotations && <DirectionArrow color={SUN_COLOR} body={sun} status={sunStatus} labelAnchor={sunLabel.anchor} length={half * 0.42} />}
               {showAnnotations && <DirectionArrow color={EARTH_COLOR} body={earth} status={earthStatus} labelAnchor={earthLabel.anchor} length={half * 0.42} />}
             </>
@@ -237,7 +250,7 @@ export default function SceneCanvas({
         </group>
 
         {/* Sun and Earth at their true direction and apparent size, with their real tracks. */}
-        <SkyFollow>
+        {!mapView && <SkyFollow>
           {showAnnotations && sunPath && <SkyTrack path={sunPath} color={SUN_COLOR} radius={trackRadius} />}
           {showAnnotations && earthPath && <SkyTrack path={earthPath} color={EARTH_COLOR} radius={trackRadius} />}
           <SkyBody
@@ -265,7 +278,7 @@ export default function SceneCanvas({
             xray={lander && showTerrainEffect}
             labelAnchor={lander ? earthLabel.anchor : undefined}
           />
-        </SkyFollow>
+        </SkyFollow>}
 
         <CameraRig
           mode={cameraMode}
@@ -278,6 +291,7 @@ export default function SceneCanvas({
           onUserLook={freeLook}
           terrainMesh={meshData}
           regionalMesh={farMesh ?? undefined}
+          mapScale={mapScale}
         />
         <LabelProjector bindings={labels} />
         {diagnostics && <Diagnostics output={diagnosticOutput} />}
@@ -300,9 +314,25 @@ export default function SceneCanvas({
         </div>
       </div>
 
+      {mapView && <div className="scene3d__map-tools" aria-label="Map orientation and scale">
+        <strong aria-label="North is up">N ↑</strong>
+        <div className="scene3d__map-scale" title="Metric scale at the centre of the map">
+          <span ref={scaleLine} />
+          <output ref={scaleLabel}>Scale at centre</output>
+        </div>
+      </div>}
+      {showImagery && hasImagery && <div className="scene3d__imagery-status" role="note">
+        {imageryActive ? 'NASA archive imagery; image shadows are not selected UTC'
+          : localPhotoFailed || regionalPhotoFailed ? 'NASA image unavailable; DEM shading is shown.' : 'Loading NASA archive imagery…'}
+        {imageryActive && (localPhotoFailed || regionalPhotoFailed) && ' Some imagery is unavailable.'}
+      </div>}
+
       </div>
       <div className="scene3d__toolbar">
         <div className="scene3d__segmented" role="group" aria-label="Camera">
+          <button type="button" aria-pressed={mapView} onClick={() => setCameraMode('map')}>
+            Map view
+          </button>
           <button type="button" aria-pressed={cameraMode === 'overview'} onClick={() => setCameraMode('overview')}>
             Terrain overview
           </button>
@@ -320,23 +350,27 @@ export default function SceneCanvas({
             </button>
           </div>
         )}
-        <label className="scene3d__check">
+        <label className="scene3d__check" title={hasImagery ? 'Show the georegistered NASA archive photograph' : 'Archive imagery is not available for this site'}>
+          <input type="checkbox" checked={showImagery && hasImagery} disabled={!hasImagery} onChange={e => setShowImagery(e.target.checked)} />
+          NASA imagery
+        </label>
+        {!mapView && <label className="scene3d__check">
           <input type="checkbox" checked={showTerrainEffect} onChange={(e) => setShowTerrainEffect(e.target.checked)} />
           Show terrain effect
-        </label>
+        </label>}
         <label className="scene3d__check">
           <input type="checkbox" checked={showAnnotations} onChange={e => setShowAnnotations(e.target.checked)} />
           Annotations
         </label>
-        <label className="scene3d__check">
+        {!imageryActive && <label className="scene3d__check">
           <input type="checkbox" checked={reliefLighting} onChange={e => setReliefLighting(e.target.checked)} />
           Relief lighting (view aid)
-        </label>
+        </label>}
       </div>
 
       {diagnostics && <output ref={diagnosticOutput} className="scene3d__diagnostics">Rendering diagnostics…</output>}
 
-      {showTerrainEffect && (
+      {!mapView && showTerrainEffect && (
         <div className="scene3d__explain" role="status">
           <div className="scene3d__legend">
             <span>
@@ -354,7 +388,7 @@ export default function SceneCanvas({
       <details className="scene3d__data">
         <summary>NASA data · terrain scale 1:1 · model limits</summary>
         <p className="scene3d__note">
-        {lander
+        {mapView ? 'North is up. Drag to pan; scroll or pinch to zoom. Scale is measured at the map centre. ' : lander
           ? 'Drag to look, scroll to zoom. '
           : farMesh
             ? 'Lander not to scale; arrows point from it to the Sun and Earth. Around the detailed 10 km patch the region is drawn from a coarse LOLA grid. '
@@ -363,8 +397,9 @@ export default function SceneCanvas({
         {!earthOrientation ? ` ${earthDisplayWarning ?? 'Earth map hidden: registered orientation is unavailable.'}`
           : earthMapFailed ? ' Earth map unavailable; an untextured illuminated sphere is shown.'
           : !earthMap ? ' Earth texture loading.' : ' Earth: NASA November 2004 composite, UTC-registered rotation; not live weather.'}
-        {reliefLighting && ' Relief fill light is enabled for readability; switch it off to inspect Sun-only shading.'}
-        {terrain.normalDetail && (detailNormalFailed ? ' Measured surface detail unavailable; mesh shading is used.'
+        {imageryActive ? ' Surface photographs are NASA archive observations, with capture-time shadows; they do not depict the selected UTC. Switch NASA imagery off for modelled Sun-direction shading.'
+          : reliefLighting && ' Relief fill light is enabled for readability; switch it off to inspect Sun-only shading.'}
+        {!imageryActive && terrain.normalDetail && (detailNormalFailed ? ' Measured surface detail unavailable; mesh shading is used.'
           : detailNormal ? ` Surface shading: normals from NASA ${terrain.normalDetail.manifest.sourceNativePixelM} m DEM; geometry and visibility stay separate.`
           : ' Measured surface detail loading.')}
         </p>

@@ -1,10 +1,14 @@
 import { OrbitControls } from '@react-three/drei'
 import { useFrame, useThree } from '@react-three/fiber'
 import { useCallback, useEffect, useRef } from 'react'
+import type { ComponentRef, RefObject } from 'react'
+import { MOUSE, TOUCH } from 'three'
 import type { PerspectiveCamera } from 'three'
 import { azElToUnitVector, normalizeAzimuth } from '../coords.ts'
 import { overviewHeightAboveTerrain, overviewStartPosition } from '../cameraPlacement.ts'
+import { terrainHeightAt } from '../terrainGeometry.ts'
 import type { TerrainMeshData } from '../terrainGeometry.ts'
+import { mapScaleBar } from '../lunarImagery.ts'
 import type { BodyState, CameraMode, LookTarget } from '../types.ts'
 
 const OVERVIEW_FOV = 45
@@ -32,19 +36,22 @@ export interface CameraRigProps {
   onUserLook: () => void
   terrainMesh?: TerrainMeshData
   regionalMesh?: TerrainMeshData
+  mapScale?: { line: RefObject<HTMLSpanElement | null>; label: RefObject<HTMLOutputElement | null> }
 }
 
 /**
- * Two cameras on one rig:
+ * Three view modes on one rig:
+ *  - map: north-up, top-down, drag to pan and wheel/pinch to zoom;
  *  - overview: orbit around the lander above the terrain patch;
  *  - lander: stand at the observer point (2 m above ground) and look at the horizon.
  *    Drag to look around, wheel to zoom. While a look target is set the view follows it.
  */
-export function CameraRig({ mode, halfExtentM, farPlaneM, eyeHeightM, lookTarget, sun, earth, onUserLook, terrainMesh, regionalMesh }: CameraRigProps) {
+export function CameraRig({ mode, halfExtentM, farPlaneM, eyeHeightM, lookTarget, sun, earth, onUserLook, terrainMesh, regionalMesh, mapScale }: CameraRigProps) {
   const camera = useThree((s) => s.camera) as PerspectiveCamera
   const gl = useThree((s) => s.gl)
   const invalidate = useThree((s) => s.invalidate)
   const look = useRef({ yawDeg: 0, pitchDeg: 2, fov: LANDER_FOV })
+  const controls = useRef<ComponentRef<typeof OrbitControls>>(null)
   // Azimuth of the Sun when the overview is (re)entered: the camera starts out facing it.
   const sunAzDeg = useRef(sun.azDeg)
   sunAzDeg.current = sun.azDeg
@@ -62,12 +69,24 @@ export function CameraRig({ mode, halfExtentM, farPlaneM, eyeHeightM, lookTarget
   // Camera placement and clip planes for the active mode.
   useEffect(() => {
     camera.far = farPlaneM
-    if (mode === 'overview') {
+    // A north-up map needs north (-Z), rather than height (+Y), at the top of the image.
+    camera.up.set(0, mode === 'map' ? 0 : 1, mode === 'map' ? -1 : 0)
+    if (mode === 'map') {
+      camera.near = 5
+      camera.fov = OVERVIEW_FOV
+      camera.position.set(0, Math.max(halfExtentM * 3.2, (terrainMesh?.maxY ?? 0) + halfExtentM * 2.2), 0)
+      camera.lookAt(0, 0, 0)
+      controls.current?.target.set(0, 0, 0)
+      camera.updateProjectionMatrix()
+      controls.current?.update()
+      invalidate()
+    } else if (mode === 'overview') {
       camera.near = 5
       camera.fov = OVERVIEW_FOV
       // Low and behind the lander, looking towards the Sun, so the horizon and the sky are in frame.
       camera.position.set(...overviewStartPosition(halfExtentM, sunAzDeg.current, terrainMesh, regionalMesh))
       camera.lookAt(0, 0, 0)
+      controls.current?.target.set(0, 0, 0)
       camera.updateProjectionMatrix()
       invalidate()
     } else {
@@ -78,7 +97,30 @@ export function CameraRig({ mode, halfExtentM, farPlaneM, eyeHeightM, lookTarget
 
   // OrbitControls runs before this frame callback. Keep its camera above measured terrain,
   // including after a user orbit/zoom, without changing the scientific lander viewpoint.
-  useFrame(() => {
+  useFrame(state => {
+    if (mode === 'map') {
+      const p = camera.position, target = controls.current?.target
+      if (!target) return
+      const limit = (regionalMesh?.halfExtentM ?? halfExtentM) * 0.95
+      const x = clamp(target.x, -limit, limit), z = clamp(target.z, -limit, limit)
+      if (x !== target.x || z !== target.z) {
+        p.x += x - target.x; p.z += z - target.z
+        target.x = x; target.z = z
+        invalidate()
+      }
+      const y = overviewHeightAboveTerrain(p.x, p.y, p.z, Math.max(50, halfExtentM * 0.02), terrainMesh, regionalMesh)
+      if (y > p.y) { p.y = y; camera.lookAt(target); invalidate() }
+      const groundY = (terrainMesh && terrainHeightAt(terrainMesh, target.x, target.z)) ??
+        (regionalMesh && terrainHeightAt(regionalMesh, target.x, target.z)) ?? 0
+      const metersPerPixel = 2 * Math.max(1, p.y - groundY) * Math.tan(camera.fov * Math.PI / 360) /
+        (Math.max(1, state.size.height) * camera.zoom)
+      const bar = mapScaleBar(metersPerPixel)
+      if (bar && mapScale?.line.current && mapScale.label.current) {
+        mapScale.line.current.style.width = `${bar.widthPx}px`
+        mapScale.label.current.textContent = bar.label
+      }
+      return
+    }
     if (mode !== 'overview') return
     const p = camera.position
     const y = overviewHeightAboveTerrain(p.x, p.y, p.z, Math.max(5, halfExtentM * 0.01), terrainMesh, regionalMesh)
@@ -159,15 +201,21 @@ export function CameraRig({ mode, halfExtentM, farPlaneM, eyeHeightM, lookTarget
     }
   }, [mode, gl, applyLook, onUserLook])
 
-  if (mode !== 'overview') return null
+  if (mode === 'lander') return null
+  const map = mode === 'map'
   return (
     <OrbitControls
+      key={mode}
+      ref={controls}
       makeDefault
-      target={[0, 0, 0]}
-      enablePan={false}
-      minDistance={60}
-      maxDistance={halfExtentM * 6}
-      maxPolarAngle={Math.PI / 2 - 0.02}
+      enableRotate={!map}
+      enablePan={map}
+      screenSpacePanning={map}
+      mouseButtons={map ? { LEFT: MOUSE.PAN, MIDDLE: MOUSE.DOLLY, RIGHT: MOUSE.PAN } : undefined}
+      touches={map ? { ONE: TOUCH.PAN, TWO: TOUCH.DOLLY_PAN } : undefined}
+      minDistance={map ? 120 : 60}
+      maxDistance={map ? Math.min(farPlaneM * 0.8, (regionalMesh?.halfExtentM ?? halfExtentM) * 3) : halfExtentM * 6}
+      maxPolarAngle={map ? Math.PI : Math.PI / 2 - 0.02}
     />
   )
 }

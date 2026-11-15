@@ -4,6 +4,7 @@ import type { LoadedData, SiteData } from '../data/contract.ts'
 import { loadCells, loadYear } from '../data/extended.ts'
 import { loadAllData } from '../data/load.ts'
 import { MissionScene3D } from '../scene3d/index.ts'
+import { SceneMissionControls } from '../scene3d/SceneMissionControls.tsx'
 import type { BodyState, PanelState } from '../scene3d/index.ts'
 import { earthOrientationAt, earthOrientationCoverageWarning, earthSunDirectionAt } from '../scene3d/appearance.ts'
 import { DEFAULT_SETTINGS, validateSettings } from '../sim/evaluate.ts'
@@ -18,7 +19,7 @@ import { RimlightMark } from './Brand.tsx'
 import { Comparison } from './Comparison.tsx'
 import { Landing } from './Landing.tsx'
 import { placeTitle } from './placeName.ts'
-import { errorMessage, fmtDuration, fmtUtc } from './format.ts'
+import { errorMessage, fmtDuration, fmtHours, fmtUtc } from './format.ts'
 import { ScenarioList } from './ScenarioList.tsx'
 import { cellId, isKnownSiteId, parseCellId, resolveSiteData, sitesNeeded, snapToCell } from './extendedSites.ts'
 import type { ExtendedState } from './extendedSites.ts'
@@ -207,7 +208,13 @@ export function MissionApp() {
   // Map-point actions and the highlight stay on the chosen scenario, also while it loads.
   const chosenKey = targetScenarioKey(scenarios, activeKey)
   const chosenOutcome = outcomes.find((o) => o.scenario.key === chosenKey)
+  const chosenScenario = scenarios.find(s => s.key === chosenKey)
   const chosenLoading = !!chosenOutcome?.loading
+  const patchSceneScenario = (patch: Partial<Pick<Scenario, 'siteId' | 'startUtc'>>) => {
+    setPlaying(false)
+    setStep(0)
+    setScenarios(list => list.map(s => s.key === chosenKey ? { ...s, ...patch } : s))
+  }
   const setActiveSite = (siteId: string) => setScenarios((list) => list.map((s) => (s.key === chosenKey ? { ...s, siteId } : s)))
   const colorsOfEvaluated = evaluated.map((o) => COLORS[outcomes.indexOf(o)])
 
@@ -389,7 +396,7 @@ export function MissionApp() {
     </div>
   )
   const places = (
-    <section className="card" data-tour="places">
+    <section className="card" data-tour={view === 'results' ? 'places' : undefined}>
       <h2>
         <span className="step">1</span> Pick places to compare
       </h2>
@@ -418,27 +425,32 @@ export function MissionApp() {
       {header}
       <Tour steps={tourSteps} open={tourOpen} onClose={() => setTourOpen(false)} />
       {view === 'simulation' && (
-        <div className="app__layout">
-          <aside className="app__side">{places}</aside>
+        <div className="app__layout app__layout--simulation">
           <main className="app__main">
             <section className="card sim">
               <div className="card__head">
                 <div>
                   <h2>
                     <span className="step">2</span> Simulation
-                    {active && activeData && (
+                    {active?.scenario.key === chosenKey && activeData && (
                       <>
                         {' '}
                         at <span style={{ color: activeColor }}>{active.letter}</span>, {placeTitle(activeData.site.id, shownBySite)}
                       </>
                     )}
                   </h2>
-                  <p className="card__tagline">The real terrain around the lander, with the Sun and Earth where they really are. Drag to look around.</p>
+                  <p className="card__tagline">Choose a place and UTC start, then explore its terrain, sunlight and view of Earth.</p>
                 </div>
-                {placeChips}
               </div>
+              <SceneMissionControls
+                sites={loaded.sites} scenarios={scenarios} chosenKey={chosenKey}
+                durationDays={settings.durationDays} endUtc={maxStartFor(chosenScenario?.siteId ?? loaded.sites.sites[0].id)}
+                onChoose={key => { setPlaying(false); setStep(0); setActiveKey(key) }}
+                onPatch={patchSceneScenario}
+                onDuration={durationDays => { setPlaying(false); setStep(0); setSettings(previous => ({ ...previous, durationDays })) }}
+              />
               {issues.length > 0 && <p className="bad">Some lander settings are out of range. Fix them on the results page to run the simulation.</p>}
-              {active && now && activeData && tracks ? (
+              {active?.scenario.key === chosenKey && now && activeData && tracks ? (
                 <>
                   {activeCell && activeData.map ? (
                     <p className="muted sim__note">
@@ -467,6 +479,11 @@ export function MissionApp() {
                   )}
                   {timebar}
                   {status}
+                  <dl className="scene-mission__facts" aria-label="Selected mission facts">
+                    <div><dt>Sun elevation · local horizontal</dt><dd>{now.sun.elDeg.toFixed(2)}°</dd><small>Sun centre above the terrain: {fmtHours(active.result.summary.sunVisibleFraction * active.result.durationS)} of this mission.</small></div>
+                    <div><dt>Earth elevation · local horizontal</dt><dd>{now.earth.elDeg.toFixed(2)}°</dd><small>Direct view of Earth: {fmtHours(active.result.summary.earthVisibleFraction * active.result.durationS)}. Longest outage: {fmtDuration(active.result.summary.longestEarthOutageS)}.</small></div>
+                    <div><dt>Battery now</dt><dd>{(100 * active.result.socJ[now.kk] / active.result.batteryCapacityJ).toFixed(1)}%</dd><small>Panel: {Math.round(active.result.generationW[now.kk])} W. {active.result.summary.keepsBatteryReserve ? 'Reserve protected throughout this mission.' : 'Battery falls below reserve during this mission.'}</small></div>
+                  </dl>
                   <div className="sim__next">
                     <button type="button" className="primary" onClick={() => go('results')}>
                       See the results
@@ -477,6 +494,10 @@ export function MissionApp() {
                 !issues.length && <p className="muted">{chosenOutcome?.error ?? 'Preparing the simulation…'}</p>
               )}
             </section>
+            <details className="scene-mission__compare">
+              <summary>Compare other places or dates · enter coordinates</summary>
+              {places}
+            </details>
           </main>
         </div>
       )}

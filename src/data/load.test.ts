@@ -50,6 +50,53 @@ function mockFiles(docs: Record<string, unknown>, failures: Record<string, numbe
 
 afterEach(() => vi.unstubAllGlobals())
 
+function imageryFixture(site: ReturnType<typeof fixture>['sites']['sites'][number], far = false) {
+  return { version: 1, siteId: site.id, file: far ? 'lunar-imagery-far.jpg' : 'lunar-imagery.jpg',
+    sizeM: 20, width: 1024, height: 1024, frame: 'local-east-north-metres-image-north-up',
+    archiveShadows: true, sha256: 'b'.repeat(64), source: {
+      url: 'https://trek.nasa.gov/moon/', name: 'NASA archival LROC mosaic', nativePixelM: 100,
+      acquisition: 'Archival composite', crs: 'local ENU', transform: [0, 1, 0, 0, 0, -1],
+      resampling: 'bilinear', limitations: ['Archive shadows do not represent selected mission time.'],
+      site: { latitudeDeg: site.latDeg, longitudeDeg: site.lonDeg, surfaceElevationM: site.surfaceElevationM, observerHeightM: site.observerHeightM },
+    } }
+}
+
+describe('registered archival lunar photography', () => {
+  it('attaches local and regional images independently without changing elevations or scientific data', async () => {
+    const f = fixture()
+    f.docs['/data/Site01/lunar-imagery.json'] = imageryFixture(f.sites.sites[0])
+    f.docs['/data/Site01/terrain-far.json'] = structuredClone(f.terrain)
+    f.docs['/data/Site01/lunar-imagery-far.json'] = imageryFixture(f.sites.sites[0], true)
+    mockFiles(f.docs)
+    const data = (await loadAllData('/data')).bySite.Site01
+    expect(data.terrain?.imagery?.textureUrl).toBe('/data/Site01/lunar-imagery.jpg?v=' + 'b'.repeat(64))
+    expect(data.terrainFar?.imagery?.textureUrl).toContain('lunar-imagery-far.jpg?v=')
+    expect(data.terrain?.zM).toEqual(f.terrain.zM)
+    expect(data.ephemeris).toEqual(f.ephemeris)
+    expect(data.visualWarnings).toEqual([])
+  })
+
+  it.each(['observer', 'footprint', 'path', 'frame', 'shadows', 'hash', 'dimensions', 'provenance'])('omits invalid imagery %s while preserving the terrain and science', async kind => {
+    const f = fixture()
+    const image = imageryFixture(f.sites.sites[0])
+    if (kind === 'observer') image.source.site.longitudeDeg++
+    if (kind === 'footprint') image.sizeM++
+    if (kind === 'path') image.file = '../other.jpg'
+    if (kind === 'frame') image.frame = 'global image stretched over local site'
+    if (kind === 'shadows') image.archiveShadows = false
+    if (kind === 'hash') image.sha256 = ''
+    if (kind === 'dimensions') image.width = 100000
+    if (kind === 'provenance') image.source.nativePixelM = NaN
+    f.docs['/data/Site01/lunar-imagery.json'] = image
+    mockFiles(f.docs)
+    const data = (await loadAllData('/data')).bySite.Site01
+    expect(data.terrain?.imagery).toBeUndefined()
+    expect(data.terrain?.zM).toEqual(f.terrain.zM)
+    expect(data.horizon).toEqual(f.horizon)
+    expect(data.visualWarnings?.join(' ')).toMatch(/invalid lunar imagery/)
+  })
+})
+
 function summaryFiles(id = 'Site01') {
   const summary = (samples: number) => ({ samples, sunPct: 50, earthPct: 40, bothPct: 20,
     sunDiskFractionMean: 0.5, longestNoSunS: 0, longestNoEarthS: 0,
@@ -113,7 +160,7 @@ describe('map and independent annual season merge regressions', () => {
     expect(data.map).toBeUndefined()
     expect(data.season).toEqual(season)
     expect(fetch.mock.calls.map(([url]) => String(url))).not.toContain('/data/Apollo11/map.json')
-    expect(fetch).toHaveBeenCalledTimes(7)
+    expect(fetch).toHaveBeenCalledTimes(8)
   })
 
   it.each(['map', 'season'])('warns on an optional %s network failure without losing science', async (kind) => {
@@ -177,7 +224,7 @@ describe('catalogue-driven loading and optional visuals', () => {
     expect(data.earthOrientation).toEqual(f.orientation)
     expect(data.terrainFar).toBeUndefined() // expected optional 404, without a warning
     expect(data.visualWarnings).toEqual([])
-    expect(fetch).toHaveBeenCalledTimes(9)
+    expect(fetch).toHaveBeenCalledTimes(10)
   })
 
   it('keeps science usable when only the local visual terrain is HTTP 404', async () => {
@@ -287,8 +334,8 @@ describe('required scientific data is rejected clearly', () => {
     const loaded = await loadAllData('data')
     expect(Object.keys(loaded.bySite)).toEqual(['Site01'])
     const urls = fetch.mock.calls.map(([url]) => String(url))
-    expect(urls).toHaveLength(9)
-    expect(new Set(urls).size).toBe(9)
+    expect(urls).toHaveLength(10)
+    expect(new Set(urls).size).toBe(10)
     expect(urls.every(url => url.startsWith('data/'))).toBe(true)
   })
 

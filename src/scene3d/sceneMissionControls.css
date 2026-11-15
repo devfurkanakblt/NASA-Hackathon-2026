@@ -1,0 +1,24 @@
+.app__layout.app__layout--simulation { display: block; max-width: 1440px; }
+.scene-mission { padding: 14px; margin-bottom: 18px; background: #141820; border: 1px solid #343a47; border-radius: 12px; }
+.scene-mission__scenarios, .scene-mission__shifts { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font-size: 12px; }
+.scene-mission__scenarios { margin-bottom: 12px; }
+.scene-mission__scenarios button[aria-pressed=true] { background: #574185; border-color: #a38ade; color: #fff; }
+.scene-mission__fields { display: grid; grid-template-columns: minmax(200px, 1.6fr) minmax(220px, 1fr) 125px; gap: 12px; }
+.scene-mission__fields label { display: flex; flex-direction: column; gap: 6px; min-width: 0; font-size: 12px; }
+.scene-mission__fields input, .scene-mission__fields select { width: 100%; min-width: 0; box-sizing: border-box; }
+.scene-mission__shifts { margin-top: 12px; }
+.scene-mission__hint { color: #b0b6c5; font-size: 11px; }
+.scene-mission__facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
+.scene-mission__facts > div { padding: 12px; border: 1px solid #343a47; border-radius: 10px; background: #141820; }
+.scene-mission__facts dt { font-size: 12px; color: #c0c6d3; }
+.scene-mission__facts dd { margin: 5px 0 0; font-size: 16px; }
+.scene-mission__facts small { display: block; margin-top: 6px; color: #b0b6c5; font-size: 11px; }
+.scene-mission__compare { margin-top: 18px; }
+.scene-mission__compare > summary { cursor: pointer; padding: 10px 0; }
+.scene-mission__compare .card { margin-top: 10px; }
+@media(max-width: 760px) {
+  .scene-mission__fields { grid-template-columns: minmax(0, 1fr) 100px; }
+  .scene-mission__fields label:first-child { grid-column: 1 / -1; }
+  .scene-mission__facts { grid-template-columns: 1fr; gap: 6px; }
+  .scene-mission__facts > div { padding: 10px; }
+}

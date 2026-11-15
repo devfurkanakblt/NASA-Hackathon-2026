@@ -38,7 +38,9 @@ function LunarSurfaceMaterial({ reliefTint = false, doubleSided = false, detailN
  * Smooth normals come from the actual DEM mesh. The optional inspection aid adds only
  * a small normal-derived contrast; height is never painted as invented surface albedo.
  */
-export function Terrain({ data, reliefTint = false, detailNormal = null }: { data: TerrainMeshData; reliefTint?: boolean; detailNormal?: Texture | null }) {
+export function Terrain({ data, reliefTint = false, detailNormal = null, imageryTexture = null }: {
+  data: TerrainMeshData; reliefTint?: boolean; detailNormal?: Texture | null; imageryTexture?: Texture | null
+}) {
   const geometry = useMemo(() => {
     const g = new BufferGeometry()
     g.setAttribute('position', new BufferAttribute(data.positions, 3))
@@ -78,8 +80,10 @@ export function Terrain({ data, reliefTint = false, detailNormal = null }: { dat
 
   return (
     <>
-      <mesh geometry={geometry} castShadow receiveShadow>
-        <LunarSurfaceMaterial reliefTint={reliefTint} detailNormal={detailNormal} />
+      <mesh geometry={geometry} castShadow={!imageryTexture} receiveShadow={!imageryTexture}>
+        {imageryTexture
+          ? <meshBasicMaterial map={imageryTexture} color="#ffffff" toneMapped={false} />
+          : <LunarSurfaceMaterial reliefTint={reliefTint} detailNormal={detailNormal} />}
       </mesh>
       {/* Display-only LOD join; it must not cast invented ridge shadows. */}
       {seam && <mesh geometry={seam} receiveShadow><LunarSurfaceMaterial doubleSided /></mesh>}

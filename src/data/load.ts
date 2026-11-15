@@ -1,5 +1,6 @@
 import type { LoadedData } from './contract.ts'
 import { validateTerrainNormal } from './terrainNormal.ts'
+import { validateLunarImagery } from './lunarImagery.ts'
 import { validateEarthOrientation, validateEphemeris, validateHorizon, validateMap, validateSeason, validateSites, validateTerrain } from './validate.ts'
 
 class HttpError extends Error {
@@ -61,14 +62,20 @@ export async function loadAllData(baseUrl = `${import.meta.env.BASE_URL}data`): 
       site.category === 'contrast' ? Promise.resolve(undefined) :
         optionalVisual(`${root}/map.json`, (doc) => validateMap(doc, site.id, sites.coverage, `${root}/map.json`), visualWarnings),
     ])
-    const normalManifest = terrain && site.category !== 'contrast'
-      ? await optionalVisual(`${root}/terrain-normal.json`, doc => validateTerrainNormal(doc, site, terrain.sizeM, `${root}/terrain-normal.json`), visualWarnings)
-      : undefined
-    const displayTerrain = terrain && normalManifest ? {
+    const [normalManifest, localImagery, farImagery] = await Promise.all([
+      terrain && site.category !== 'contrast'
+      ? optionalVisual(`${root}/terrain-normal.json`, doc => validateTerrainNormal(doc, site, terrain.sizeM, `${root}/terrain-normal.json`), visualWarnings)
+      : undefined,
+      terrain ? optionalVisual(`${root}/lunar-imagery.json`, doc => validateLunarImagery(doc, site, terrain.sizeM, false, `${root}/lunar-imagery.json`), visualWarnings) : undefined,
+      terrainFar ? optionalVisual(`${root}/lunar-imagery-far.json`, doc => validateLunarImagery(doc, site, terrainFar.sizeM, true, `${root}/lunar-imagery-far.json`), visualWarnings) : undefined,
+    ])
+    const displayTerrain = terrain ? {
       ...terrain,
-      normalDetail: { manifest: normalManifest, textureUrl: `${root}/${normalManifest.file}?v=${normalManifest.sha256}` },
+      ...(normalManifest && { normalDetail: { manifest: normalManifest, textureUrl: `${root}/${normalManifest.file}?v=${normalManifest.sha256}` } }),
+      ...(localImagery && { imagery: { manifest: localImagery, textureUrl: `${root}/${localImagery.file}?v=${localImagery.sha256}` } }),
     } : terrain
-    return [site.id, { site, ephemeris, horizon, terrain: displayTerrain, terrainFar, earthOrientation, visualWarnings, season, map }] as const
+    const displayFar = terrainFar && farImagery ? { ...terrainFar, imagery: { manifest: farImagery, textureUrl: `${root}/${farImagery.file}?v=${farImagery.sha256}` } } : terrainFar
+    return [site.id, { site, ephemeris, horizon, terrain: displayTerrain, terrainFar: displayFar, earthOrientation, visualWarnings, season, map }] as const
   }))
   return { sites, bySite: Object.fromEntries(entries) }
 }

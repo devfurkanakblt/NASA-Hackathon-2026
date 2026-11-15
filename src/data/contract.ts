@@ -72,6 +72,37 @@ export interface TerrainDoc {
   zM: number[]
   /** Runtime-only, validated C display detail; never changes the elevation grid. */
   normalDetail?: TerrainNormalDetail
+  /** NASA archival photography, registered to this display grid; never used as scientific albedo. */
+  imagery?: LunarImageryDetail
+}
+
+export interface LunarImageryDoc {
+  version: 1
+  siteId: string
+  file: 'lunar-imagery.jpg' | 'lunar-imagery.png' | 'lunar-imagery-far.jpg' | 'lunar-imagery-far.png'
+  sizeM: number
+  width: number
+  height: number
+  frame: 'local-east-north-metres-image-north-up'
+  archiveShadows: true
+  sha256: string
+  source: {
+    url: string
+    name: string
+    nativePixelM: number
+    acquisition: string
+    site: { latitudeDeg: number; longitudeDeg: number; surfaceElevationM: number; observerHeightM: number }
+    crs: string
+    transform: number[]
+    resampling: string
+    limitations: string[]
+    [key: string]: unknown
+  }
+}
+
+export interface LunarImageryDetail {
+  manifest: LunarImageryDoc
+  textureUrl: string
 }
 
 export interface TerrainNormalDoc {

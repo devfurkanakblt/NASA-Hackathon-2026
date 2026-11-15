@@ -12,7 +12,7 @@
  * simulation engine (terrain-horizon profile). The mesh is for visualisation only.
  */
 
-import type { TerrainNormalDetail } from '../data/contract.ts'
+import type { TerrainDoc, TerrainNormalDetail } from '../data/contract.ts'
 
 /** `{siteId}/terrain.json` — down-sampled local elevation grid, local ENU, origin at the observer eye. */
 export interface TerrainGrid {
@@ -28,6 +28,7 @@ export interface TerrainGrid {
    */
   zM: ArrayLike<number>
   normalDetail?: TerrainNormalDetail
+  imagery?: TerrainDoc['imagery']
 }
 
 /** `{siteId}/horizon.json` — terrain horizon as seen from the observer eye. */
@@ -71,7 +72,7 @@ export interface PanelState {
   fixedNormalElDeg: number
 }
 
-export type CameraMode = 'overview' | 'lander'
+export type CameraMode = 'map' | 'overview' | 'lander'
 
 export type LookTarget = 'sun' | 'earth' | 'free'
 
