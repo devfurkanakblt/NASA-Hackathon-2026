@@ -177,7 +177,7 @@ export default function SceneCanvas({
         shadows="soft"
         dpr={[1.5, 2]}
         camera={{ fov: 45, near: 5, far: half * FAR_PLANE, position: [half, half * 0.5, half * 2.3] }}
-        gl={{ antialias: true, powerPreference: 'high-performance', toneMapping: ACESFilmicToneMapping, toneMappingExposure: 1.2, outputColorSpace: SRGBColorSpace }}
+        gl={{ antialias: true, powerPreference: 'high-performance', toneMapping: ACESFilmicToneMapping, toneMappingExposure: 1.1, outputColorSpace: SRGBColorSpace }}
         onCreated={({ gl }) => {
           gl.domElement.addEventListener('webglcontextlost', (event) => {
             event.preventDefault()
@@ -186,9 +186,9 @@ export default function SceneCanvas({
         }}
       >
         <color attach="background" args={['#000000']} />
-        <hemisphereLight args={['#f5f5f3', '#6c6c69', reliefLighting ? 0.9 : 0]} />
+        <hemisphereLight args={['#f5f5f3', '#6c6c69', reliefLighting ? 0.75 : 0]} />
         {/* Inspection fill preserves visible relief without claiming measured lunar irradiance. */}
-        <directionalLight position={[-12000, 12000, 16000]} intensity={reliefLighting ? 1.1 : 0} color="#f2f2f0" />
+        <directionalLight position={[-12000, 12000, 16000]} intensity={reliefLighting ? 0.9 : 0} color="#f2f2f0" />
         {/* Local visibility does not turn off sunlight for every mountain in the region. */}
         <directionalLight
           position={[sunDirection[0] * 45000, sunDirection[1] * 45000, sunDirection[2] * 45000]}
