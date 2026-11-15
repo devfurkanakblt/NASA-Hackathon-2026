@@ -4,6 +4,7 @@ import { fromInputUtc, shiftUtc, toInputUtc } from '../app/format.ts'
 import { MAX_DURATION_DAYS, MIN_DURATION_DAYS } from '../sim/evaluate.ts'
 import { latestMissionStartUtc } from './missionDates.ts'
 import './sceneMissionControls.css'
+import { useState } from 'react'
 
 interface Props {
   sites: SitesDoc
@@ -14,10 +15,15 @@ interface Props {
   onChoose: (key: string) => void
   onPatch: (patch: Partial<Pick<Scenario, 'siteId' | 'startUtc'>>) => void
   onDuration: (days: number) => void
+  onCoordinate?: (latitude: number, longitude: number) => string
+  onCopy?: () => void
 }
 
 /** A short editor for the same scenario state used by Results and shared links. */
-export function SceneMissionControls({ sites, scenarios, chosenKey, durationDays, endUtc, onChoose, onPatch, onDuration }: Props) {
+export function SceneMissionControls({ sites, scenarios, chosenKey, durationDays, endUtc, onChoose, onPatch, onDuration, onCoordinate, onCopy }: Props) {
+  const [latitude, setLatitude] = useState('')
+  const [longitude, setLongitude] = useState('')
+  const [coordinateMessage, setCoordinateMessage] = useState('')
   const chosen = scenarios.find(s => s.key === chosenKey)
   if (!chosen) return null
   const latest = latestMissionStartUtc(endUtc, durationDays)
@@ -37,7 +43,17 @@ export function SceneMissionControls({ sites, scenarios, chosenKey, durationDays
         <span>Explore scenario</span>
         {scenarios.map((s, i) => <button key={s.key} type="button" aria-pressed={s.key === chosenKey} onClick={() => onChoose(s.key)}>{'ABC'[i]}</button>)}
         <span className="scene-mission__hint">Changes also update Results.</span>
+        {onCopy && <button type="button" disabled={scenarios.length >= 3} title="Preserve this scenario, then change the copy’s place or date. Maximum three; remove a location in Edit locations if full." onClick={onCopy}>Keep baseline & add comparison</button>}
       </div>
+      {onCoordinate && <details style={{ marginTop: 12 }}><summary>Choose your own coordinates</summary>
+        <p className="scene-mission__hint">Computed coverage: ±3 km around the seven polar research areas. The nearest available 100–200 m grid point is used; its coordinates and snapping distance are reported.</p>
+        <div className="scene-mission__fields">
+          <label>Latitude · degrees<input aria-label="Custom latitude" inputMode="decimal" value={latitude} onChange={e => setLatitude(e.target.value)} /></label>
+          <label>Longitude · east positive<input aria-label="Custom longitude" inputMode="decimal" value={longitude} onChange={e => setLongitude(e.target.value)} /></label>
+          <button type="button" onClick={() => setCoordinateMessage(onCoordinate(latitude.trim() ? Number(latitude) : NaN, longitude.trim() ? Number(longitude) : NaN))}>Use coordinates</button>
+        </div>
+        {coordinateMessage && <p role="status">{coordinateMessage}</p>}
+      </details>}
       <div className="scene-mission__fields">
         <label><span>Location</span>
           <select aria-label="Simulation location" value={chosen.siteId} onChange={e => onPatch({ siteId: e.target.value })}>

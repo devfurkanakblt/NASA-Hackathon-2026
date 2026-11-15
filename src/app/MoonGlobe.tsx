@@ -1,7 +1,8 @@
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { Html, OrbitControls } from '@react-three/drei'
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMoonSurfaceTexture } from '../scene3d/moonSurfaceTexture.ts'
+import { PolarMoonCap } from '../scene3d/PolarMoonCap.tsx'
 import type { Mesh } from 'three'
 import { createMoonRoute, moonPosition, sampleMoonRoute } from './moonFlight.ts'
 import type { CSSProperties } from 'react'
@@ -9,6 +10,18 @@ import type { SiteEntry } from '../data/contract.ts'
 
 export interface MoonPlace { key: string; site: SiteEntry; color: string; letter: string }
 export interface MoonFlight { from: SiteEntry; to: SiteEntry }
+
+function PoleCamera({ request }: { request: number }) {
+  const { camera, invalidate } = useThree()
+  useEffect(() => {
+    if (!request) return
+    camera.position.set(0, -1.18, .01)
+    camera.up.set(0, 0, -1)
+    camera.lookAt(0, 0, 0)
+    invalidate()
+  }, [request, camera, invalidate])
+  return null
+}
 
 function FlightCamera({ flight, onComplete }: { flight: MoonFlight; onComplete: () => void }) {
   const { camera, invalidate } = useThree()
@@ -34,20 +47,26 @@ function FlightCamera({ flight, onComplete }: { flight: MoonFlight; onComplete: 
   return null
 }
 
-export default function MoonGlobe({ sites, selected, onSelect, flight, onComplete, active = true }: {
+export default function MoonGlobe({ sites, selected, onSelect, onCoordinate, flight, onComplete, active = true }: {
   sites: SiteEntry[]; selected: MoonPlace[]; onSelect?: (site: SiteEntry) => void
   active?: boolean; flight?: MoonFlight; onComplete?: () => void
+  onCoordinate?: (latitude: number, longitude: number) => void
 }) {
   const moon = useRef<Mesh>(null!)
+  const [poleRequest, setPoleRequest] = useState(0)
   const { texture, failed } = useMoonSurfaceTexture()
   return <div className="moon-globe" aria-label={flight ? 'Travelling between selected lunar locations' : 'Interactive Moon location selector'}>
     <Canvas frameloop={active ? 'demand' : 'never'} camera={{ position: [0, -2.8, .65], up: [0, 0, -1], fov: 42, near: .0001, far: 30 }} dpr={[1, 1.75]}>
       <color attach="background" args={['#070a0f']} />
+      <PoleCamera request={poleRequest} />
       <ambientLight intensity={1.3} />
       <directionalLight position={[3, -4, 5]} intensity={2.5} />
+      <group onClick={e => { if (!flight && e.delta < 5) { e.stopPropagation(); const p = e.point.clone().normalize(); onCoordinate?.(Math.asin(p.y) * 180 / Math.PI, Math.atan2(-p.z, p.x) * 180 / Math.PI) } }}>
       <mesh ref={moon}><sphereGeometry args={[1, 128, 96]} />
         {texture ? <meshBasicMaterial map={texture} toneMapped={false} /> : <meshStandardMaterial color="#898985" roughness={1} />}
       </mesh>
+      <PolarMoonCap />
+      </group>
       {(flight ? selected.map(p => p.site) : sites).map((site, i) => {
         const picks = selected.filter(p => p.site.id === site.id)
         const color = picks[0]?.color ?? '#ddd8cc'
@@ -67,7 +86,8 @@ export default function MoonGlobe({ sites, selected, onSelect, flight, onComplet
       })}
       {flight && onComplete ? <FlightCamera flight={flight} onComplete={onComplete} /> : <OrbitControls makeDefault enablePan={false} minDistance={1.015} maxDistance={4} enableDamping dampingFactor={.12} />}
     </Canvas>
-    {!flight && <span className="moon-globe__hint">Drag to rotate · Scroll to zoom · Select a labelled location</span>}
+    {!flight && <button type="button" style={{ position: 'absolute', left: 12, bottom: 50, zIndex: 25 }} onClick={() => setPoleRequest(n => n + 1)}>Focus south pole</button>}
+    {!flight && <span className="moon-globe__hint">Drag to rotate · Scroll to zoom · Click a location or the surface (computed polar areas only)</span>}
     <span className="moon-globe__credit">{texture ? 'NASA/LROC WAC archive · Catalogue coordinates' : failed ? 'Image unavailable · Untextured catalogue locator' : 'Loading NASA/LROC imagery · Untextured globe'}</span>
   </div>
 }
