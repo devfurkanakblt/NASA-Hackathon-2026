@@ -255,12 +255,12 @@ export function MissionApp() {
       title: 'Where should a Moon lander go?',
       body: "Near the Moon's south pole the Sun and Earth stay low on the horizon, so a hill or a crater rim can hide them. This tool checks two things for a landing spot: does the lander get enough sunlight for power, and can it see Earth to send data home?",
     },
-    { target: 'places', title: '1. Pick places to compare', body: 'Choose up to three landing spots or start dates. Each one keeps its letter and colour (A, B, C) everywhere on the page.' },
+    { target: 'places', title: '1. Pick places to compare', body: 'Choose up to three landing spots and any start date within a year. Each one keeps its letter and colour (A, B, C) everywhere on the page.' },
     { target: 'result', title: '2. Read the answer', body: 'Each card answers the two questions. A green tick means the goal is met, a red cross means it is not. The bars show how much of the time the Sun and Earth are in view.' },
     {
       target: 'tabs',
       title: '3. See why',
-      body: 'These tabs show the reason behind the answer: the skyline the lander sees, the battery over time, a map of the area and how things change through the year.',
+      body: 'These tabs show the reason behind the answer: the skyline the lander sees, the battery over time, a map of the area and how things change through the year. On the area map you can pick any spot and test it as a landing place.',
       before: () => setTab('sky'),
     },
     { target: 'timebar', title: 'Move through time', body: 'Press Play or drag the slider. The skyline, the timelines and the 3D view all follow the same moment.', before: () => setTab('sky') },
@@ -335,6 +335,7 @@ export function MissionApp() {
               maxStartFor={maxStartFor}
               snap={(lat, lon) => snapToCell(lat, lon, loaded.bySite)}
               cellId={cellId}
+              bySite={loaded.bySite}
               onChange={(next) => {
                 setScenarios(next)
                 if (!next.some((s) => s.key === activeKey)) setActiveKey(next[0]?.key ?? null)
@@ -503,7 +504,7 @@ export function MissionApp() {
 
                 {tab === 'map' && (
                   <>
-                    <p className="explain">Every spot within {activeData.map ? activeData.map.grid.halfSizeM / 1000 : 3} km. Brighter means more time in view. Click a spot to read it.</p>
+                    <p className="explain">Every spot within {activeData.map ? activeData.map.grid.halfSizeM / 1000 : 3} km. Brighter means more time in view. Click a spot to read it, then test it as a landing place.</p>
                     {activeData.map ? (
                       <SiteMap
                         map={activeData.map}

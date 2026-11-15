@@ -4,6 +4,7 @@ import type { MissionSettings } from '../sim/evaluate.ts'
 import { fmtHours, fmtKWh, fmtPct, fmtUtc } from './format.ts'
 import { earthVerdict, powerVerdict } from './plain.ts'
 import type { Verdict } from './plain.ts'
+import { mapPointWhere, placeTitle } from './placeName.ts'
 import { isEvaluated } from './scenarios.ts'
 import type { ScenarioOutcome } from './scenarios.ts'
 
@@ -96,8 +97,9 @@ export function Comparison({ outcomes, settings, bySite, colors }: Props) {
                 {o.letter}
               </span>
               <div>
-                <b>{bySite[o.scenario.siteId]?.site.name ?? o.scenario.siteId}</b>
+                <b>{placeTitle(o.scenario.siteId, bySite)}</b>
                 <span className="muted small">
+                  {mapPointWhere(o.scenario.siteId, bySite) ? `${mapPointWhere(o.scenario.siteId, bySite)}, ` : ''}
                   {fmtDay(o.result?.alignedStartUtc ?? o.scenario.startUtc)}, {settings.durationDays} {settings.durationDays === 1 ? 'day' : 'days'}
                 </span>
               </div>
@@ -112,7 +114,7 @@ export function Comparison({ outcomes, settings, bySite, colors }: Props) {
                 </div>
               </>
             ) : (
-              <p className="bad small" role="alert">
+              <p className={o.loading ? 'muted small' : 'bad small'} role={o.loading ? 'status' : 'alert'}>
                 {o.error}
               </p>
             )}
