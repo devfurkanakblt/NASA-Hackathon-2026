@@ -34,9 +34,10 @@ const bySite: Record<string, SiteData> = Object.fromEntries(
     } as SiteData,
   ]),
 )
-const ext: ExtendedState = { years: {}, cells: {} }
+const ext: ExtendedState = { years: {}, cells: {}, headers: {} }
 for (const id of ['Site01', 'Site04R', 'Site07']) {
   const header = read<ExtendedHeader>(`${id}/extended.json`)
+  ext.headers![id] = header
   ext.years[id] = parseYear(id, header, readBin(`${id}/year.bin`))
   ext.cells[id] = parseCells(header, readBin(`${id}/cells.bin`))
 }
@@ -59,7 +60,7 @@ describe('story 2: a map point 630 m from the catalogue point (15 Nov 2026, 7 da
 
   it('map point Site01:r36c32 (200 m east, 600 m north): Earth 78.2 %, longest outage 36.7 h', () => {
     const { site, s } = run('Site01:r36c32', NOV)
-    expect(site.label).toBe('Regional map point (1° horizon), not a catalogue site')
+    expect(site.label).toBe('Regional screening estimate (1° horizon), not a catalogue site')
     expect([pct(s.sunVisibleFraction), pct(s.earthVisibleFraction), hours(s.longestEarthOutageS), s.keepsBatteryReserve]).toEqual([100, 78.2, 36.7, true])
   })
 })

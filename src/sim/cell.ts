@@ -5,11 +5,11 @@
  * Near the pole a few km change the azimuth by degrees, and the Earth's parallax over a few
  * km is included because the range is kept.
  */
-import type { BodySeries, EphemerisDoc, SiteData } from '../data/contract.ts'
-import { cellHorizon, type CellHorizons } from '../data/extended.ts'
+import type { BodySeries, EphemerisDoc, Provenance, SiteData } from '../data/contract.ts'
+import { cellHorizon, type CellHorizons, type ExtendedHeader } from '../data/extended.ts'
 
 export const MOON_RADIUS_M = 1737400
-export const CELL_LABEL = 'Regional map point (1° horizon), not a catalogue site'
+export const CELL_LABEL = 'Regional screening estimate (1° horizon), not a catalogue site'
 
 const RAD = Math.PI / 180
 
@@ -70,7 +70,7 @@ export function cellEphemeris(eph: EphemerisDoc, centre: Observer, cell: Observe
 }
 
 /** Cell (row, col) of the site's regional map as a site: own horizon, own ephemeris, labelled. */
-export function cellSiteData(base: SiteData, year: EphemerisDoc, cells: CellHorizons, row: number, col: number): SiteData {
+export function cellSiteData(base: SiteData, year: EphemerisDoc, cells: CellHorizons, header: ExtendedHeader, row: number, col: number): SiteData {
   const map = base.map
   if (!map) throw new RangeError(`${base.site.id} has no regional map.`)
   const { nx, ny } = map.grid
@@ -85,6 +85,11 @@ export function cellSiteData(base: SiteData, year: EphemerisDoc, cells: CellHori
   const m = (v: number) => `${Math.abs(Math.round(v))} m`
   const where = east === 0 && north === 0 ? 'site centre' : `${m(east)} ${east >= 0 ? 'east' : 'west'}, ${m(north)} ${north >= 0 ? 'north' : 'south'} of the site centre`
   const cell: Observer = { latDeg: map.latDeg[index], lonDeg: map.lonDeg[index], eyeM: cells.eyeM[index] }
+  const provenance: Provenance = {
+    latDeg: cell.latDeg, lonDeg: cell.lonDeg, observerHeightM: s.observerHeightM, eyeM: cell.eyeM,
+    horizonResolutionDeg: cells.azStepDeg, horizonSource: 'map-cell',
+    ephemerisSource: year.source, dataHash: header.year.sha256, precision: 'regional screening estimate', coverageWarnings: [],
+  }
   return {
     ...base,
     site: {
@@ -105,5 +110,6 @@ export function cellSiteData(base: SiteData, year: EphemerisDoc, cells: CellHori
     terrain: base.terrain,
     season: base.season,
     map,
+    provenance,
   }
 }

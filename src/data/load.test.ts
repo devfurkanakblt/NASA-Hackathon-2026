@@ -205,6 +205,15 @@ describe('map and independent annual season merge regressions', () => {
 })
 
 describe('catalogue-driven loading and optional visuals', () => {
+  it('catalogue provenance takes its resolution, source and eye height from the data', async () => {
+    const f = fixture()
+    mockFiles(f.docs)
+    const data = (await loadAllData('/data')).bySite.Site01
+    expect(data.provenance).toEqual({
+      latDeg: -89, lonDeg: 12, observerHeightM: 2, eyeM: 102, horizonResolutionDeg: 90, horizonSource: 'catalogue',
+      ephemerisSource: 'jpl-horizons', dataHash: null, precision: 'catalogue', coverageWarnings: [],
+    })
+  })
   it('does not register an old Earth map after A changes the site coordinate', async () => {
     const f = fixture()
     f.sites.sites[0].lonDeg = 20
@@ -405,6 +414,7 @@ it('loads the published scientific datasets without changing their values (local
   for (const { id } of catalogue.sites) {
     expect(loaded.bySite[id].ephemeris).toEqual(JSON.parse(readFileSync(`${directory}${id}/ephemeris.json`, 'utf8')))
     expect(loaded.bySite[id].horizon).toEqual(JSON.parse(readFileSync(`${directory}${id}/horizon.json`, 'utf8')))
+    expect(loaded.bySite[id].provenance).toMatchObject({ horizonResolutionDeg: 0.1, precision: 'catalogue', dataHash: null })
     expect(loaded.bySite[id].terrain).toBeDefined()
     if (existsSync(`${directory}${id}/terrain-far.json`)) expect(loaded.bySite[id].terrainFar).toBeDefined()
     if (existsSync(`${directory}${id}/earth-orientation.json`)) expect(loaded.bySite[id].earthOrientation).toBeDefined()

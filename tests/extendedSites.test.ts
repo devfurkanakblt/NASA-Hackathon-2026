@@ -95,10 +95,10 @@ describe('resolveSiteData', () => {
     expect(resolveSiteData(id, '2026-11-15T00:00:00Z', END, bySite, none)).toEqual({ loading: 'Loading map point…' })
     const ext: ExtendedState = { years: { Site01: yearOf('Site01') }, cells: { Site01: 'loading' } }
     expect(resolveSiteData(id, '2026-11-15T00:00:00Z', END, bySite, ext)).toEqual({ loading: 'Loading map point…' })
-    const done: ExtendedState = { years: { Site01: yearOf('Site01') }, cells: { Site01: cellsOf('Site01') } }
+    const done: ExtendedState = { years: { Site01: yearOf('Site01') }, cells: { Site01: cellsOf('Site01') }, headers: { Site01: header('Site01') } }
     const r = resolveSiteData(id, '2026-11-15T00:00:00Z', END, bySite, done)
     expect('data' in r && r.data.site.id).toBe(id)
-    const err: ExtendedState = { years: { Site01: 'error' }, cells: { Site01: cellsOf('Site01') } }
+    const err: ExtendedState = { years: { Site01: 'error' }, cells: { Site01: cellsOf('Site01') }, headers: { Site01: header('Site01') } }
     expect(resolveSiteData(id, '2026-11-15T00:00:00Z', END, bySite, err)).toEqual({ error: 'Map point data not available.' })
   })
 

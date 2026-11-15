@@ -179,7 +179,7 @@ const years = new Map<string, Promise<EphemerisDoc>>()
 const cellsCache = new Map<string, Promise<CellHorizons>>()
 
 /** Fetches and validates `extended.json`; `sha256` is not recomputed in the browser (tests check it). */
-function loadHeader(siteId: string, baseUrl: string): Promise<ExtendedHeader> {
+export function loadHeader(siteId: string, baseUrl = defaultBase()): Promise<ExtendedHeader> {
   return cached(headers, `${baseUrl}/${siteId}`, async () => {
     const header: unknown = await (await getOk(`${baseUrl}/${siteId}/extended.json`)).json()
     assertValidHeader(siteId, header)

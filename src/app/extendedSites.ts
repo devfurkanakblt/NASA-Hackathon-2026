@@ -4,7 +4,7 @@
  * scenario's id into the `SiteData` the unchanged engine runs on.
  */
 import type { EphemerisDoc, SiteData } from '../data/contract.ts'
-import type { CellHorizons } from '../data/extended.ts'
+import type { CellHorizons, ExtendedHeader } from '../data/extended.ts'
 import { cellSiteData } from '../sim/cell.ts'
 import { arcM } from './mapGrid.ts'
 
@@ -32,6 +32,8 @@ export type Loadable<T> = T | 'loading' | 'error'
 export interface ExtendedState {
   years: Record<string, Loadable<EphemerisDoc>>
   cells: Record<string, Loadable<CellHorizons>>
+  /** `extended.json` per site; a map point also needs it for the data hash. */
+  headers?: Record<string, ExtendedHeader>
 }
 
 export type Resolved = { data: SiteData } | { loading: string } | { error: string }
@@ -59,8 +61,9 @@ export function resolveSiteData(id: string, startUtc: string, coverageEndUtc: st
     const year = ext.years[cell.siteId]
     const cells = ext.cells[cell.siteId]
     if (year === 'error' || cells === 'error') return { error: 'Map point data not available.' }
-    if (!isLoaded(year) || !isLoaded(cells)) return { loading: 'Loading map point…' }
-    return { data: cellSiteData(base, year, cells, cell.row, cell.col) }
+    const header = ext.headers?.[cell.siteId]
+    if (!isLoaded(year) || !isLoaded(cells) || !header) return { loading: 'Loading map point…' }
+    return { data: cellSiteData(base, year, cells, header, cell.row, cell.col) }
   }
   const base = bySite[id]
   if (!base) return { error: `No data for site ${id}.` }

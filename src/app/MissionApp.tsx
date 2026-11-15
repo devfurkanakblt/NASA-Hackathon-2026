@@ -1,7 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import type { LoadedData, SiteData, SiteEntry } from '../data/contract.ts'
-import { loadCells, loadYear } from '../data/extended.ts'
+import { loadCells, loadHeader, loadYear } from '../data/extended.ts'
 import { loadAllData } from '../data/load.ts'
 import { MissionScene3D } from '../scene3d/index.ts'
 import { SceneMissionControls } from '../scene3d/SceneMissionControls.tsx'
@@ -213,6 +213,7 @@ export function MissionApp() {
       )
     }
     for (const id of cells) {
+      loadHeader(id).then((h) => setExt((e) => ({ ...e, headers: { ...e.headers, [id]: h } })), () => mark('cells', id, 'error'))
       mark('cells', id, 'loading')
       loadCells(id).then(
         (c) => mark('cells', id, c),

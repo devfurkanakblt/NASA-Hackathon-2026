@@ -1,4 +1,4 @@
-import type { LoadedData } from './contract.ts'
+import type { LoadedData, Provenance } from './contract.ts'
 import { validateCoverage } from './coverage.ts'
 import { validateTerrainNormal } from './terrainNormal.ts'
 import { validateLunarImagery } from './lunarImagery.ts'
@@ -76,7 +76,13 @@ export async function loadAllData(baseUrl = `${import.meta.env.BASE_URL}data`): 
       ...(localImagery && { imagery: { manifest: localImagery, textureUrl: `${root}/${localImagery.file}?v=${localImagery.sha256}` } }),
     } : terrain
     const displayFar = terrainFar && farImagery ? { ...terrainFar, imagery: { manifest: farImagery, textureUrl: `${root}/${farImagery.file}?v=${farImagery.sha256}` } } : terrainFar
-    return [site.id, { site, ephemeris, horizon, terrain: displayTerrain, terrainFar: displayFar, earthOrientation, visualWarnings, season, map }] as const
+    const provenance: Provenance = {
+      latDeg: site.latDeg, lonDeg: site.lonDeg, observerHeightM: site.observerHeightM,
+      eyeM: site.surfaceElevationM + site.observerHeightM,
+      horizonResolutionDeg: horizon.azStepDeg, horizonSource: 'catalogue',
+      ephemerisSource: ephemeris.source, dataHash: null, precision: 'catalogue', coverageWarnings: [],
+    }
+    return [site.id, { site, ephemeris, horizon, terrain: displayTerrain, terrainFar: displayFar, earthOrientation, visualWarnings, season, map, provenance }] as const
   }))
   // Optional: a missing or invalid coverage.json only removes the supported-area report.
   const coverage = await optionalVisual(`${base}/coverage.json`, doc => validateCoverage(doc, `${base}/coverage.json`), [])
