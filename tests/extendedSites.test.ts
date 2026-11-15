@@ -215,3 +215,23 @@ describe('acceptance: coverage limits and failure modes', () => {
     expect(() => parseCells(header('Site01'), new ArrayBuffer(0))).toThrow(/Site01\/cells\.bin/)
   })
 })
+
+describe('refined cells in scenarios (A → B)', () => {
+  it('a scenario on a revalidated cell uses the 0.1° horizon; other cells keep 1°', async () => {
+    const { resolveSiteData } = await import('../src/app/extendedSites.ts')
+    const { readFileSync } = await import('node:fs')
+    const dir = new URL('../public/data/', import.meta.url)
+    const rd = <T,>(p: string): T => JSON.parse(readFileSync(new URL(p, dir), 'utf8')) as T
+    const rb = (p: string) => { const b = readFileSync(new URL(p, dir)); return b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength) as ArrayBuffer }
+    const { parseCells, parseYear } = await import('../src/data/extended.ts')
+    const header = rd<ExtendedHeader>('Site01/extended.json')
+    const site = rd<SitesDoc>('sites.json').sites.find((s) => s.id === 'Site01')!
+    const bySite = { Site01: { site, ephemeris: rd('Site01/ephemeris.json'), horizon: rd('Site01/horizon.json'), map: rd('Site01/map.json') } as SiteData }
+    const ext = { years: { Site01: parseYear('Site01', header, rb('Site01/year.bin')) }, cells: { Site01: parseCells(header, rb('Site01/cells.bin')) }, headers: { Site01: header }, refined: { Site01: rd('Site01/refined.json') } }
+    const r = resolveSiteData('Site01:r36c32', '2026-11-15T00:00:00Z', '2027-01-01T00:00:00Z', bySite, ext as never)
+    expect('data' in r && r.data.horizon.azStepDeg).toBe(0.1)
+    expect('data' in r && r.data.provenance?.horizonSource).toBe('refined-cell')
+    const o = resolveSiteData('Site01:r36c33', '2026-11-15T00:00:00Z', '2027-01-01T00:00:00Z', bySite, ext as never)
+    expect('data' in o && o.data.horizon.azStepDeg).toBe(1)
+  })
+})

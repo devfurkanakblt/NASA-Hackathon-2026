@@ -300,3 +300,23 @@ same DEM (`tests/polarFreePoint.test.ts`):
 With the 80 m DEM the yearly Sun share is within 0.5 points of the catalogue; with the ~1.9 km global
 tiles alone it was off by up to 18 points at the pole, which is why the polar grid is used wherever
 it covers the point. A 10 km, ~78 m 3D display patch comes from the same DEM.
+
+### Search and scale (D, 15 Nov 2026)
+
+Measured in Node 24 on an Intel Core i7-13620H laptop (32 GB), one thread, data already loaded
+(the app runs the same code in a Web Worker). Samples: 10-minute steps, 1 009 per 7-day mission,
+4 321 per 30-day mission.
+
+| Search | Candidates tested | Time |
+|---|---:|---:|
+| Dates, Site04R, one-year series, 7-day mission (daily, then hourly and 10-min refinement) | 527 | 333 ms |
+| Dates, Connecting Ridge 2026–2029 package, 7-day mission | 1 350 | 812 ms |
+| Places, 26 catalogue sites, 7-day mission | 26 | 44 ms |
+| Places, Site01 ±3 km map (3 721 cells, refined finalists at 0.1°), 7-day mission | 3 721 | 2.45 s |
+| Places, Site01 ±3 km map, 30-day mission | 3 721 | 8.56 s |
+
+The 30-day map search is above the ~5 s screening target; it shows progress and can be cancelled,
+and a cancelled or over-budget search is reported as partial, never as the best answer. Scale edges
+covered by tests (`tests/scaleEdges.test.ts`): 12 scenarios side by side, 365- and 1 000-day missions on
+the three-year package (last valid start passes, +600 s is refused), a 365-day date search whose best
+equals the direct run, and cancellation after 100 candidates.

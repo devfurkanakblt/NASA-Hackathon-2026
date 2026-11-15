@@ -10,7 +10,7 @@ import type { ResearchProfile } from './research.ts'
 import { findMissionForPlace } from './missionPlanner.ts'
 import { findSouthernPlaces, type HemisphereInput } from './hemisphere.ts'
 import { cataloguePlaces, cellPlaces, findDatesForPlace, findNearbyEquivalentPlaces, findPlacesForDate } from './search.ts'
-import type { DateSearchInput, PlaceSource, SearchOptions, SearchResult, SearchMetric } from './search.ts'
+import type { DateSearchInput, PlaceSource, SearchOptions, SearchResult, SearchMetric, ResearchGoal } from './search.ts'
 
 export interface CellSource {
   base: SiteData
@@ -30,6 +30,7 @@ interface PlacesCommon {
   startUtc: string
   sortBy?: SearchMetric
   objective?: ResearchProfile | null
+  goal?: ResearchGoal | null
   profiles?: Record<string, ResearchProfile>
   coverage?: string
 }

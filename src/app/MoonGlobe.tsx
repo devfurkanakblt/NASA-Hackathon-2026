@@ -13,6 +13,7 @@ import { separateGlobeLabel, labelOffset } from './globeView.ts'
 import type { LabelBox } from './globeView.ts'
 import { createMoonRoute, moonLatLon, moonPosition, sampleMoonRoute } from './moonFlight.ts'
 import { PlaceInfo } from './PlaceInfo.tsx'
+import type { ResearchSummary } from './PlaceInfo.tsx'
 import type { CSSProperties } from 'react'
 import type { SiteEntry } from '../data/contract.ts'
 
@@ -132,8 +133,10 @@ function FlightCamera({ flight, onComplete }: { flight: MoonFlight; onComplete: 
   return null
 }
 
-export default function MoonGlobe({ sites, selected, onSelect, onPickPoint, flight, onComplete, focus, active = true }: {
+export default function MoonGlobe({ sites, selected, onSelect, onPickPoint, researchFor, flight, onComplete, focus, active = true }: {
   sites: SiteEntry[]; selected: MoonPlace[]; onSelect?: (site: SiteEntry) => void
+  /** Short Research-tab summary of a catalogue place for the label's info window (computed on open). */
+  researchFor?: (siteId: string) => ResearchSummary | null
   /** A click on the surface itself (not a label, not a drag): the clicked latitude / longitude. */
   onPickPoint?: (latDeg: number, lonDeg: number) => void
   active?: boolean; flight?: MoonFlight; onComplete?: () => void
@@ -199,7 +202,7 @@ export default function MoonGlobe({ sites, selected, onSelect, onPickPoint, flig
             <button type="button" className="moon-pin" style={{ color }}
               onClick={() => onSelect?.(site)} disabled={!!flight} title={picks.length ? 'Remove this place from the comparison' : 'Add this place to the comparison'} aria-pressed={picks.length > 0}>
               <span className="moon-pin__dot" />{picks.map(p => p.letter).join(' / ')}{picks.length ? ' · ' : ''}{site.name}
-            </button>{!flight && <PlaceInfo site={site} />}</div>
+            </button>{!flight && <PlaceInfo site={site} research={researchFor} />}</div>
           </Html>
         </group>
       })}

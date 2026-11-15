@@ -2,7 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } fro
 import type { CSSProperties } from 'react'
 import { motion, useAnimate, useReducedMotion } from 'motion/react'
 import type { LoadedData, SiteData, SiteEntry } from '../data/contract.ts'
-import { loadCells, loadHeader, loadYear } from '../data/extended.ts'
+import { loadCells, loadHeader, loadRefined, loadYear } from '../data/extended.ts'
 import { loadAllData, loadSiteVisuals } from '../data/load.ts'
 import { MissionScene3D } from '../scene3d/index.ts'
 import { SceneMissionControls } from '../scene3d/SceneMissionControls.tsx'
@@ -10,7 +10,7 @@ import { SceneMissionSummary } from '../scene3d/SceneMissionSummary.tsx'
 import type { BodyState, PanelState } from '../scene3d/index.ts'
 import type { TerrainGrid } from '../scene3d/types.ts'
 import { earthOrientationAt, earthOrientationCoverageWarning, earthSunDirectionAt } from '../scene3d/appearance.ts'
-import { DEFAULT_SETTINGS, missionStartRange, validateSettings } from '../sim/evaluate.ts'
+import { DEFAULT_SETTINGS, evaluateScenario, missionStartRange, validateSettings } from '../sim/evaluate.ts'
 import type { MissionSettings } from '../sim/evaluate.ts'
 import { dailyVisibility } from '../sim/events.ts'
 import { earthWobble } from './libration.ts'
@@ -35,6 +35,8 @@ import { defaultScenarios, elevationStats, evaluateAll, isEvaluated, newKey, sce
 import type { Scenario } from './scenarios.ts'
 import { PlaceList } from './PlaceList.tsx'
 import { ResearchView } from './ResearchView.tsx'
+import type { ResearchSummary } from './PlaceInfo.tsx'
+import { RESEARCH_TYPES, researchMetrics } from '../sim/research.ts'
 import { SearchPanel } from './SearchPanel.tsx'
 import { PackageImport } from './PackageImport.tsx'
 import { registerPackage } from '../data/packageService.ts'
@@ -288,6 +290,8 @@ export function MissionApp() {
     for (const id of cells) {
       mark('cells', id, 'loading')
       loadHeader(id).then((h) => setExt((e) => ({ ...e, headers: { ...e.headers, [id]: h } })), () => mark('cells', id, 'error'))
+      // Optional: finalist cells revalidated at 0.1° (A); a missing file just keeps the 1° screening horizon.
+      loadRefined(id).then((r) => setExt((e) => ({ ...e, refined: { ...e.refined, [id]: r } })), () => setExt((e) => ({ ...e, refined: { ...e.refined, [id]: null } })))
       loadCells(id).then(
         (c) => mark('cells', id, c),
         () => mark('cells', id, 'error'),
@@ -591,6 +595,22 @@ export function MissionApp() {
     return { ok: true, text: `${pkg.data.site.name} added: data ${m.coverage.startUtc.slice(0, 10)} to ${m.coverage.endUtc.slice(0, 10)} (${m.horizonResolutionDeg}° horizon)${m.warnings.length ? `; ${m.warnings.length} coverage warning(s) shown with its results` : ''}.` }
   }
 
+  /** Research-tab criteria for a catalogue place at the first scenario's start, for the globe's info window. */
+  const researchFor = (siteId: string): ResearchSummary | null => {
+    const d = loaded.bySite[siteId]
+    if (!d) return null
+    const start = scenarios[0]?.startUtc ?? loaded.sites.coverage.startUtc
+    try {
+      const m = researchMetrics(d, evaluateScenario(d, start, settings), loaded.psrs ?? [])
+      return {
+        context: `${settings.durationDays}-day mission from ${fmtUtc(start)}`,
+        lines: RESEARCH_TYPES.map((t) => ({ title: t.title, ...t.assess(m) })),
+      }
+    } catch {
+      return null // e.g. a start outside this place's loaded series: say nothing rather than guess
+    }
+  }
+
   /** A typed or clicked coordinate: the best available place for it, added to the picked places. */
   const addCoordinate = (lat: number, lon: number): { ok: boolean; text: string } => {
     const choice = placeForCoordinate(lat, lon, loaded.bySite)
@@ -681,7 +701,7 @@ export function MissionApp() {
                 <MoonGlobe active={simulationStage === 'pick' || !!flight} flight={flight ?? undefined} focus={globeFocus} onComplete={() => { if (flight) { setActiveKey(flight.targetKey); setFlight(null) } }} sites={loaded.sites.sites} selected={(flight ? scenarios : picked).flatMap((s, i) => {
                   const site = shownBySite[s.siteId]?.site ?? loaded.sites.sites.find(site => site.id === s.siteId)
                   return site ? [{ key: s.key, site, letter: scenarioLabel(i), color: colors[i] }] : []
-                })} onSelect={togglePlace}
+                })} onSelect={togglePlace} researchFor={researchFor}
                   onPickPoint={(lat, lon) => setPickMessage(addCoordinate(lat, lon))} />
               </Suspense>
               {/* Actions float in the globe's lower-right corner once a place is chosen: no scrolling down. */}
@@ -849,6 +869,7 @@ export function MissionApp() {
                 settings={settings}
                 bySite={loaded.bySite}
                 titles={shownBySite}
+                psrs={loaded.psrs ?? []}
                 onAdd={(siteId, startUtc) => { const next = [...scenarios, { key: newKey(), siteId, startUtc }]; setScenarios(next); setPicked(next) }}
               />
             )}

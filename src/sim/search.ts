@@ -26,8 +26,8 @@ import { cellEphemerisSlice, centreObserver, CELL_LABEL, REFINED_CELL_LABEL, usa
 import { moonFixedKey, moonFixedSeries, projectWindow } from './moonFixed.ts'
 import { CoverageError, SettingsError, evaluateScenario, validateSettings } from './evaluate.ts'
 import type { MissionSettings, ScenarioSummary } from './evaluate.ts'
-import { arcDistanceM, compareResearch, RESEARCH_UNVERIFIED } from './research.ts'
-import type { ResearchDecision, ResearchProfile } from './research.ts'
+import { arcDistanceM, compareResearch, RESEARCH_TYPES, RESEARCH_UNVERIFIED, researchMetrics } from './research.ts'
+import type { Fit, Psr, ResearchDecision, ResearchProfile, ResearchType } from './research.ts'
 
 export type SearchMetric = 'minSoc' | 'bothVisible' | 'earthOutage'
 
@@ -72,6 +72,8 @@ export interface SearchCandidate {
   /** Not dominated by any other feasible candidate (always false for infeasible ones). */
   pareto: boolean
   research: ResearchDecision
+  /** Assessment of the chosen research goal (Research tab criteria), when one was chosen. */
+  goalFit?: { fit: Fit; value: string }
   /** Distance from the search origin, when there is one. */
   distanceM?: number
 }
@@ -211,6 +213,27 @@ export function precisionOf(data: SiteData, fallback: Precision): { precision: P
   return { precision: 'catalogue', label: `${kind}: ${p.horizonResolutionDeg}° terrain horizon${warn}` }
 }
 
+/**
+ * A research goal from the Research tab (C's `RESEARCH_TYPES`, NASA's own criteria) used as the
+ * first, hard filter: a candidate whose assessment is `no` fails with code `research`; energy and
+ * Earth-view limits come next, then the visible ranking measure.
+ */
+export interface ResearchGoal {
+  type: ResearchType['id']
+  /** South-pole PSR list (`psr-south.json`) for the water-ice goal. */
+  psrs: Psr[]
+}
+
+function goalNote(goal: ResearchGoal | null | undefined): string[] {
+  const type = goal ? RESEARCH_TYPES.find((t) => t.id === goal.type) : undefined
+  return type ? [`Research goal “${type.title}” was checked first (${type.rule}); options that do not fit it were dropped before the energy and Earth-view limits.`] : []
+}
+
+interface Criteria {
+  objective?: ResearchProfile | null
+  goal?: ResearchGoal | null
+}
+
 interface Job {
   siteId: string
   startUtc: string
@@ -220,18 +243,20 @@ interface Job {
   profile?: ResearchProfile | null
 }
 
-function runJob(job: Job, settings: MissionSettings, objective: ResearchProfile | null | undefined): SearchCandidate {
+function runJob(job: Job, settings: MissionSettings, crit: Criteria): SearchCandidate {
+  const objective = crit.objective
   let base = { siteId: job.siteId, precision: job.precision, precisionLabel: LABELS[job.precision], pareto: false, distanceM: job.distanceM }
   let data: SiteData
   let summary: ScenarioSummary
+  let result: ReturnType<typeof evaluateScenario>
   let startUtc = job.startUtc
   try {
     data = job.data()
     const p = precisionOf(data, job.precision)
     base = { ...base, precision: p.precision, precisionLabel: p.label }
-    const r = evaluateScenario(data, job.startUtc, settings)
-    summary = r.summary
-    startUtc = r.alignedStartUtc
+    result = evaluateScenario(data, job.startUtc, settings)
+    summary = result.summary
+    startUtc = result.alignedStartUtc
   } catch (e) {
     if (e instanceof SettingsError) throw e
     const code: FailureCode = e instanceof CoverageError ? 'coverage' : 'data'
@@ -240,10 +265,18 @@ function runJob(job: Job, settings: MissionSettings, objective: ResearchProfile 
   }
   const research = compareResearch(objective, job.profile, { latDeg: data.site.latDeg, lonDeg: data.site.lonDeg }, summary)
   const failures: ConstraintFailure[] = []
+  let goalFit: { fit: Fit; value: string } | undefined
+  if (crit.goal) {
+    const type = RESEARCH_TYPES.find((t) => t.id === crit.goal!.type)
+    if (type) {
+      goalFit = type.assess(researchMetrics(data, result, crit.goal.psrs))
+      if (goalFit.fit === 'no') failures.push({ code: 'research', message: `${type.title}: ${goalFit.value}` })
+    }
+  }
   if (objective && research.match === 'incompatible') failures.push({ code: 'research', message: research.reasons.join(' ') })
   failures.push(...constraintFailures(summary, settings))
   const dataBad = failures.some((f) => f.code === 'data')
-  return { ...base, startUtc, metrics: dataBad ? null : metricsOf(summary), summary, feasible: failures.length === 0, failures, research }
+  return { ...base, startUtc, metrics: dataBad ? null : metricsOf(summary), summary, feasible: failures.length === 0, failures, research, goalFit }
 }
 
 interface RunState {
@@ -253,7 +286,7 @@ interface RunState {
   stopped: SearchStatus | null
 }
 
-async function runJobs(jobs: Job[], settings: MissionSettings, objective: ResearchProfile | null | undefined, opts: SearchOptions, state: RunState, out: SearchCandidate[]): Promise<void> {
+async function runJobs(jobs: Job[], settings: MissionSettings, crit: Criteria, opts: SearchOptions, state: RunState, out: SearchCandidate[]): Promise<void> {
   const chunk = Math.max(1, opts.chunkSize ?? 24)
   state.planned += jobs.length
   for (let i = 0; i < jobs.length; i += chunk) {
@@ -265,7 +298,7 @@ async function runJobs(jobs: Job[], settings: MissionSettings, objective: Resear
       state.stopped = 'partial'
       return
     }
-    for (const job of jobs.slice(i, i + chunk)) out.push(runJob(job, settings, objective))
+    for (const job of jobs.slice(i, i + chunk)) out.push(runJob(job, settings, crit))
     state.done += Math.min(chunk, jobs.length - i)
     opts.onProgress?.(state.done, state.planned)
     await yieldNow()
@@ -360,6 +393,8 @@ export interface DateSearchInput {
   sortBy?: SearchMetric
   precision?: Precision
   objective?: ResearchProfile | null
+  /** Research goal used as the first hard filter (Research tab criteria). */
+  goal?: ResearchGoal | null
   profile?: ResearchProfile | null
 }
 
@@ -395,7 +430,7 @@ export async function findDatesForPlace(input: DateSearchInput, opts: SearchOpti
   // Coarse: every `coarseS` from `fromUtc`, also the starts outside the data (they fail as `coverage`, not dropped).
   const coarse: number[] = []
   for (let t = from; t <= to; t += coarseS * 1000) coarse.push(t)
-  await runJobs(jobsFor(coarse), settings, input.objective, opts, state, all)
+  await runJobs(jobsFor(coarse), settings, input, opts, state, all)
 
   const refineS: number[] = []
   if ((input.refine ?? true) && !state.stopped) {
@@ -414,11 +449,11 @@ export async function findDatesForPlace(input: DateSearchInput, opts: SearchOpti
           if (t >= from && t <= to) times.push(t)
         }
       }
-      await runJobs(jobsFor(times), settings, input.objective, opts, state, all)
+      await runJobs(jobsFor(times), settings, input, opts, state, all)
     }
   }
 
-  const notes: string[] = [`Place fixed: ${data.site.name} (${data.site.id}). Same hardware and ${settings.durationDays}-day mission for every start.`]
+  const notes: string[] = [`Place fixed: ${data.site.name} (${data.site.id}). Same hardware and ${settings.durationDays}-day mission for every start.`, ...goalNote(input.goal)]
   if (from < cov.t0 || to > cov.lastStart) notes.push(`Data covers mission starts ${iso(cov.t0).slice(0, 16)} to ${iso(cov.lastStart).slice(0, 16)} UTC; starts outside are reported as outside the computed period, not shifted.`)
   return finish('dates', all, state, sortBy, opts, {
     searchedRange: { fromUtc: iso(from), toUtc: iso(to) },
@@ -530,6 +565,8 @@ export interface PlaceSearchInput {
   startUtc: string
   sortBy?: SearchMetric
   objective?: ResearchProfile | null
+  /** Research goal used as the first hard filter (Research tab criteria). */
+  goal?: ResearchGoal | null
   /** Words for `spatialCoverage`, e.g. "Catalogue sites + ±3 km map of Site01". */
   coverage?: string
   /** For distance-limited searches. */
@@ -554,7 +591,7 @@ export async function findPlacesForDate(input: PlaceSearchInput, opts: SearchOpt
   if (!Number.isFinite(t)) throw new RangeError('The mission start needs a valid UTC time.')
   const state: RunState = { started: Date.now(), done: 0, planned: 0, stopped: null }
   const all: SearchCandidate[] = []
-  await runJobs(placeJobs(input), input.settings, input.objective, opts, state, all)
+  await runJobs(placeJobs(input), input.settings, input, opts, state, all)
   const cells = input.places.filter((p) => p.precision !== 'catalogue').length
   const description = input.coverage ?? `${input.places.length - cells} catalogue site(s) and ${cells} map point(s)`
   return finish('places', all, state, sortBy, opts, {
@@ -562,7 +599,7 @@ export async function findPlacesForDate(input: PlaceSearchInput, opts: SearchOpt
     timeStep: { coarseS: null, refineS: [] },
     spatialCoverage: { description, places: input.places.length },
     objectiveId: input.objective?.objectiveId ?? null,
-  }, [`Start fixed: ${iso(t).slice(0, 16)} UTC. Same hardware and ${input.settings.durationDays}-day mission at every place. Only the listed places were searched, not the whole Moon.`])
+  }, [`Start fixed: ${iso(t).slice(0, 16)} UTC. Same hardware and ${input.settings.durationDays}-day mission at every place. Only the listed places were searched, not the whole Moon.`, ...goalNote(input.goal)])
 }
 
 // ---------------------------------------------------------------------------------------------

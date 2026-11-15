@@ -1,5 +1,14 @@
-import { useEffect, useId, useRef, useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import type { SiteEntry } from '../data/contract.ts'
+
+/** The Research tab's criteria for one place and mission, in short lines (computed from the engine, never invented). */
+export interface ResearchSummary {
+  /** e.g. "7-day mission from 2026-11-15 00:00 UTC". */
+  context: string
+  lines: { title: string; fit: 'strong' | 'possible' | 'no'; value: string }[]
+}
+
+const FIT_TEXT = { strong: 'fits well', possible: 'fits partly', no: 'does not fit' } as const
 
 const STATUS: Record<string, string> = {
   landed: 'Historical landing site',
@@ -49,8 +58,11 @@ export function placeInfo(site: SiteEntry): PlaceInfoText {
  * keeps it open; Escape or a second tap closes it. It never adds or removes the place: only the
  * label itself does that.
  */
-export function PlaceInfo({ site }: { site: SiteEntry }) {
+export function PlaceInfo({ site, research }: { site: SiteEntry; research?: (siteId: string) => ResearchSummary | null }) {
   const [open, setOpen] = useState(false)
+  // Computed once the window is first shown (hover, focus or tap), not for every label on every render.
+  const [seen, setSeen] = useState(false)
+  const summary = useMemo(() => (seen && research ? research(site.id) : null), [seen, research, site.id])
   const id = useId()
   const ref = useRef<HTMLSpanElement>(null)
   const info = placeInfo(site)
@@ -63,14 +75,23 @@ export function PlaceInfo({ site }: { site: SiteEntry }) {
     return () => { window.removeEventListener('keydown', onKey); window.removeEventListener('pointerdown', onDown) }
   }, [open])
   return (
-    <span ref={ref} className={`place-info${open ? ' is-open' : ''}`} onKeyDown={(e) => { if (e.key === 'Escape') setOpen(false) }}>
+    <span ref={ref} className={`place-info${open ? ' is-open' : ''}`} onKeyDown={(e) => { if (e.key === 'Escape') setOpen(false) }}
+      onPointerEnter={() => setSeen(true)} onFocus={() => setSeen(true)}>
       <button type="button" className="place-info__button" aria-expanded={open} aria-controls={id} aria-label={`About ${site.name}`}
-        onClick={(e) => { e.stopPropagation(); setOpen((o) => !o) }}>i</button>
+        onClick={(e) => { e.stopPropagation(); setSeen(true); setOpen((o) => !o) }}>i</button>
       <span id={id} role="dialog" aria-label={`About ${site.name}`} className="place-info__window">
         <b>{info.title}</b>
         <span className="place-info__coord">{info.coordinate}</span>
         <span>{info.kind}</span>
-        <span className="place-info__research">{info.research}</span>
+        {summary ? (
+          <span className="place-info__research">
+            <span>What could be studied here ({summary.context}):</span>
+            <ul>{summary.lines.map((l) => <li key={l.title}>{l.title}: <b>{FIT_TEXT[l.fit]}</b> ({l.value})</li>)}</ul>
+            <span>Same-research equivalence with other places is not verified. Details: Results → Research.</span>
+          </span>
+        ) : (
+          <span className="place-info__research">{info.research}</span>
+        )}
         <details>
           <summary>Details</summary>
           <ul>{info.details.map((d) => <li key={d}>{d}</li>)}</ul>
